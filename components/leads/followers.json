@@ -1,0 +1,5537 @@
+[{
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Dec 09 00:10:08 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 0,
+    "followers_count": 36,
+    "friends_count": 978,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Shorndea",
+    "normal_followers_count": 36,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1865911769191124992/1733703025",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1865911789625765888/CKj3nsgu_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "ShorndeazMRQIj",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1865911769191124992",
+    "rest_id": "1865911769191124992",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Jan 23 22:10:03 +0000 2009",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "Talent obsessed sourcing nerd gigs through @immersivehiring | #talent #growth #nocode. Also, crazy enough to still go for it #now building directories.",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "dez5050.carrd.co",
+            "expanded_url": "https://dez5050.carrd.co/",
+            "url": "https://t.co/gYHuJciyRR",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 7757,
+    "followers_count": 2588,
+    "friends_count": 989,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 111,
+    "location": "Ireland / Hungary",
+    "media_count": 2292,
+    "name": "Dez S. Papp",
+    "normal_followers_count": 2588,
+    "pinned_tweet_ids_str": [
+      "1856689276819235024"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/19416959/1644247813",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/743151760609525764/5KsrIIz6_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "sugardayfox",
+    "statuses_count": 15019,
+    "translator_type": "none",
+    "url": "https://t.co/gYHuJciyRR",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "19416959",
+    "rest_id": "19416959",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "following": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat May 14 11:20:29 +0000 2016",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "co-founder / ceo @ FRND, vibe | crafting social interactions for next billion users (NBU)",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1721,
+    "followers_count": 682,
+    "friends_count": 959,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 6,
+    "location": "Bengaluru, India",
+    "media_count": 141,
+    "name": "bhanu pratap singh tanwar",
+    "normal_followers_count": 682,
+    "pinned_tweet_ids_str": [
+      "1875196213517013273"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/731444066307579904/1666586992",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1764631695813160960/LZEevVif_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "_bpst",
+    "statuses_count": 1103,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": true,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "731444066307579904",
+    "rest_id": "731444066307579904",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1456369928022343691",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 958,
+          "name": "Entrepreneur",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Nov 08 17:55:34 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "• Full Stack Developer\n• Enjoy creating stuff with Coding\n• Development is ❣️\n• Chill x Code ☕",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "debsouryacodez.vercel.app",
+            "expanded_url": "https://debsouryacodez.vercel.app/",
+            "url": "https://t.co/Ov6Mb1XpIF",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 7265,
+    "followers_count": 595,
+    "friends_count": 509,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Agartala,India",
+    "media_count": 100,
+    "name": "Debsourya Datta",
+    "normal_followers_count": 595,
+    "pinned_tweet_ids_str": [
+      "1870180359998189674"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1457768707468316673/1685730354",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1759264092236226560/BiJCNiWx_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "debsourya005",
+    "statuses_count": 2036,
+    "translator_type": "none",
+    "url": "https://t.co/Ov6Mb1XpIF",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1457768707468316673",
+    "rest_id": "1457768707468316673",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Nov 21 17:02:43 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Learning full stack developer(nextjs/mern) |\nDocumenting my journey in tech |\nGetting 0.1% better everyday |\nOpen to freelance opportunities",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 181,
+    "followers_count": 6,
+    "friends_count": 44,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Pune, Maharashtra",
+    "media_count": 6,
+    "name": "Preetam Patil",
+    "normal_followers_count": 6,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1859643547970113536/1733513766",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1859644845977108482/Gv194aDJ_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "preet4m",
+    "statuses_count": 57,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1859643547970113536",
+    "rest_id": "1859643547970113536",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat Nov 30 05:59:08 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "🌃",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 564,
+    "followers_count": 9,
+    "friends_count": 232,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Patna",
+    "media_count": 0,
+    "name": "Priyanshu .",
+    "normal_followers_count": 9,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1862738733570625536/LE_EMx2q_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "priyanshu_cpp1",
+    "statuses_count": 9,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1862738066475294721",
+    "rest_id": "1862738066475294721",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Tue Nov 20 16:53:44 +0000 2012",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "As a passionate software developer, I am driven by a relentless pursuit of efficiency. My focus remains steadfast on creating high speed and amazing web product",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1182,
+    "followers_count": 253,
+    "friends_count": 354,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "In your mind",
+    "media_count": 112,
+    "name": "Rex",
+    "normal_followers_count": 253,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/960813631/1661537541",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1782065688275771392/Scm2dEDj_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "IdahRex",
+    "statuses_count": 9170,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "960813631",
+    "rest_id": "960813631",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Feb 08 17:05:11 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Software Engineer\nAthlete\nFitness Trainer(get personalized training)\nemail - sahasaikat782@gmail.com",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 2191,
+    "followers_count": 9,
+    "friends_count": 73,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "collab-sahasaikat782@gmail.com",
+    "media_count": 8,
+    "name": "Saikat Saha",
+    "normal_followers_count": 9,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1789305223187492864/CyNCZEnw_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Saikaatsaha",
+    "statuses_count": 501,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1491095657217925124",
+    "rest_id": "1491095657217925124",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1607331696726405120",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 800,
+          "name": "Sports, Fitness & Recreation",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Thu Apr 03 06:09:17 +0000 2008",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Co-creator of AI PDF GPT and AI Drive. Formerly WhatsApp, Uber and LinkedIn.",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "myaidrive.com",
+            "expanded_url": "http://myaidrive.com",
+            "url": "https://t.co/jCErBXZpBo",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 38561,
+    "followers_count": 2095,
+    "friends_count": 2073,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 65,
+    "location": "San Francisco Bay Area",
+    "media_count": 699,
+    "name": "Vicente Silveira",
+    "normal_followers_count": 2095,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/14290802/1706646441",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1752428304693608448/Jm3DlZdK_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "vicentes",
+    "statuses_count": 46723,
+    "translator_type": "none",
+    "url": "https://t.co/jCErBXZpBo",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "14290802",
+    "rest_id": "14290802",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Dec 25 11:56:40 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "21 • Senior @IIITDelhi • Engineer/ML • main: @me_tushari • psychology • Effective Altruism • Productivity U Failures",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "linktr.ee/tusharchandra",
+            "expanded_url": "https://linktr.ee/tusharchandra",
+            "url": "https://t.co/mvbaVFRkId",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1952,
+    "followers_count": 213,
+    "friends_count": 785,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 1,
+    "location": "",
+    "media_count": 180,
+    "name": "tushar.dev",
+    "normal_followers_count": 213,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1739253797615292416/1721337834",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1778501404455546881/L_4vWgwz_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "goodvibhesonly",
+    "statuses_count": 1093,
+    "translator_type": "none",
+    "url": "https://t.co/mvbaVFRkId",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1739253797615292416",
+    "rest_id": "1739253797615292416",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Jul 05 15:28:16 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "If you want to walk fast, walk alone. But if you want to walk far, walk together.",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "github.com/htiwari578",
+            "expanded_url": "https://github.com/htiwari578",
+            "url": "https://t.co/9KVn145ThB",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 15,
+    "followers_count": 33,
+    "friends_count": 469,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "India",
+    "media_count": 20,
+    "name": "Himanshu",
+    "normal_followers_count": 33,
+    "pinned_tweet_ids_str": [
+      "1844362090393530725"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1676613853302382593/1734730134",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1869837706525634560/M0mVJszg_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "FindingJob11",
+    "statuses_count": 200,
+    "translator_type": "none",
+    "url": "https://t.co/9KVn145ThB",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1676613853302382593",
+    "rest_id": "1676613853302382593",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1678572507903696896",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 1055,
+          "name": "Software developer/Programmer/Software engineer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Fri Oct 27 20:14:45 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 14,
+    "followers_count": 2,
+    "friends_count": 10,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 5,
+    "name": "Sahil Gupta",
+    "normal_followers_count": 2,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1871629303001329665/X8iqQzmO_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "guptas3067",
+    "statuses_count": 19,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1717998104379875328",
+    "rest_id": "1717998104379875328",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat Dec 30 05:40:52 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "let's hack the brain |  AI, coding enthusiast  |Tech head | 21",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 114,
+    "followers_count": 100,
+    "friends_count": 403,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Pune, India",
+    "media_count": 11,
+    "name": "sanika",
+    "normal_followers_count": 100,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1740971139667804160/1733935012",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1847008858566270976/0wUZ6eeZ_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "sani_kaa_",
+    "statuses_count": 74,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1740971139667804160",
+    "rest_id": "1740971139667804160",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1868588743843799052",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 713,
+          "name": "Science & Technology",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat Jan 08 15:20:50 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Deep in the trenches | in crypto since 2k17 | $retardio | Follow me for alpha - join my telegram for being EARLY",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "t.me/solsantox",
+            "expanded_url": "https://t.me/solsantox",
+            "url": "https://t.co/vFNQcJuxp2",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 6838,
+    "followers_count": 3559,
+    "friends_count": 7229,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 8,
+    "location": "No financial advice",
+    "media_count": 248,
+    "name": "SolSanto",
+    "normal_followers_count": 3559,
+    "pinned_tweet_ids_str": [
+      "1870168282067869976"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1479835348746260482/1733736920",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1864960999238807552/3RxmSqvS_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "SolSantoX",
+    "statuses_count": 1315,
+    "translator_type": "none",
+    "url": "https://t.co/vFNQcJuxp2",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1479835348746260482",
+    "rest_id": "1479835348746260482",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon May 01 18:29:41 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "learner.builder.churner",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1618,
+    "followers_count": 69,
+    "friends_count": 247,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "India",
+    "media_count": 54,
+    "name": "Muneer 🍂",
+    "normal_followers_count": 69,
+    "pinned_tweet_ids_str": [
+      "1836141583944851703"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1653104116095418369/1683105382",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1653123765570777088/sizwSouW_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "mun_err",
+    "statuses_count": 352,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1653104116095418369",
+    "rest_id": "1653104116095418369",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Jan 21 00:12:34 +0000 2019",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Full Stack Developer(MERN) • Open Source Contributor • Open for work ✉️: suyashworkmail0@gmail.com",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "suyashchandrakar03.medium.com",
+            "expanded_url": "https://suyashchandrakar03.medium.com",
+            "url": "https://t.co/N7aDKAFZGn",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 6220,
+    "followers_count": 75,
+    "friends_count": 100,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Bhilai, India",
+    "media_count": 115,
+    "name": "Suyash Chandrakar",
+    "normal_followers_count": 75,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1087140863489191936/1734851805",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1874081427849203713/71FJLFUg_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Yashuchandrakar",
+    "statuses_count": 749,
+    "translator_type": "none",
+    "url": "https://t.co/N7aDKAFZGn",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1087140863489191936",
+    "rest_id": "1087140863489191936",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1607070518569758720",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 1055,
+          "name": "Software developer/Programmer/Software engineer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Mar 16 07:33:46 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Full Stack Dev | DSA | CP | Travel 🌍",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 335,
+    "followers_count": 62,
+    "friends_count": 409,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Mariana Trench",
+    "media_count": 17,
+    "name": "Vicky Rajput",
+    "normal_followers_count": 62,
+    "pinned_tweet_ids_str": [
+      "1874418850688884801"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1636269453158629378/1724208757",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1847320816997863424/OrZ_Gxsy_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "RajputVicky_",
+    "statuses_count": 396,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1636269453158629378",
+    "rest_id": "1636269453158629378",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Sep 22 18:32:24 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "❤️de ka IIT \nCode and Cod",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 52,
+    "followers_count": 1,
+    "friends_count": 223,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 30,
+    "name": "twiter_user",
+    "normal_followers_count": 1,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1766735739364966401/RsJGmu-C_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "TwoSuper375388",
+    "statuses_count": 78,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1705288859746172930",
+    "rest_id": "1705288859746172930",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": false,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1719443802291847417",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 1055,
+          "name": "Software developer/Programmer/Software engineer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Dec 03 06:21:49 +0000 2013",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Learning from life's experiences. 🌄 Connecting for wisdom. 📚 #LifeJourney #WisdomSeeker",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 4886,
+    "followers_count": 320,
+    "friends_count": 1522,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Noida india",
+    "media_count": 141,
+    "name": "Manish Kumar",
+    "normal_followers_count": 320,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/2205576838/1693608212",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1697254684166422528/jtbsRfOx_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Manishk67735109",
+    "statuses_count": 314,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "2205576838",
+    "rest_id": "2205576838",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Apr 22 16:54:42 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Software engineer",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 106,
+    "followers_count": 56,
+    "friends_count": 1476,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 1,
+    "name": "Rushikesh Patil",
+    "normal_followers_count": 56,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1517547457395056640/U1NAexVG_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Rushike36609852",
+    "statuses_count": 35,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1517547364822634496",
+    "rest_id": "1517547364822634496",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1856575817431822690",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 1055,
+          "name": "Software developer/Programmer/Software engineer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Jun 18 14:40:36 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Software developer || Intern @ HyperlanceAI",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "prajjwal.dev",
+            "expanded_url": "http://prajjwal.dev",
+            "url": "https://t.co/CY5VN70Rjm",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 3819,
+    "followers_count": 84,
+    "friends_count": 277,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "New Delhi",
+    "media_count": 45,
+    "name": "prajjwal sharma",
+    "normal_followers_count": 84,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1405897733651648516/1726163760",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1852647188314353664/Oyw2ibaf_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "iprajjwalsharma",
+    "statuses_count": 638,
+    "translator_type": "none",
+    "url": "https://t.co/CY5VN70Rjm",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1405897733651648516",
+    "rest_id": "1405897733651648516",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1788195807272796351",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 1055,
+          "name": "Software developer/Programmer/Software engineer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": true
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Jun 06 01:46:37 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "https://t.co/NKCg4JRTVZ IIT Roorkee '25 .                                 Even heaven demands death",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "B.Tech",
+            "expanded_url": "http://B.Tech",
+            "url": "https://t.co/NKCg4JRTVZ",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 5548,
+    "followers_count": 398,
+    "friends_count": 1352,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Pithoragarh, India",
+    "media_count": 35,
+    "name": "Harshhhhh",
+    "normal_followers_count": 398,
+    "pinned_tweet_ids_str": [
+      "1743194849887785339"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1401354502985306113/1701062473",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1856396891921231872/sfFt9ShL_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "h_smehta",
+    "statuses_count": 1934,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1401354502985306113",
+    "rest_id": "1401354502985306113",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1488455335262121984",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 144,
+          "name": "Education",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat Jan 20 13:22:26 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "BTECH 27\nCSE \nDsa with Java \nWeb developer \nTECH ENTHUSIASTS LET'S CONNECT",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 4076,
+    "followers_count": 88,
+    "friends_count": 299,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 32,
+    "name": "Divy prakash pandey",
+    "normal_followers_count": 88,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1828054922006351872/kfB1AwxR_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "PunamP76746",
+    "statuses_count": 457,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1748697413769211904",
+    "rest_id": "1748697413769211904",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Sat May 21 07:27:21 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "optimizing the life\n\nCSE Graduate|AI/ML|Python| Java|Enthusiast for Problem solving",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 433,
+    "followers_count": 8,
+    "friends_count": 89,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Hyderabad",
+    "media_count": 3,
+    "name": "Md Rashid",
+    "normal_followers_count": 8,
+    "pinned_tweet_ids_str": [
+      "1828524995070566493"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1527913789999521792/1724841057",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1732820603013570560/f32ykVVV_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "rasit147",
+    "statuses_count": 43,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1527913789999521792",
+    "rest_id": "1527913789999521792",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1724818970312912967",
+      "professional_type": "Business",
+      "category": [
+        {
+          "id": 1055,
+          "name": "Software developer/Programmer/Software engineer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed May 24 12:08:47 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 63,
+    "followers_count": 6,
+    "friends_count": 45,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 60,
+    "name": "Rohit Kumar",
+    "normal_followers_count": 6,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1661343485394579458/y4W0fGEU_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "rohitt24k",
+    "statuses_count": 98,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1661343379823923205",
+    "rest_id": "1661343379823923205",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat Apr 01 19:43:11 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Building",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 3320,
+    "followers_count": 29,
+    "friends_count": 498,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Mumbai",
+    "media_count": 5,
+    "name": "Kartik Gupta",
+    "normal_followers_count": 29,
+    "pinned_tweet_ids_str": [
+      "1785751353551114329"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1642251206377586688/1710657842",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1863129827399622656/6aUMTkuw_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Kkartik_14",
+    "statuses_count": 61,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1642251206377586688",
+    "rest_id": "1642251206377586688",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1769238361687077296",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 144,
+          "name": "Education",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Jan 30 16:13:50 +0000 2017",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 15,
+    "followers_count": 3,
+    "friends_count": 281,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Hashmi Muqtadir",
+    "normal_followers_count": 3,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1160272968187961344/1gnoSIzd_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "hashmi_muqtadir",
+    "statuses_count": 6,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "826101122427449344",
+    "rest_id": "826101122427449344",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Dec 26 06:23:23 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 217,
+    "followers_count": 2,
+    "friends_count": 81,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Kanav Gupta",
+    "normal_followers_count": 2,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1872166239667138560/1735216932",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1872260291737612289/RePZap49_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "kanavgupta24",
+    "statuses_count": 20,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1872166239667138560",
+    "rest_id": "1872166239667138560",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": false,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Aug 04 13:22:25 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "GGSIPU'26 | Full-Stack Developer | React, TypeScript, Node.js, Express, Postgres,cloudflare",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "linkedin.com/in/pankajkumar…",
+            "expanded_url": "https://www.linkedin.com/in/pankajkumardev0/",
+            "url": "https://t.co/e2at6Ebwtm",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 316,
+    "followers_count": 52,
+    "friends_count": 97,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 21,
+    "name": "Pankaj Kumar",
+    "normal_followers_count": 52,
+    "pinned_tweet_ids_str": [
+      "1865121042500346150"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1820087846025519104/1722778423",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1820087999033450496/qIGbBtda_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Pankajkumar_dev",
+    "statuses_count": 176,
+    "translator_type": "none",
+    "url": "https://t.co/e2at6Ebwtm",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1820087846025519104",
+    "rest_id": "1820087846025519104",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1865322091983360348",
+      "professional_type": "Creator",
+      "category": []
+    },
+    "verified_phone_status": true
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Mon Nov 22 08:10:25 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Writer | MERN | DSA | React Native || Trying to be better every day  ll ECE, IIIT ALLAHABAD 25 || Introvert(not rude) || Sometimes lost  ll DHH",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "aasmaan.sayout.net",
+            "expanded_url": "http://aasmaan.sayout.net",
+            "url": "https://t.co/Qo7zmSDtVL",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 2426,
+    "followers_count": 592,
+    "friends_count": 517,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "India",
+    "media_count": 168,
+    "name": "akash yadav",
+    "normal_followers_count": 592,
+    "pinned_tweet_ids_str": [
+      "1728079270340173990"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1462694908976713729/1716397522",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1807042184362737664/AjXRq00N_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "unclear_aasmaan",
+    "statuses_count": 1255,
+    "translator_type": "none",
+    "url": "https://t.co/Qo7zmSDtVL",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1462694908976713729",
+    "rest_id": "1462694908976713729",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Dec 15 04:03:36 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "NSUT'25 || LEETCODE Knight (max:1874) ||3 ⭐ CODECHEF  || MERN Stack Developer",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 316,
+    "followers_count": 70,
+    "friends_count": 651,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 8,
+    "name": "Naresh Y∆D∆V",
+    "normal_followers_count": 70,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1470967688583270402/1720979253",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1736406427928051712/v4OEWCdN_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Naresh16920240",
+    "statuses_count": 77,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1470967688583270402",
+    "rest_id": "1470967688583270402",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Feb 01 15:53:32 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "A full stack software developer and indie hacker who is good at building scalable, maintainable apps.",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "vigneshwarbalaji.com",
+            "expanded_url": "https://vigneshwarbalaji.com",
+            "url": "https://t.co/EZO8dyDpos",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 18,
+    "followers_count": 8,
+    "friends_count": 85,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "chromepet, chennai",
+    "media_count": 1,
+    "name": "Vigneshwar Balaji",
+    "normal_followers_count": 8,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1356269375708295168/1612195571",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1731183707892207616/zxuuZIHq_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "wizardofcodes",
+    "statuses_count": 7,
+    "translator_type": "none",
+    "url": "https://t.co/EZO8dyDpos",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1356269375708295168",
+    "rest_id": "1356269375708295168",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1791399636541845755",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 1055,
+          "name": "Software developer/Programmer/Software engineer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": true
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Feb 20 20:54:57 +0000 2012",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Pine Script Programmer,\nFounder of https://t.co/Azjvt5Ks2s & https://t.co/VnQ9mcpRdr",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "GetPineScript.com",
+            "expanded_url": "https://GetPineScript.com",
+            "url": "https://t.co/Azjvt5Ks2s",
+            "indices": [
+              35,
+              58
+            ]
+          },
+          {
+            "display_url": "PineScriptHub.com",
+            "expanded_url": "https://PineScriptHub.com",
+            "url": "https://t.co/VnQ9mcpRdr",
+            "indices": [
+              61,
+              84
+            ]
+          }
+        ]
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "getpinescript.com",
+            "expanded_url": "https://getpinescript.com/",
+            "url": "https://t.co/Nlrf7yhIGb",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1725,
+    "followers_count": 5037,
+    "friends_count": 366,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 72,
+    "location": "",
+    "media_count": 193,
+    "name": "Kris Waters",
+    "normal_followers_count": 5037,
+    "pinned_tweet_ids_str": [
+      "1289220256297189377"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/498241753/1612553742",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/885061210831454210/emRRjK0k_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "mrkriswaters",
+    "statuses_count": 573,
+    "translator_type": "none",
+    "url": "https://t.co/Nlrf7yhIGb",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "498241753",
+    "rest_id": "498241753",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat Apr 29 14:57:44 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "trying cs",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 12181,
+    "followers_count": 242,
+    "friends_count": 862,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "earth",
+    "media_count": 75,
+    "name": "vinit kumar 🦈",
+    "normal_followers_count": 242,
+    "pinned_tweet_ids_str": [
+      "1819791102448116100"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1652326074431463424/1733939874",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1866896024465272832/sM5TD3DQ_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "vinitx26",
+    "statuses_count": 1210,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1652326074431463424",
+    "rest_id": "1652326074431463424",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1656960788391919618",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 713,
+          "name": "Science & Technology",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": true
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Mon Jan 22 03:44:26 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "14 y/o ⭑ Web ⭑ Photography ⭑ Meme ⭑ Building @travelshareHQ ⭑ https://t.co/xnOpfwnBPj",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "ronitt.xyz",
+            "expanded_url": "http://ronitt.xyz",
+            "url": "https://t.co/xnOpfwnBPj",
+            "indices": [
+              62,
+              85
+            ]
+          }
+        ]
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "git.new/ronitrajfr",
+            "expanded_url": "https://git.new/ronitrajfr",
+            "url": "https://t.co/JVWZmigp82",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1365,
+    "followers_count": 363,
+    "friends_count": 748,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "India",
+    "media_count": 26,
+    "name": "Ronit Raj",
+    "normal_followers_count": 363,
+    "pinned_tweet_ids_str": [
+      "1862478075034050579"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1749276549088706560/1728891846",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1873352697522569216/wBybeyit_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "ronitrajfr",
+    "statuses_count": 353,
+    "translator_type": "none",
+    "url": "https://t.co/JVWZmigp82",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1749276549088706560",
+    "rest_id": "1749276549088706560",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Dec 24 13:42:01 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 0,
+    "followers_count": 0,
+    "friends_count": 29,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Arpit Pandey",
+    "normal_followers_count": 0,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1871551911356436480/QGDgjOBq_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "webdeveloper234",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1871551820658769920",
+    "rest_id": "1871551820658769920",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": false,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Mar 27 13:21:17 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "A developer",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 510,
+    "followers_count": 116,
+    "friends_count": 1100,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Visakaptnam ",
+    "media_count": 5,
+    "name": "Harsha",
+    "normal_followers_count": 116,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1640343135409545217/1685858585",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1689247748829372416/l9tXEG45_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "harsha_sarma123",
+    "statuses_count": 240,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1640343135409545217",
+    "rest_id": "1640343135409545217",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": true
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Oct 03 17:43:32 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "new account",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 449,
+    "followers_count": 16,
+    "friends_count": 785,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 12,
+    "name": "Krishna Prasad",
+    "normal_followers_count": 16,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1841896786828353536/1732440785",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1841896885277093889/ZmEc7Kf9_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "KrishnaPrasalt",
+    "statuses_count": 625,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1841896786828353536",
+    "rest_id": "1841896786828353536",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Oct 31 09:06:53 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "passionate about ai,  quant finance & system design – swe • prev, ai intern @nhs, apprentice @apple",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "abhijayrajvansh.com",
+            "expanded_url": "https://abhijayrajvansh.com",
+            "url": "https://t.co/KJydZuHcXW",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 2213,
+    "followers_count": 196,
+    "friends_count": 173,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 35,
+    "name": "abhijay",
+    "normal_followers_count": 196,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1587008113772662784/1733918585",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1843127684072943617/l8xsfVrQ_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "rajvanshx",
+    "statuses_count": 1099,
+    "translator_type": "none",
+    "url": "https://t.co/KJydZuHcXW",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1587008113772662784",
+    "rest_id": "1587008113772662784",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1673764739367993344",
+      "professional_type": "Creator",
+      "category": []
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon May 06 14:27:57 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Programming a better Earth with innovative technologies || Open for collaboration to build a SaaS",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 669,
+    "followers_count": 5,
+    "friends_count": 56,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 1,
+    "name": "Ari",
+    "normal_followers_count": 5,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1787489341620572160/1732701652",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1861711775839969280/0wtw0aWn_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Peace3921833434",
+    "statuses_count": 54,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1787489341620572160",
+    "rest_id": "1787489341620572160",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Jan 23 05:09:08 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Full Stack developer loves building efficient, scalable, real-time web applications.",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "linktr.ee/sathwikbodakun…",
+            "expanded_url": "https://linktr.ee/sathwikbodakuntla",
+            "url": "https://t.co/pINNidsLr7",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 163,
+    "followers_count": 32,
+    "friends_count": 80,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Hyderabad, India",
+    "media_count": 45,
+    "name": "Sathwik Bodakuntla",
+    "normal_followers_count": 32,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1617388870924120064/1724007628",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1757796397490036736/gu0xzHVO_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Sathwiktwt",
+    "statuses_count": 152,
+    "translator_type": "none",
+    "url": "https://t.co/pINNidsLr7",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1617388870924120064",
+    "rest_id": "1617388870924120064",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Jun 29 14:44:49 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "born to build from scratch, forced to use frameworks. projects @amaanprojects",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "github.com/amaan8429",
+            "expanded_url": "http://github.com/amaan8429",
+            "url": "https://t.co/kHvOyWbJQS",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 27191,
+    "followers_count": 4728,
+    "friends_count": 2703,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 10,
+    "location": "Lucknow ,India",
+    "media_count": 1188,
+    "name": "Amaan",
+    "normal_followers_count": 4728,
+    "pinned_tweet_ids_str": [
+      "1823292841654972438"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1674428657501368320/1732191304",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1746243363106656256/RC6uvIfN_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "amaan8429",
+    "statuses_count": 15551,
+    "translator_type": "none",
+    "url": "https://t.co/kHvOyWbJQS",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1674428657501368320",
+    "rest_id": "1674428657501368320",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1811736754388631859",
+      "professional_type": "Creator",
+      "category": []
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Apr 02 05:46:50 +0000 2017",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "swe | gsoc'24 @oppiaorg | prev @zenskarHQ",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "dub.sh/afzall",
+            "expanded_url": "https://dub.sh/afzall",
+            "url": "https://t.co/MOo8tSrV6Z",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 11931,
+    "followers_count": 205,
+    "friends_count": 196,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "New Delhi",
+    "media_count": 54,
+    "name": "Afzal Khan",
+    "normal_followers_count": 205,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/848411378515755009/1734501966",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1783572834184306688/d09rkDAR_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "afzlkan",
+    "statuses_count": 1007,
+    "translator_type": "none",
+    "url": "https://t.co/MOo8tSrV6Z",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "848411378515755009",
+    "rest_id": "848411378515755009",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1866079487063937260",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 1059,
+          "name": "Engineer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Nov 29 17:53:26 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "• 🌐Full Stack Dev • 🎓 Final year CS undergrad",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 932,
+    "followers_count": 128,
+    "friends_count": 79,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "India",
+    "media_count": 26,
+    "name": "Anubhav Singh 🇮🇳",
+    "normal_followers_count": 128,
+    "pinned_tweet_ids_str": [
+      "1756004754759549280"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1597649768544874498/1718602075",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1812587983599464448/IVrtv151_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "anubhavxsingh",
+    "statuses_count": 107,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1597649768544874498",
+    "rest_id": "1597649768544874498",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Nov 12 09:22:05 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Web Developer 🧑‍💻 Ts | React | Go |  AWS Serverless  |  SaaS 🚀",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "manishmandal.com",
+            "expanded_url": "https://manishmandal.com",
+            "url": "https://t.co/xZWf7JuLSe",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 15580,
+    "followers_count": 240,
+    "friends_count": 1439,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 4,
+    "location": "Bangalore, India",
+    "media_count": 124,
+    "name": "Manish Mandal",
+    "normal_followers_count": 240,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1459088918523961344/1645271588",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1649727629195464704/_6dE2opd_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "manishMandalJ",
+    "statuses_count": 1340,
+    "translator_type": "none",
+    "url": "https://t.co/xZWf7JuLSe",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1459088918523961344",
+    "rest_id": "1459088918523961344",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1630467184303697920",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 958,
+          "name": "Entrepreneur",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Dec 18 00:17:00 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "https://t.co/tVEjdjrqpq\n\nhttps://t.co/tP8OfuHnaa\n\nhttps://t.co/bZjteETh8m\n\nAnd more at https://t.co/tyfxCj6YZh",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "Checkid.co.za",
+            "expanded_url": "https://Checkid.co.za",
+            "url": "https://t.co/tVEjdjrqpq",
+            "indices": [
+              0,
+              23
+            ]
+          },
+          {
+            "display_url": "SchoolReportAI.com",
+            "expanded_url": "https://SchoolReportAI.com",
+            "url": "https://t.co/tP8OfuHnaa",
+            "indices": [
+              25,
+              48
+            ]
+          },
+          {
+            "display_url": "AdhaarCheck.com",
+            "expanded_url": "https://AdhaarCheck.com",
+            "url": "https://t.co/bZjteETh8m",
+            "indices": [
+              50,
+              73
+            ]
+          },
+          {
+            "display_url": "slouchypete.dev",
+            "expanded_url": "https://slouchypete.dev",
+            "url": "https://t.co/tyfxCj6YZh",
+            "indices": [
+              87,
+              110
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 39,
+    "followers_count": 2,
+    "friends_count": 26,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 2,
+    "name": "PeteV",
+    "normal_followers_count": 2,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1869174786964033537/1734501337",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1869260089242382336/YmwLgFXj_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "SlouchyPete",
+    "statuses_count": 5,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1869174786964033537",
+    "rest_id": "1869174786964033537",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": false,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Nov 25 21:31:00 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 0,
+    "followers_count": 24,
+    "friends_count": 1155,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Toughth",
+    "normal_followers_count": 24,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1861160680134434816/1733223418",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1863899248305360896/XpPUUDdc_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "ToughthH2syMB",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1861160680134434816",
+    "rest_id": "1861160680134434816",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat Mar 28 00:51:37 +0000 2009",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "IT Industry C-Level Interim Exec, Consultant & Blogger to SaaS, Software & Hardware Companies. Loves the Illini, Cubs & Bears: https://t.co/uDUzDbg5Yn",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "tinyurl.com/y8bo82hp",
+            "expanded_url": "http://tinyurl.com/y8bo82hp",
+            "url": "https://t.co/uDUzDbg5Yn",
+            "indices": [
+              127,
+              150
+            ]
+          }
+        ]
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "pjmconsult.com",
+            "expanded_url": "http://www.pjmconsult.com",
+            "url": "https://t.co/UXvXHwSy3X",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 52245,
+    "followers_count": 16134,
+    "friends_count": 11156,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 259,
+    "location": "San Diego, CA USA",
+    "media_count": 3199,
+    "name": "Phil Morettini",
+    "normal_followers_count": 16134,
+    "pinned_tweet_ids_str": [
+      "1872441361724850560"
+    ],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1623798568313323521/KjTmO5BP_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "TechnologyGuy",
+    "statuses_count": 33765,
+    "translator_type": "none",
+    "url": "https://t.co/UXvXHwSy3X",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "27142322",
+    "rest_id": "27142322",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1520899234945396737",
+      "professional_type": "Business",
+      "category": [
+        {
+          "id": 516,
+          "name": "Business Consultant",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Aug 01 05:37:29 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "xxxmansion.cfd/room-link/lisa…",
+            "expanded_url": "http://xxxmansion.cfd/room-link/lisajohnso78939",
+            "url": "https://t.co/YQWEm5I7Se",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 636,
+    "followers_count": 173,
+    "friends_count": 3021,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Tina",
+    "normal_followers_count": 173,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1693159909007716352/NpBf5Szu_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "tinadye51",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "url": "https://t.co/YQWEm5I7Se",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1686249764285988864",
+    "rest_id": "1686249764285988864",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Dec 02 05:03:07 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "ENTREPRENEUR 📈\nIND✈USA\n📍NY\nChasing my dreams, not People's Opinion",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 909,
+    "followers_count": 66,
+    "friends_count": 742,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "New York, USA",
+    "media_count": 14,
+    "name": "Anayachauhan",
+    "normal_followers_count": 66,
+    "pinned_tweet_ids_str": [
+      "1870204279723831757"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1863448539025874944/1733980904",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1867077208784945152/FXsk34VA_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Anayachauh20434",
+    "statuses_count": 382,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1863448539025874944",
+    "rest_id": "1863448539025874944",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Nov 12 23:39:01 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Building @ctrlsheet_ai | President @txblockchain | CS @UTAustin | prev @clipsaiHQ @SteelPerlot",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "ctrlsheet.ai",
+            "expanded_url": "https://ctrlsheet.ai",
+            "url": "https://t.co/eEDAawkwzy",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 6770,
+    "followers_count": 1245,
+    "friends_count": 7501,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 7,
+    "location": "Austin, TX",
+    "media_count": 82,
+    "name": "savi",
+    "normal_followers_count": 1245,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1459304593968537601/1662418456",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1835063378126970880/y1HqBePn_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "savi_eth",
+    "statuses_count": 1551,
+    "translator_type": "none",
+    "url": "https://t.co/eEDAawkwzy",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1459304593968537601",
+    "rest_id": "1459304593968537601",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Nov 26 07:00:28 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "ENTREPRENEUR 📈\nIND✈USA\n📍NY\nChasing my dreams, not People's Opinion",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1077,
+    "followers_count": 72,
+    "friends_count": 706,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "   NEW YORK, BUFFALO",
+    "media_count": 17,
+    "name": "muskan",
+    "normal_followers_count": 72,
+    "pinned_tweet_ids_str": [
+      "1872823316396023843"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1861303861685952516/1733980777",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1867077000999079939/f4nTeHs9_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "muskan6765",
+    "statuses_count": 453,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1861303861685952516",
+    "rest_id": "1861303861685952516",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Nov 13 05:29:59 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "📍IN🇮🇳✈USA🇺🇸\nQueen of my own story 👑\nWrapped in smiles and ribbons 🎀\nLiving my life like it’s golden ✨",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "1upurchase.com/#/pages/regist…",
+            "expanded_url": "https://1upurchase.com/#/pages/register/index?pid=3348",
+            "url": "https://t.co/AK3numDkzf",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 488,
+    "followers_count": 22,
+    "friends_count": 500,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Washington, D.C.",
+    "media_count": 9,
+    "name": "Amulya",
+    "normal_followers_count": 22,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1856569986216755200/1733879391",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1865086296538198016/t8QF3CId_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "Amulya5858",
+    "statuses_count": 220,
+    "translator_type": "none",
+    "url": "https://t.co/AK3numDkzf",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1856569986216755200",
+    "rest_id": "1856569986216755200",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Oct 30 15:46:19 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "TikTok Influencers Database With Insights Into What Creators Promote.\n\n4m+ creators \n\nContact Info\n\nGeo Info\n\nAnalyzed Categories\n\nAge and Gender coming soon\n↘️",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "topyappers.com",
+            "expanded_url": "http://topyappers.com",
+            "url": "https://t.co/qCU6hdClos",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 3949,
+    "followers_count": 107,
+    "friends_count": 3186,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Database",
+    "media_count": 2,
+    "name": "topyappers",
+    "normal_followers_count": 107,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1851651828150317056/1731395689",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1851651974472646656/2AoCmqpM_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "topyappers",
+    "statuses_count": 25,
+    "translator_type": "none",
+    "url": "https://t.co/qCU6hdClos",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1851651828150317056",
+    "rest_id": "1851651828150317056",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Sep 13 23:19:14 +0000 2020",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Stop trading and believe in Cult.\n\nScaled Brands with copy, storyselling and marketing in Web2. Brought the Idea to  web3 and did 100x",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 69720,
+    "followers_count": 1403,
+    "friends_count": 284,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 8,
+    "location": "",
+    "media_count": 3337,
+    "name": "NonFungibleRoman",
+    "normal_followers_count": 1403,
+    "pinned_tweet_ids_str": [
+      "1810447443307503996"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1305284767655636992/1732440064",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1860614581074186240/S27Bpd2r_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "NFR_eth",
+    "statuses_count": 26239,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1305284767655636992",
+    "rest_id": "1305284767655636992",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Nov 22 16:53:43 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": true,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 251,
+    "followers_count": 0,
+    "friends_count": 59,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Sunil S",
+    "normal_followers_count": 0,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "Sunil63603",
+    "statuses_count": 7,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1860003443878072320",
+    "rest_id": "1860003443878072320",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Sep 19 08:07:10 +0000 2018",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "🌟 Tech Enthusiast | Indie Hacker | Business Strategist | Fitness Advocate 🌟",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 26,
+    "followers_count": 6,
+    "friends_count": 159,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Uttar Pradesh, India",
+    "media_count": 2,
+    "name": "Omkar jadiya",
+    "normal_followers_count": 6,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1042324203725152256/1735408661",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1830220681713270784/FXY8kzd-_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "OJadiya",
+    "statuses_count": 5,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1042324203725152256",
+    "rest_id": "1042324203725152256",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": false,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Dec 26 23:04:04 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Software Engineer || Backend Developer",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 4,
+    "followers_count": 8,
+    "friends_count": 476,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Dhaka, Bangladesh",
+    "media_count": 2,
+    "name": "Tanvir Bhuiyan",
+    "normal_followers_count": 8,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1872418043965632512/1735257581",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1872432118015655936/COCJSJS0_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "tanvir_cse_19",
+    "statuses_count": 2,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1872418043965632512",
+    "rest_id": "1872418043965632512",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": false,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Nov 30 11:55:43 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "20 | fml | reading | ml | web3 | webDev",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1578,
+    "followers_count": 142,
+    "friends_count": 764,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Narnia ",
+    "media_count": 126,
+    "name": "Uv🌱",
+    "normal_followers_count": 142,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1597922245719912448/1727375556",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1831782434704068609/CY1IOruQ_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "kalyani_x_",
+    "statuses_count": 232,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1597922245719912448",
+    "rest_id": "1597922245719912448",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Fri Dec 14 09:09:45 +0000 2007",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "Founder PeopleOrg | Co-founder Freelway | Transcending Change.",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 3025,
+    "followers_count": 1349,
+    "friends_count": 2908,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 240,
+    "location": "Sweden",
+    "media_count": 247,
+    "name": "Jan Friman",
+    "normal_followers_count": 1349,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/11156572/1529924914",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1221533665223684099/Q6igPFSO_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "janfriman",
+    "statuses_count": 6307,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "11156572",
+    "rest_id": "11156572",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1652605651573415937",
+      "professional_type": "Business",
+      "category": [
+        {
+          "id": 958,
+          "name": "Entrepreneur",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Apr 11 18:27:08 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Begin with 10 minutes, explore a lifetime.\nStartup from NIFT, Jodhpur and AIT, Pune",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "marriagemate.in",
+            "expanded_url": "https://marriagemate.in/",
+            "url": "https://t.co/Ea6sA9DkTO",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 9567,
+    "followers_count": 410,
+    "friends_count": 2562,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 1,
+    "location": "Jodhpur",
+    "media_count": 20,
+    "name": "MarriageMate.in",
+    "normal_followers_count": 410,
+    "pinned_tweet_ids_str": [
+      "1873621180281991404"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1778489914029715457/1729629456",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1848825845684834306/NbSXS2As_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "MarriageMate_In",
+    "statuses_count": 432,
+    "translator_type": "none",
+    "url": "https://t.co/Ea6sA9DkTO",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1778489914029715457",
+    "rest_id": "1778489914029715457",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Nov 03 03:25:28 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 0,
+    "followers_count": 5,
+    "friends_count": 412,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Shoysor",
+    "normal_followers_count": 5,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1852914963649826816/1730604348",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1852914983849586688/QKkS7iM4_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "ShoysormA9",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1852914963649826816",
+    "rest_id": "1852914963649826816",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Aug 01 06:47:30 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 15,
+    "followers_count": 1,
+    "friends_count": 28,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 1,
+    "name": "prince chaudhary",
+    "normal_followers_count": 1,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1421724252948946945/qgs0tH7X_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "srsprince111",
+    "statuses_count": 7,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1421724156626829316",
+    "rest_id": "1421724156626829316",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Jun 26 16:33:59 +0000 2012",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "✦ Indie hacker alongside 9-5\n\n✦ Building\n💬 https://t.co/k2aKnIMD1V\n⚫️ https://t.co/fdRea2xjrX",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "getfiddo.com",
+            "expanded_url": "https://getfiddo.com",
+            "url": "https://t.co/k2aKnIMD1V",
+            "indices": [
+              43,
+              66
+            ]
+          },
+          {
+            "display_url": "youmightnotneed.co",
+            "expanded_url": "https://youmightnotneed.co",
+            "url": "https://t.co/fdRea2xjrX",
+            "indices": [
+              70,
+              93
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 942,
+    "followers_count": 271,
+    "friends_count": 179,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 5,
+    "location": "$0🟧⬜️⬜️⬜️⬜️⬜️⬜️⬜️⬜️⬜$1K/mo",
+    "media_count": 128,
+    "name": "Quentin",
+    "normal_followers_count": 271,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/619224155/1732481268",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1824424465331048448/PVwB9KP7_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "QuentinVcr",
+    "statuses_count": 881,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "619224155",
+    "rest_id": "619224155",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Feb 04 11:12:47 +0000 2020",
+    "default_profile": true,
+    "default_profile_image": true,
+    "description": "Enterpenure(18 years old)",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 295,
+    "followers_count": 11,
+    "friends_count": 398,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "shivendu srivastava",
+    "normal_followers_count": 11,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "shivendusriva12",
+    "statuses_count": 53,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1224651963230388224",
+    "rest_id": "1224651963230388224",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Nov 19 08:47:27 +0000 2017",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "SDE Intern. doing stuff with code & design",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "shashwatv.com",
+            "expanded_url": "http://shashwatv.com",
+            "url": "https://t.co/vvIx9k2TjG",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 12103,
+    "followers_count": 290,
+    "friends_count": 245,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 11,
+    "location": "LKO",
+    "media_count": 140,
+    "name": "Shashwat ⭐",
+    "normal_followers_count": 290,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1572271862813691904/qH60_C4q_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "ZippyTyro",
+    "statuses_count": 3161,
+    "translator_type": "none",
+    "url": "https://t.co/vvIx9k2TjG",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "932168431410876416",
+    "rest_id": "932168431410876416",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1620355371603984385",
+      "professional_type": "Business",
+      "category": []
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Mon Sep 14 03:35:35 +0000 2020",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "C++| java| Linux| Git| DevOps enthusiast| @datacouch technical intern | https://t.co/V8nKIXHh9b",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "linktr.ee/tripathiaditya",
+            "expanded_url": "http://linktr.ee/tripathiaditya",
+            "url": "https://t.co/V8nKIXHh9b",
+            "indices": [
+              72,
+              95
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 4710,
+    "followers_count": 182,
+    "friends_count": 1255,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 4,
+    "location": "",
+    "media_count": 34,
+    "name": "Aditya Tripathi",
+    "normal_followers_count": 182,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1305349778331426817/-VEFVlKZ_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "AdityaT94776666",
+    "statuses_count": 1818,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1305349374092783616",
+    "rest_id": "1305349374092783616",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Sep 03 05:58:01 +0000 2012",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "Side projects https://t.co/CH8Q69VXcE | Software Engineer at @Notion | Builder | Mentor | Investor | Ex @thoughtspot, @Amazon, @CK12Foundation | Ex Founder Sportzify",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "saasysoup.com",
+            "expanded_url": "http://saasysoup.com",
+            "url": "https://t.co/CH8Q69VXcE",
+            "indices": [
+              14,
+              37
+            ]
+          }
+        ]
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "chetan1507.in",
+            "expanded_url": "http://chetan1507.in",
+            "url": "https://t.co/MTlDleXaj0",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 138,
+    "followers_count": 419,
+    "friends_count": 990,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 18,
+    "location": "Bangalore, India",
+    "media_count": 42,
+    "name": "Chetan Agrawal",
+    "normal_followers_count": 419,
+    "pinned_tweet_ids_str": [
+      "1866938610785903026"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/799731283/1734175974",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/378800000425702224/04b4aec2141c9644cd0131f1da4dba45_normal.jpeg",
+    "profile_interstitial_type": "",
+    "screen_name": "chetan1507",
+    "statuses_count": 1497,
+    "translator_type": "none",
+    "url": "https://t.co/MTlDleXaj0",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "799731283",
+    "rest_id": "799731283",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Nov 22 06:24:34 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 0,
+    "followers_count": 29,
+    "friends_count": 1324,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "ruth",
+    "normal_followers_count": 29,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1859845344965562368/1732531124",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1861418499626909696/4Wnp0u3v_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "ruth93534190431",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1859845344965562368",
+    "rest_id": "1859845344965562368",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat May 18 17:28:31 +0000 2019",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Digital Marketing Specialist Since 2013 | Marketing Management Graduate - BCIT |  Digital Marketing Graduate - McMaster University",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "jordancadrin.com",
+            "expanded_url": "https://jordancadrin.com/",
+            "url": "https://t.co/PhZwsRus3C",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 3,
+    "followers_count": 1,
+    "friends_count": 37,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Vancouver, British Columbia",
+    "media_count": 0,
+    "name": "Jordan Cadrin",
+    "normal_followers_count": 1,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1129800949369671681/1723571909",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1831180446962778112/k2zA7NWR_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "GoodBuddyJordan",
+    "statuses_count": 3,
+    "translator_type": "none",
+    "url": "https://t.co/PhZwsRus3C",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1129800949369671681",
+    "rest_id": "1129800949369671681",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Wed Jun 24 13:35:46 +0000 2020",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Movies 🍿 | Novels 📚 | Technology 📱",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 2943,
+    "followers_count": 2100,
+    "friends_count": 2158,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 2423,
+    "name": "Sagar Dixit",
+    "normal_followers_count": 2100,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1275784646517755905/1735005323",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1871373648436629504/cb1ag8TM_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "sagar_d45",
+    "statuses_count": 7497,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1275784646517755905",
+    "rest_id": "1275784646517755905",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Jun 01 15:12:55 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "I am a brave worrier. SWE Golang | Cairo | Docker | React | Nest JS",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "soetanemmanuel.netlify.app",
+            "expanded_url": "https://soetanemmanuel.netlify.app/",
+            "url": "https://t.co/ux9wh84TVa",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1465,
+    "followers_count": 71,
+    "friends_count": 288,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 1,
+    "location": "Remote",
+    "media_count": 45,
+    "name": "Emmanuel Soetan",
+    "normal_followers_count": 71,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1664288871968825345/1730197595",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1851208982808940544/DUUE6DIv_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "SoetanDev",
+    "statuses_count": 410,
+    "translator_type": "none",
+    "url": "https://t.co/ux9wh84TVa",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1664288871968825345",
+    "rest_id": "1664288871968825345",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1664299983749763074",
+      "professional_type": "Business",
+      "category": [
+        {
+          "id": 713,
+          "name": "Science & Technology",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Jun 19 00:32:07 +0000 2017",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Interested in Tech and Businesses of every kind.\nTweets of Indian Entrepreneurs brought me here.",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "Abhishekkumarsingh.netlify.app",
+            "expanded_url": "http://Abhishekkumarsingh.netlify.app",
+            "url": "https://t.co/nxZK6PqqGV",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 10367,
+    "followers_count": 107,
+    "friends_count": 1476,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 3,
+    "location": "New Delhi, India",
+    "media_count": 8,
+    "name": "Abhishek Kumar Singh",
+    "normal_followers_count": 107,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/876598434383482881/1691425817",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1688587917017722880/42hUhf_u_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "ShekSahab_",
+    "statuses_count": 262,
+    "translator_type": "none",
+    "url": "https://t.co/nxZK6PqqGV",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "876598434383482881",
+    "rest_id": "876598434383482881",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "following": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Mar 06 13:32:04 +0000 2013",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "Building World’s Largest Content Marketing Platform @pepper_content @peppertype_ai",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "peppercontent.io",
+            "expanded_url": "http://peppercontent.io",
+            "url": "https://t.co/sG2bpSh04U",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 92393,
+    "followers_count": 8609,
+    "friends_count": 7540,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 70,
+    "location": "San Francisco, CA",
+    "media_count": 199,
+    "name": "Anirudh Singla",
+    "normal_followers_count": 8609,
+    "pinned_tweet_ids_str": [
+      "1534760900498169856"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1246114784/1606471325",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1369718806159839233/ADYeQKeG_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "SinglaAnirudh",
+    "statuses_count": 2578,
+    "translator_type": "none",
+    "url": "https://t.co/sG2bpSh04U",
+    "verified": false,
+    "want_retweets": true,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1246114784",
+    "rest_id": "1246114784",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "protected": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Thu Sep 21 15:19:10 +0000 2023",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "In this world, they are no enemies or friends, Only interests.  \n~Julius Caesar",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 7742,
+    "followers_count": 83,
+    "friends_count": 1874,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 2,
+    "name": "🐺",
+    "normal_followers_count": 83,
+    "pinned_tweet_ids_str": [
+      "1845974437897687448"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1704877850027790336/1720740723",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1863017352800960512/cUiAvZ0f_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "awendikonyu",
+    "statuses_count": 957,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1704877850027790336",
+    "rest_id": "1704877850027790336",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Feb 26 02:53:36 +0000 2010",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "### la vida es una ### IIT Alum",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 3052,
+    "followers_count": 161,
+    "friends_count": 662,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 1,
+    "location": "Mumbai, India",
+    "media_count": 20,
+    "name": "Bajju",
+    "normal_followers_count": 161,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1184223716617506817/pwfOKb36_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "pankubell",
+    "statuses_count": 850,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "117620345",
+    "rest_id": "117620345",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Sat Jul 03 03:31:56 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 61,
+    "followers_count": 4,
+    "friends_count": 22,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 1,
+    "name": "Parag chhalotre",
+    "normal_followers_count": 4,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1869432464978178048/DIIYmHG2_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "ChhalotreParag",
+    "statuses_count": 5,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1411165670134497282",
+    "rest_id": "1411165670134497282",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": true
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Jul 05 18:39:21 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1,
+    "followers_count": 1,
+    "friends_count": 4,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 3,
+    "name": "Bibekananda Bhuyan",
+    "normal_followers_count": 1,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1544390495287508992/TPAjuFCZ_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "BibekanandaBhu4",
+    "statuses_count": 27,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1544390425100034048",
+    "rest_id": "1544390425100034048",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": false,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Dec 22 01:58:26 +0000 2009",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "computer things with @kevinwatters.",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 6604,
+    "followers_count": 960,
+    "friends_count": 2475,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 26,
+    "location": "",
+    "media_count": 155,
+    "name": "Adam Watters",
+    "normal_followers_count": 960,
+    "pinned_tweet_ids_str": [
+      "1828127125586731301"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/98521288/1724347798",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1826673459952320512/o17n7DJl_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "AdamWatters",
+    "statuses_count": 466,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "98521288",
+    "rest_id": "98521288",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Aug 31 10:04:34 +0000 2020",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Random Human | Startup | IITK",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 712,
+    "followers_count": 29,
+    "friends_count": 396,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 4,
+    "name": "Maitreyee Srivastava",
+    "normal_followers_count": 29,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1671772907901706241/O2Vdg-kF_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "maitreyeesri",
+    "statuses_count": 47,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1300373823103971333",
+    "rest_id": "1300373823103971333",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Aug 02 04:31:37 +0000 2019",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "i'm building autonomous drones | forever @_buildspace sf2",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "drones.brhall.dev",
+            "expanded_url": "http://drones.brhall.dev",
+            "url": "https://t.co/XwAxjHcI2G",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 9286,
+    "followers_count": 1451,
+    "friends_count": 780,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 21,
+    "location": "wanna drone?",
+    "media_count": 360,
+    "name": "braeden hall",
+    "normal_followers_count": 1451,
+    "pinned_tweet_ids_str": [
+      "1847476613346201658"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1157146914510368768/1728736759",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1843622122578460672/IZsOFsM1_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "braedenhall_",
+    "statuses_count": 3121,
+    "translator_type": "none",
+    "url": "https://t.co/XwAxjHcI2G",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1157146914510368768",
+    "rest_id": "1157146914510368768",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Sun Nov 23 15:38:58 +0000 2014",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "In Paris? Hit me up ☕ 😁!\n\nI assist internationals to relocate to France, join us here - https://t.co/GBMl0JH8ny",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "discord.com/invite/3x2r6sQ…",
+            "expanded_url": "https://discord.com/invite/3x2r6sQWPN",
+            "url": "https://t.co/GBMl0JH8ny",
+            "indices": [
+              88,
+              111
+            ]
+          }
+        ]
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "samuelkimanisikuku.com",
+            "expanded_url": "https://www.samuelkimanisikuku.com",
+            "url": "https://t.co/5mVK18gA6O",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 83559,
+    "followers_count": 12714,
+    "friends_count": 13109,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Paris, France",
+    "media_count": 293,
+    "name": "Samuel_vbtw🇨🇵🇰🇪",
+    "normal_followers_count": 12714,
+    "pinned_tweet_ids_str": [
+      "1816363011709325705"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/2889301581/1568961383",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1782372817964568576/GlYBYkPY_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "SKimani544",
+    "statuses_count": 12845,
+    "translator_type": "none",
+    "url": "https://t.co/5mVK18gA6O",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "2889301581",
+    "rest_id": "2889301581",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1667027578119495680",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 144,
+          "name": "Education",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Feb 13 15:00:59 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "https://t.co/iQigylfbc2 founder",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "formalitee.ai",
+            "expanded_url": "http://formalitee.ai",
+            "url": "https://t.co/iQigylfbc2",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 33,
+    "followers_count": 18,
+    "friends_count": 302,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 1,
+    "name": "Samuel Kimani Sikuku",
+    "normal_followers_count": 18,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1757419603603431424/wCku_vWx_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "kimani_sikuku",
+    "statuses_count": 34,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1757419511118970880",
+    "rest_id": "1757419511118970880",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1757421128325255547",
+      "professional_type": "Business",
+      "category": [
+        {
+          "id": 880,
+          "name": "Travel & Transportation",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Nov 22 05:05:59 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 0,
+    "followers_count": 41,
+    "friends_count": 1464,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "linda",
+    "normal_followers_count": 41,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1859825561918398464/1732531305",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1861417474283184129/w6X3UOXu_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "linda6920273003",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1859825561918398464",
+    "rest_id": "1859825561918398464",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri May 21 02:54:36 +0000 2021",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Software Engg.. at  @torum_official",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 99,
+    "followers_count": 66,
+    "friends_count": 166,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Himachal Pradesh, India",
+    "media_count": 31,
+    "name": "Rahul Thakur",
+    "normal_followers_count": 66,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1395573621465108480/1649401095",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1661375726732431362/M2A1jcWq_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "RahulMandyal4",
+    "statuses_count": 98,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1395573621465108480",
+    "rest_id": "1395573621465108480",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Wed Aug 05 01:40:44 +0000 2020",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Full Stack Developer (MERN) | Java | JavaScript | Typescript | SQL",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "Avinashs.in",
+            "expanded_url": "http://Avinashs.in",
+            "url": "https://t.co/gCQ1MXL0x0",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 156,
+    "followers_count": 4,
+    "friends_count": 56,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "Delhi",
+    "media_count": 1,
+    "name": "Avinash singh",
+    "normal_followers_count": 4,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1290824937599455232/1661665856",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1637680695463010306/sScTDfY-_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "avnshSingh",
+    "statuses_count": 14,
+    "translator_type": "none",
+    "url": "https://t.co/gCQ1MXL0x0",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1290824937599455232",
+    "rest_id": "1290824937599455232",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Tue Dec 25 00:41:04 +0000 2012",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "ceo @ludus_eth | @thenerdlabs | mees @bentleyu ‘22 | 🇪🇨🇮🇹 | @MetisDao 🌿| @BuidlGuidl | @ai_universenft",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "welook.io/zook.eth",
+            "expanded_url": "https://welook.io/zook.eth",
+            "url": "https://t.co/DdbewC78ft",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 26705,
+    "followers_count": 1149,
+    "friends_count": 6075,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 14,
+    "location": "Guayaquil 🦇🔊",
+    "media_count": 104,
+    "name": "zook.eth",
+    "normal_followers_count": 1149,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1033742736/1682818003",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1626060296400896000/WOMiYr7Z_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "josefvd15",
+    "statuses_count": 1270,
+    "translator_type": "none",
+    "url": "https://t.co/DdbewC78ft",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1033742736",
+    "rest_id": "1033742736",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1649938690750267392",
+      "professional_type": "Creator",
+      "category": []
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Apr 25 16:04:31 +0000 2013",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "Giving gyaan on Content+Performance Ads!\n\nPeople, Product, Politics! x to many - @Leapfinancein @Meeshotech @Inmobi",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "instagram.com/artpandit",
+            "expanded_url": "http://instagram.com/artpandit",
+            "url": "https://t.co/JE5doWaWbg",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 4127,
+    "followers_count": 810,
+    "friends_count": 1301,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 3,
+    "location": "BLR",
+    "media_count": 1274,
+    "name": "Swastik",
+    "normal_followers_count": 810,
+    "pinned_tweet_ids_str": [
+      "1399289587399155713"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1379776836/1668109413",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1787754367988232192/dFuvltn1_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "contentwaala",
+    "statuses_count": 6775,
+    "translator_type": "none",
+    "url": "https://t.co/JE5doWaWbg",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1379776836",
+    "rest_id": "1379776836",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1531309138936201216",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 15,
+          "name": "Entertainment & Recreation",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Jun 07 02:14:41 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "I share compelling real life experience of me and people around me",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1679,
+    "followers_count": 29,
+    "friends_count": 217,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "SOUTH AFRICA",
+    "media_count": 40,
+    "name": "yahoo.com",
+    "normal_followers_count": 29,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1798901286760243200/1732917554",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1840553411239940096/8QxwMDha_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "yahoo4192",
+    "statuses_count": 1240,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1798901286760243200",
+    "rest_id": "1798901286760243200",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1802489751427043506",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 934,
+          "name": "Social Media Influencer",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Sep 14 17:24:02 +0000 2008",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "Founder | Startup CTO | Ex-Microsoft",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "linkedin.com/in/kukreja",
+            "expanded_url": "https://linkedin.com/in/kukreja",
+            "url": "https://t.co/V5i8J41ZmO",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 7,
+    "followers_count": 198,
+    "friends_count": 606,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 1,
+    "location": "Miami Beach, FL",
+    "media_count": 3,
+    "name": "Mohit Kukreja",
+    "normal_followers_count": 198,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1355316295802216448/vztgNOPc_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "moXplOd",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "url": "https://t.co/V5i8J41ZmO",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "16284932",
+    "rest_id": "16284932",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sun Nov 03 06:25:59 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": true,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 0,
+    "followers_count": 26,
+    "friends_count": 1420,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Searzirn",
+    "normal_followers_count": 26,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1852960391229509632/1730615183",
+    "profile_image_url_https": "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "Searzirn8rFc",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1852960391229509632",
+    "rest_id": "1852960391229509632",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Oct 05 08:38:39 +0000 2009",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "building \n- scalable systems for SMBs!\n- silly stuff: https://t.co/e2D5tTl0WS, https://t.co/H6ZF6ij3OV\n\nExpert: @clayrunhq @zapier @relay",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "altdirectory.fyi",
+            "expanded_url": "http://altdirectory.fyi",
+            "url": "https://t.co/e2D5tTl0WS",
+            "indices": [
+              54,
+              77
+            ]
+          },
+          {
+            "display_url": "comparecosts.fyi",
+            "expanded_url": "http://comparecosts.fyi",
+            "url": "https://t.co/H6ZF6ij3OV",
+            "indices": [
+              79,
+              102
+            ]
+          }
+        ]
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "amitsarda.xyz",
+            "expanded_url": "https://www.amitsarda.xyz/",
+            "url": "https://t.co/wr09pslYdv",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 13422,
+    "followers_count": 1679,
+    "friends_count": 119,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 83,
+    "location": "Online",
+    "media_count": 1135,
+    "name": "amitsarda.xyz",
+    "normal_followers_count": 1679,
+    "pinned_tweet_ids_str": [
+      "1808979425993572781"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/79967310/1725635672",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1808959270534217728/KkM6d4wT_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "sardamit",
+    "statuses_count": 16574,
+    "translator_type": "none",
+    "url": "https://t.co/wr09pslYdv",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "79967310",
+    "rest_id": "79967310",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1486041968291753992",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 516,
+          "name": "Business Consultant",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Jun 02 01:53:37 +0000 2014",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "Co-founder at @Blozum_AI with @tanmay_juneja8. A GenAI SaaS platform to serve you/your business!",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "app.blozum.com/trynow",
+            "expanded_url": "http://app.blozum.com/trynow",
+            "url": "https://t.co/U0XtUa0QPs",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 739,
+    "followers_count": 373,
+    "friends_count": 624,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 5,
+    "location": "Bangalore, India",
+    "media_count": 5,
+    "name": "Isha J",
+    "normal_followers_count": 373,
+    "pinned_tweet_ids_str": [
+      "1855679820598030608"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/2540571326/1731157708",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1852757297543675904/CWy2DcPV_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "ishabuilds",
+    "statuses_count": 139,
+    "translator_type": "none",
+    "url": "https://t.co/U0XtUa0QPs",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "2540571326",
+    "rest_id": "2540571326",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1855114764445438414",
+      "professional_type": "Business",
+      "category": [
+        {
+          "id": 958,
+          "name": "Entrepreneur",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Sat Nov 09 21:59:06 +0000 2013",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "M. Sc. Computer Science\nhttps://t.co/N4Usw4Tod9 ($135) – A launch platform for your tiny startup.\nhttps://t.co/zewt5GeHhR ($0) – Product images that sell, generated in minutes.",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "tinylaun.ch",
+            "expanded_url": "http://tinylaun.ch",
+            "url": "https://t.co/N4Usw4Tod9",
+            "indices": [
+              24,
+              47
+            ]
+          },
+          {
+            "display_url": "productlab.so",
+            "expanded_url": "http://productlab.so",
+            "url": "https://t.co/zewt5GeHhR",
+            "indices": [
+              98,
+              121
+            ]
+          }
+        ]
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "christopherwoggon.com",
+            "expanded_url": "https://christopherwoggon.com",
+            "url": "https://t.co/wuGcNFLAVF",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 1871,
+    "followers_count": 456,
+    "friends_count": 451,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 6,
+    "location": "Busan, Republic of Korea",
+    "media_count": 60,
+    "name": "Chris",
+    "normal_followers_count": 456,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/2185112773/1733594616",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1859116502299144192/NHHXMbHZ_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "chrissyinspace",
+    "statuses_count": 532,
+    "translator_type": "none",
+    "url": "https://t.co/wuGcNFLAVF",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "2185112773",
+    "rest_id": "2185112773",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Jul 28 20:46:45 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": true,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 4,
+    "followers_count": 1,
+    "friends_count": 27,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "Shubham Garg",
+    "normal_followers_count": 1,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png",
+    "profile_interstitial_type": "",
+    "screen_name": "shubhamgarg_18",
+    "statuses_count": 0,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1552757421478920192",
+    "rest_id": "1552757421478920192",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": false,
+    "created_at": "Wed Oct 25 10:02:22 +0000 2017",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "https://t.co/IK88AjKsI1\n\nComputer Engineer, \nFlutter, AI, Wix Developer,\n\n🇮🇳 Proud Indian",
+    "entities": {
+      "description": {
+        "urls": [
+          {
+            "display_url": "neuralquark.com",
+            "expanded_url": "https://www.neuralquark.com/",
+            "url": "https://t.co/IK88AjKsI1",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "thisisjaymehta.github.io",
+            "expanded_url": "https://thisisjaymehta.github.io/",
+            "url": "https://t.co/GU0K7QfxWi",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 126600,
+    "followers_count": 310,
+    "friends_count": 993,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 1,
+    "location": "GJ, India",
+    "media_count": 454,
+    "name": "Jay Mehta",
+    "normal_followers_count": 310,
+    "pinned_tweet_ids_str": [
+      "1871440790964092973"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/923127588968587264/1732771676",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1875247113057218560/BM_Gvi4m_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "thisisjaymehta",
+    "statuses_count": 3627,
+    "translator_type": "none",
+    "url": "https://t.co/GU0K7QfxWi",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "923127588968587264",
+    "rest_id": "923127588968587264",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1743842844635258928",
+      "professional_type": "Creator",
+      "category": [
+        {
+          "id": 713,
+          "name": "Science & Technology",
+          "icon_name": "IconBriefcaseStroke"
+        }
+      ]
+    },
+    "verified_phone_status": true
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Tue Nov 01 04:14:36 +0000 2022",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 5,
+    "followers_count": 1,
+    "friends_count": 52,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 0,
+    "location": "",
+    "media_count": 0,
+    "name": "junaid shaikh",
+    "normal_followers_count": 1,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1587297027272036353/Dcm3E8tw_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "junaids1996",
+    "statuses_count": 3,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1587296888511811584",
+    "rest_id": "1587296888511811584",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Mon Oct 06 15:07:31 +0000 2014",
+    "default_profile": false,
+    "default_profile_image": false,
+    "description": "Engineer at MAANG company. Training AI to brew my coffee & handle the small stuff, so I can code without caffeine crashes and pretend I’ve got it all together.",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "maplespeed.com",
+            "expanded_url": "https://maplespeed.com",
+            "url": "https://t.co/VnRSwMXOcg",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 442,
+    "followers_count": 37,
+    "friends_count": 148,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 1,
+    "location": "Toronto, Ontario",
+    "media_count": 7,
+    "name": "Ankit",
+    "normal_followers_count": 37,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/2842417536/1457370354",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1823949612371079169/AFym0_QE_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "rajputankit22",
+    "statuses_count": 58,
+    "translator_type": "none",
+    "url": "https://t.co/VnRSwMXOcg",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "2842417536",
+    "rest_id": "2842417536",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": false,
+    "profile_image_shape": "Circle",
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "following": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Thu Mar 29 21:36:31 +0000 2012",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "I build brands for founders and leaders on X | 1+ Billion views for clients | Prev. Head of Content @ Swipelabs | Clients backed by @techstars, @ycombinator",
+    "entities": {
+      "description": {
+        "urls": []
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 94,
+    "followers_count": 11947,
+    "friends_count": 258,
+    "has_custom_timelines": true,
+    "is_translator": false,
+    "listed_count": 28,
+    "location": "Vancouver, Canada",
+    "media_count": 280,
+    "name": "Roger Wang",
+    "normal_followers_count": 11947,
+    "pinned_tweet_ids_str": [],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/540382077/1731006532",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1857270699821277184/gmWGBT5A_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "RogerWang11",
+    "statuses_count": 322,
+    "translator_type": "none",
+    "verified": false,
+    "want_retweets": true,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "540382077",
+    "rest_id": "540382077",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1859853545354428437",
+      "professional_type": "Business",
+      "category": []
+    },
+    "verified_phone_status": false
+  },
+  {
+    "followed_by": true,
+    "can_dm": true,
+    "can_media_tag": true,
+    "created_at": "Fri Oct 25 17:24:19 +0000 2024",
+    "default_profile": true,
+    "default_profile_image": false,
+    "description": "✦ Sharing everything I learn about scaling SaaS and Startups to +10k/mo ✦ Get agency-grade MVP’s for a fraction of the cost",
+    "entities": {
+      "description": {
+        "urls": []
+      },
+      "url": {
+        "urls": [
+          {
+            "display_url": "rocco.studio",
+            "expanded_url": "https://rocco.studio/",
+            "url": "https://t.co/M0jRcUs1lO",
+            "indices": [
+              0,
+              23
+            ]
+          }
+        ]
+      }
+    },
+    "fast_followers_count": 0,
+    "favourites_count": 2177,
+    "followers_count": 258,
+    "friends_count": 310,
+    "has_custom_timelines": false,
+    "is_translator": false,
+    "listed_count": 3,
+    "location": "My MVP studio →",
+    "media_count": 127,
+    "name": "Roco Pagella | Growth for Startups",
+    "normal_followers_count": 258,
+    "pinned_tweet_ids_str": [
+      "1865812859391017398"
+    ],
+    "possibly_sensitive": false,
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/1849864509726523399/1733823670",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1861298277196460032/I2G_JJSX_normal.jpg",
+    "profile_interstitial_type": "",
+    "screen_name": "RocoPagella",
+    "statuses_count": 1373,
+    "translator_type": "none",
+    "url": "https://t.co/M0jRcUs1lO",
+    "verified": false,
+    "want_retweets": false,
+    "withheld_in_countries": [],
+    "__typename": "User",
+    "id": "1849864509726523399",
+    "rest_id": "1849864509726523399",
+    "affiliates_highlighted_label": {},
+    "has_graduated_access": true,
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "professional": {
+      "rest_id": "1851274834707104046",
+      "professional_type": "Creator",
+      "category": []
+    },
+    "verified_phone_status": false
+  }]

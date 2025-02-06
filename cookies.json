@@ -1,0 +1,21 @@
+[
+    {
+      "name": "auth_token",
+      "value": "484766f1ba06a896b3a1cb8f83d36838b4260326",
+      "domain": "twitter.com",
+      "path": "/",
+      "secure": true,
+      "httpOnly": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "ct0",
+      "value": "932e98f12f9aa26c6bdc9343f02c4a3b1f50a0924f62be29c825b43c8a0b00f69ddeac75f46d5914f73af1a1d91675250c7e3a36eae0303865eef63353acf231b8897345a7343e68b139a95ef72bd612",
+      "domain": "twitter.com",
+      "path": "/",
+      "secure": true,
+      "httpOnly": true,
+      "sameSite": "Lax"
+    }
+  ]
+  
