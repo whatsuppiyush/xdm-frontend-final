@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: xdm-frontend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_URL
+        sync: false # User needs to add their MongoDB URL
+      - key: NEXTAUTH_URL
+        sync: false # User needs to add their deployment URL
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false # User needs to add their Google OAuth client ID
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false # User needs to add their Google OAuth client secret 
