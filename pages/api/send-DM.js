@@ -109,7 +109,7 @@ const sendDM = async (recipientId, message, cookies) => {
         console.log('Successfully authenticated, navigating to DM page...');
 
         // Navigate to DM compose page
-        await page.goto(`https://twitter.com/messages/compose?recipient_id=1347413094083883011`, {
+        await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
             waitUntil: 'domcontentloaded',
             timeout: 90000
         });
@@ -135,7 +135,7 @@ const sendDM = async (recipientId, message, cookies) => {
                 }
             };
         });
-        console.log('DM page initial state:', dmPageInitialState);
+        //console.log('DM page initial state:', dmPageInitialState);
 
         // Wait a bit and check again (sometimes elements load dynamically)
         await page.waitForTimeout(5000);
@@ -173,7 +173,7 @@ const sendDM = async (recipientId, message, cookies) => {
                     }))
             };
         });
-        console.log('DM page state after waiting:', dmPageAfterWait);
+        //console.log('DM page state after waiting:', dmPageAfterWait);
 
 
         // Try multiple selectors for the DM composer
@@ -330,7 +330,7 @@ const processQueue = async () => {
             }
 
             // Random delay between messages (30 seconds)
-            const delay = 0.5 * 60000;
+            const delay = Math.floor(Math.random() * (5 - 2 + 1) + 2) * 60000;
             console.log(`Waiting ${delay/60000} minutes before sending next message...`);
             await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -405,6 +405,7 @@ const processQueue = async () => {
 export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { action, message, cookies,recipients } = req.body;
+        console.log("recipientIds",recipients);
         let updatedCookies = [];
         for(let cookie of cookies){
             if(cookie.name=="ct0"||cookie.name=="auth_token"){
@@ -412,7 +413,7 @@ export default async function handler(req, res) {
             }
         }
         console.log('updatedCookies',updatedCookies);
-        const recipientIds = ['1393223661851607042']//['1393223661851607042',"1151640228349612032"];
+        //const recipientIds = ['1393223661851607042']//['1393223661851607042',"1151640228349612032"];
         
         if (action === 'start') {
             // Clear previous state
@@ -421,7 +422,7 @@ export default async function handler(req, res) {
             queue = [];
 
             // Add new recipients to queue
-            recipientIds.forEach(recipientId => 
+            recipients.forEach(recipientId => 
                 queue.push({ recipientId, message, cookies: updatedCookies })
             );
 
@@ -437,7 +438,7 @@ export default async function handler(req, res) {
                 success: true, 
                 message: 'Messages are being sent in the background.',
                 queueLength: queue.length,
-                totalRecipients: recipientIds.length
+                totalRecipients: recipients.length
             });
         }
 

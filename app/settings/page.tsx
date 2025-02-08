@@ -5,8 +5,31 @@ import ProfileSettings from '@/components/settings/profile-settings';
 import SubscriptionSettings from '@/components/settings/subscription-settings';
 import TwitterAccounts from '@/components/settings/twitter-accounts';
 import DoNotContact from '@/components/settings/do-not-contact';
+import { useEffect, useState } from 'react';
 
 export default function SettingsPage() {
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const response = await fetch('/api/user/me');
+        const data = await response.json();
+        if (data.user?.id) {
+          setUserId(data.user.id);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
+
+    fetchUserId();
+  }, []);
+
+  if (!userId) {
+    return null; // or a loading state
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex justify-between items-center">
@@ -30,7 +53,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="twitter">
-          <TwitterAccounts />
+          <TwitterAccounts userId={userId} />
         </TabsContent>
 
         <TabsContent value="dnc">

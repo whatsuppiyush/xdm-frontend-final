@@ -18,9 +18,10 @@ interface TwitterAccount {
   createdAt: string;
   status: string;
   cookies: any[]; // Array of cookie objects
+  userId: string; // Add userId to interface
 }
 
-export default function TwitterAccounts() {
+export default function TwitterAccounts({ userId }: { userId: string }) {
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [cookiesInput, setCookiesInput] = useState('');
@@ -32,7 +33,7 @@ export default function TwitterAccounts() {
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('/api/twitter/get-accounts');
+      const response = await fetch(`/api/twitter/get-accounts?userId=${userId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch accounts');
       }
@@ -87,7 +88,8 @@ export default function TwitterAccounts() {
         },
         body: JSON.stringify({ 
           cookies,
-          twitterAccountName: twitterAccountName.trim()
+          twitterAccountName: twitterAccountName.trim(),
+          userId // Pass the userId to the API
         }),
       });
 

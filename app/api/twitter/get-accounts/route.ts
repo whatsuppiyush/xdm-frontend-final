@@ -3,7 +3,19 @@ import prisma from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
+    // Get userId from URL params
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    // Fetch accounts for specific userId
     const accounts = await prisma.twitterAccount.findMany({
+      where: {
+        userId: userId // This will match the MongoDB ObjectId from User collection
+      },
       select: {
         id: true,
         cookies: true,
