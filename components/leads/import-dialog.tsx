@@ -70,7 +70,7 @@ export default function ImportDialog({ open, onOpenChange }: ImportDialogProps) 
   }, []);
 
   const handleNext = async () => {
-    if (step < 3) {
+    if (step < 2) {
       setStep(step + 1);
     } else {
       setLoading(true);
@@ -283,17 +283,54 @@ export default function ImportDialog({ open, onOpenChange }: ImportDialogProps) 
     }
   }
 
+  // Add this function to reset all states
+  const resetStates = () => {
+    setStep(1);
+    setTwitterUrl('');
+    setFollowerCount(0);
+    setScrapedFollowers([]);
+    setImportType('followers');
+    setFilters({
+      keywords: '',
+      minFollowers: 1000,
+      maxFollowers: 100000,
+      minTweets: 100,
+      maxTweets: 10000,
+      listName: '',
+    });
+    setLoading(false);
+    setProgress(0);
+    setShowDetails(false);
+    setShowDetailsDialog(false);
+    setError(null);
+    setScreenshotInfo(null);
+  };
+
+  // Create a custom onOpenChange handler
+  const handleOpenChange = (open: boolean) => {
+    if (!open && step > 1) {
+      resetStates();
+    }
+    onOpenChange(open);
+  };
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
+      <Dialog 
+        open={open} 
+        onOpenChange={handleOpenChange}
+      >
+        <DialogContent 
+          className="sm:max-w-[600px]" 
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
-            <DialogTitle>Import Leads - Step {step} of 4</DialogTitle>
+            <DialogTitle>Import Leads - Step {step} of 3</DialogTitle>
             <DialogDescription>
               {step === 1 && "Choose how you want to import your leads"}
-              {step === 2 && "Configure import settings"}
-              {step === 3 && "Set filtering criteria for your leads"}
-              {step === 4 && "Sending DM to the followers"}
+              {step === 2 && "Set filtering criteria for your leads"}
+              {step === 3 && "Sending DM to the followers"}
             </DialogDescription>
           </DialogHeader>
 
@@ -344,26 +381,6 @@ export default function ImportDialog({ open, onOpenChange }: ImportDialogProps) 
           )}
 
           {step === 2 && (
-            <div className="space-y-6">
-              <div className="grid gap-4 grid-cols-1">
-                <div className="space-y-2">
-                  <Label>Import Type</Label>
-                  <div className="grid grid-cols-3 gap-4">
-                    <Button
-                      variant={importType === 'followers' ? 'default' : 'outline'}
-                      onClick={() => setImportType('followers')}
-                      className="w-full"
-                    >
-                      Followers
-                      <span className="ml-1 text-xs">(2.5k)</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Bio Keywords (comma separated)</Label>
@@ -403,15 +420,13 @@ export default function ImportDialog({ open, onOpenChange }: ImportDialogProps) 
             </div>
           )}
 
-          {step === 4 && (
+          {step === 3 && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-lg font-semibold">Leads Processed ({scrapedFollowers.length})</Label>
                   <div className="flex gap-2 items-center">
-                    <div className="text-sm text-muted-foreground">
-                      Ready to send DMs
-                    </div>
+                  
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -453,10 +468,10 @@ export default function ImportDialog({ open, onOpenChange }: ImportDialogProps) 
                 Back
               </Button>
             )}
-            {step<4 ? <Button onClick={handleNext} disabled={loading}>
+            {step < 3 ? <Button onClick={handleNext} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {step === 3 ? 'Import Leads' : 'Next'}
-            </Button>:<Button onClick={sendDM} disabled={loading}>
+              {step === 2 ? 'Import Leads' : 'Next'}
+            </Button> : <Button onClick={sendDM} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? 'Sending DMs...' : 'Send DM'}
             </Button>}
@@ -464,8 +479,15 @@ export default function ImportDialog({ open, onOpenChange }: ImportDialogProps) 
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
+      <Dialog 
+        open={showDetailsDialog} 
+        onOpenChange={setShowDetailsDialog}
+      >
+        <DialogContent 
+          className="sm:max-w-[900px] max-h-[80vh]" 
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle>Detailed View - Processed Leads</DialogTitle>

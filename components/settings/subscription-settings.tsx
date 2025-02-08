@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, CreditCard, Zap } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const currentPlan = {
   name: 'Professional',
@@ -24,7 +25,7 @@ const plans = [
       'Basic Analytics',
       'Email Support',
     ],
-    current: false,
+    purchaseUrl: 'https://aiblogbot.lemonsqueezy.com/buy/d64b89bb-58a7-4a55-be92-35288ae7e60e'
   },
   {
     name: 'Professional',
@@ -38,8 +39,8 @@ const plans = [
       'Priority Support',
       'Campaign Templates',
     ],
-    current: true,
     popular: true,
+    purchaseUrl: 'https://aiblogbot.lemonsqueezy.com/buy/d64b89bb-58a7-4a55-be92-35288ae7e60e'
   },
   {
     name: 'Enterprise',
@@ -55,7 +56,7 @@ const plans = [
       'Custom Integration',
       'Dedicated Account Manager',
     ],
-    current: false,
+    purchaseUrl: 'https://aiblogbot.lemonsqueezy.com/buy/580821f5-3a70-4989-abdd-c642d37213e4'
   },
 ];
 
@@ -101,43 +102,40 @@ export default function SubscriptionSettings() {
         <CardContent>
           <div className="grid gap-6 md:grid-cols-3">
             {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-lg border p-6 space-y-4 relative ${
-                  plan.current ? 'border-primary' : ''
-                }`}
-              >
+              <Card key={plan.name} className={cn("relative", plan.popular && "border-primary")}>
                 {plan.popular && (
                   <Badge className="absolute -top-2 right-4">
                     Most Popular
                   </Badge>
                 )}
-                <div className="space-y-2">
-                  <h3 className="font-medium text-lg">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">{plan.price}</span>
-                    <span className="text-sm text-muted-foreground">/month</span>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-lg">{plan.name}</h3>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold">{plan.price}</span>
+                      <span className="text-sm text-muted-foreground">/month</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {plan.description}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {plan.description}
-                  </p>
-                </div>
-                <ul className="space-y-2 min-h-[280px]">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm">
-                      <Check className="h-4 w-4 text-primary shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="w-full"
-                  variant={plan.current ? 'outline' : 'default'}
-                  disabled={plan.current}
-                >
-                  {plan.current ? 'Current Plan' : 'Upgrade'}
-                </Button>
-              </div>
+                  <ul className="space-y-2 min-h-[280px]">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2 text-sm">
+                        <Check className="h-4 w-4 text-primary shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button 
+                    className="w-full" 
+                    variant="default"
+                    onClick={() => window.open(plan.purchaseUrl, '_blank')}
+                  >
+                    Upgrade
+                  </Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </CardContent>
