@@ -5,29 +5,22 @@ import ProfileSettings from '@/components/settings/profile-settings';
 import SubscriptionSettings from '@/components/settings/subscription-settings';
 import TwitterAccounts from '@/components/settings/twitter-accounts';
 import DoNotContact from '@/components/settings/do-not-contact';
-import { useEffect, useState } from 'react';
+import { useUser } from '@/contexts/user-context';
+import { Loader2 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const [userId, setUserId] = useState<string>('');
+  const { userId, isLoading } = useUser();
 
-  useEffect(() => {
-    const fetchUserId = async () => {
-      try {
-        const response = await fetch('/api/user/me');
-        const data = await response.json();
-        if (data.user?.id) {
-          setUserId(data.user.id);
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      }
-    };
-
-    fetchUserId();
-  }, []);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
 
   if (!userId) {
-    return null; // or a loading state
+    return null;
   }
 
   return (

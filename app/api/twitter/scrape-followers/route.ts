@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 
-const apifyToken = process.env.APIFY_API_TOKEN || 'apify_api_5cO4CWdFzGh7b6vNx8nVRIknc42Cce1QQzdO';
+const apifyToken = process.env.APIFY_API_TOKEN;
 
 if (!apifyToken) {
   throw new Error('APIFY_API_TOKEN is not defined in environment variables');
@@ -14,20 +14,25 @@ const client = new ApifyClient({
 export async function POST(request: Request) {
   try {
     const { profileUrl, count, cookies } = await request.json();
-
     const input = {
       profileUrl,
       friendshipType: "followers",
       count,
       minDelay: 1,
       maxDelay: 15,
-      cookie: cookies
+      cookie: cookies,
+      isVerifiedOnly: true
     };
 
     const run = await client.actor("curious_coder/twitter-scraper").call(input);
     const { items } = await client.dataset(run.defaultDatasetId).listItems();
     
-    return NextResponse.json({ items });
+    console.log('Scraped items:', items);
+    
+    return NextResponse.json({ 
+      items,
+      total: items.length,
+    });
   } catch (error) {
     console.error('Failed to scrape followers:', error);
     return NextResponse.json({ 

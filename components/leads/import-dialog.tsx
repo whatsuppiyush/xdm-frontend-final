@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Upload, Twitter, X, AlertCircle } from 'lucide-react';
 import { CustomProgress } from '@/components/ui/custom-progress';
 import { Card, CardContent } from '@/components/ui/card';
+import { useUser } from '@/contexts/user-context';
 
 interface ImportDialogProps {
   open: boolean;
@@ -52,11 +53,12 @@ export default function ImportDialog({ open, onOpenChange }: ImportDialogProps) 
   const itemsPerPage = 20;
   const [error, setError] = useState<string | null>(null);
   const [screenshotInfo, setScreenshotInfo] = useState<{ timestamp: string; error: string } | null>(null);
+  const { userId } = useUser();
 
   useEffect(() => {
     const fetchCookies = async () => {
       try {
-        const response = await fetch('/api/twitter/get-accounts');
+        const response = await fetch(`/api/twitter/get-accounts?userId=${userId}`);
         if (!response.ok) throw new Error('Failed to fetch cookies');
         const data = await response.json();
         if (data.accounts && data.accounts.length > 0) {
@@ -66,8 +68,11 @@ export default function ImportDialog({ open, onOpenChange }: ImportDialogProps) 
         console.error('Error fetching cookies:', error);
       }
     };
-    fetchCookies();
-  }, []);
+
+    if (userId) {
+      fetchCookies();
+    }
+  }, [userId]);
 
   const handleNext = async () => {
     if (step < 2) {
