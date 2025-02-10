@@ -3,7 +3,6 @@ import { ApifyClient } from 'apify-client';
 
 const apifyToken = process.env.APIFY_API_TOKEN || "apify_api_bUaS7nKRAGqBdPlwzS7q3Bu9wrR9PJ4wODHE";
 
-
 if (!apifyToken) {
   throw new Error('APIFY_API_TOKEN is not defined in environment variables');
 }
@@ -27,11 +26,18 @@ export async function POST(request: Request) {
     const run = await client.actor("curious_coder/twitter-scraper").call(input);
     const { items } = await client.dataset(run.defaultDatasetId).listItems();
     
-    console.log('Scraped items:', items);
+    // Filter followers who can receive DMs
+    const dmableFollowers = items.filter((item: any) => {
+      return item.can_dm === true;
+    });
+    
+    console.log('Total followers:', items.length);
+    console.log('DM-able followers:', dmableFollowers.length);
     
     return NextResponse.json({ 
-      items,
+      items: dmableFollowers,
       total: items.length,
+      dmableCount: dmableFollowers.length
     });
   } catch (error) {
     console.error('Failed to scrape followers:', error);
