@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Settings,
   Users,
+  MessageSquare,
 } from 'lucide-react';
 
 const routes = [
@@ -23,6 +24,12 @@ const routes = [
     icon: Users,
     href: '/leads',
     color: 'text-violet-500',
+  },
+  {
+    label: 'Campaign',
+    icon: MessageSquare,
+    href: '/campaign',
+    color: 'text-green-500',
   },
   {
     label: 'Settings',

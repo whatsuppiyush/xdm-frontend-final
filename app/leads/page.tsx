@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import LeadLists from '@/components/leads/lead-lists';
+
 import ImportDialog from '@/components/leads/import-dialog';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -18,7 +18,7 @@ export default function LeadsPage() {
           Import Leads
         </Button>
       </div>
-      <LeadLists />
+      
       <ImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
     </div>
   );
