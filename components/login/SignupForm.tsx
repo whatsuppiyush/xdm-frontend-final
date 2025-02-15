@@ -1,80 +1,85 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { signIn } from 'next-auth/react';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { signIn } from "next-auth/react";
 
 export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: ''
+    email: "",
+    password: "",
+    name: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to sign up');
+        throw new Error(data.error || "Failed to sign up");
       }
 
       // Automatically sign in after successful signup
-      await signIn('credentials', {
+      await signIn("credentials", {
         email: formData.email,
         password: formData.password,
-        callbackUrl: '/',
-        redirect: true
+        callbackUrl: "/",
+        redirect: true,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign up');
+      setError(err instanceof Error ? err.message : "Failed to sign up");
       setIsLoading(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" data-oid="2epemmv">
       {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+        <Alert variant="destructive" data-oid="t.o1ba7">
+          <AlertDescription data-oid="p4k1z52">{error}</AlertDescription>
         </Alert>
       )}
-      
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+
+      <div className="space-y-2" data-oid="2:fc.g7">
+        <Label htmlFor="name" data-oid="lb7bk5o">
+          Name
+        </Label>
         <Input
           id="name"
           name="name"
           placeholder="Enter your name"
           value={formData.name}
           onChange={handleChange}
+          data-oid="8o_g4xk"
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+      <div className="space-y-2" data-oid=":nvfr8m">
+        <Label htmlFor="email" data-oid="cr8j6hi">
+          Email
+        </Label>
         <Input
           id="email"
           name="email"
@@ -83,11 +88,14 @@ export default function SignupForm() {
           value={formData.email}
           onChange={handleChange}
           required
+          data-oid="ldw_46f"
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+      <div className="space-y-2" data-oid="kld1wcq">
+        <Label htmlFor="password" data-oid="qe0w.et">
+          Password
+        </Label>
         <Input
           id="password"
           name="password"
@@ -96,6 +104,7 @@ export default function SignupForm() {
           value={formData.password}
           onChange={handleChange}
           required
+          data-oid="auab6-k"
         />
       </div>
 
@@ -103,9 +112,10 @@ export default function SignupForm() {
         type="submit"
         className="w-full"
         disabled={isLoading}
+        data-oid=".degw-q"
       >
-        {isLoading ? 'Creating Account...' : 'Sign Up'}
+        {isLoading ? "Creating Account..." : "Sign Up"}
       </Button>
     </form>
   );
-} 
+}

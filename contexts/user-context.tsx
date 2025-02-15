@@ -1,6 +1,12 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 interface UserContextType {
   userId: string;
@@ -11,19 +17,19 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [userId, setUserId] = useState<string>('');
+  const [userId, setUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const response = await fetch('/api/user/me');
+        const response = await fetch("/api/user/me");
         const data = await response.json();
         if (data.user?.id) {
           setUserId(data.user.id);
         }
       } catch (error) {
-        console.error('Error fetching user:', error);
+        console.error("Error fetching user:", error);
       } finally {
         setIsLoading(false);
       }
@@ -33,7 +39,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <UserContext.Provider value={{ userId, setUserId, isLoading }}>
+    <UserContext.Provider
+      value={{ userId, setUserId, isLoading }}
+      data-oid="2vllyn8"
+    >
       {children}
     </UserContext.Provider>
   );
@@ -42,7 +51,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 export function useUser() {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
+    throw new Error("useUser must be used within a UserProvider");
   }
   return context;
-} 
+}

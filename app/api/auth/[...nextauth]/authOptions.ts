@@ -4,6 +4,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { ObjectId } from 'mongodb';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -40,25 +41,33 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           image: user.image,
+          provider: 'credentials'
         };
       },
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      if (account?.provider === 'google') {
-        try {
-          const existingUser = await prisma.user.upsert({
-            where: { email: user.email! },
-            update: {
-              name: user.name,
-              image: user.image,
-              provider: 'google',
-              updatedAt: new Date(),
-            },
-            create: {
-              email: user.email!,
-              name: user.name,
+    async signIn({ user, account, profile }) {
+      if (!user?.email) {
+        return false;
+      }
+
+      try {
+        if (account?.provider === 'google') {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email }
+          });
+
+          if (existingUser) {
+            return true;
+          }
+
+          // Create new user with MongoDB ObjectId
+          await prisma.user.create({
+            data: {
+              id: new ObjectId().toString(),
+              email: user.email,
+              name: user.name || '',
               image: user.image,
               provider: 'google',
               createdAt: new Date(),
@@ -66,22 +75,38 @@ export const authOptions: NextAuthOptions = {
             },
           });
           return true;
-        } catch (error) {
-          console.error('Error saving user:', error);
-          return false;
         }
+        return true;
+      } catch (error) {
+        return false;
       }
-      return true;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+    async jwt({ token, user, account, trigger }) {
+      if (trigger === 'signIn' && user) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email }
+        });
+
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.provider = dbUser.provider;
+        }
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
+      if (session.user && token) {
+        const dbUser = await prisma.user.findFirst({
+          where: { id: token.id as string }
+        });
+
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.provider = dbUser.provider || 'google';
+          session.user.email = dbUser.email;
+          session.user.name = dbUser.name || null;
+          session.user.image = dbUser.image || null;
+        }
       }
       return session;
     },
@@ -91,4 +116,7 @@ export const authOptions: NextAuthOptions = {
     error: '/?error=AuthError',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: 'jwt',
+  },
 };
