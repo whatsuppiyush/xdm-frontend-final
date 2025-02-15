@@ -11,35 +11,35 @@ model User {
   id              String           @id @default(auto()) @map("_id") @db.ObjectId
   email           String           @unique
   name            String?
-  password        String?          // Optional for OAuth users
+  password        String? // Optional for OAuth users
   image           String?
-  provider        String?          // "credentials" or "google"
+  provider        String? // "credentials" or "google"
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   twitterAccounts TwitterAccount[] // Array of TwitterAccounts
-  messages        Message[]        // Array of Messages
+  messages        Message[] // Array of Messages
 }
 
 model TwitterAccount {
   id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  cookies            Json[]   // Array of cookie objects
+  cookies            Json[] // Array of cookie objects
   createdAt          DateTime @default(now())
   twitterAccountName String
-  userId             String   @db.ObjectId  // Required reference to User
-  user               User     @relation(fields: [userId], references: [id])  // Required relation to User
+  userId             String   @db.ObjectId // Required reference to User
+  user               User     @relation(fields: [userId], references: [id]) // Required relation to User
 }
 
 model Message {
   id          String        @id @default(auto()) @map("_id") @db.ObjectId
   createdAt   DateTime      @default(now())
-  messageSent String        // The text of the message that was sent
+  messageSent String // The text of the message that was sent
   messages    MessageItem[] // Array of message items with recipient and status
-  userId      String        @db.ObjectId  // Reference to User
-  user        User         @relation(fields: [userId], references: [id])  // Relation to User
+  userId      String        @db.ObjectId // Reference to User
+  user        User          @relation(fields: [userId], references: [id]) // Relation to User
 }
 
 // Embedded document for message items
 type MessageItem {
-  recipientId String  // Twitter recipient ID
+  recipientId String // Twitter recipient ID
   status      Boolean // Message delivery status
 }
