@@ -11,7 +11,7 @@ let currentJob = null;
 let queue = [];
 let processedRecipients = new Set();
 let totalAttempts = 0;
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 2;
 
 const sendDM = async (recipientId, message, cookies) => {
     let browser = null;

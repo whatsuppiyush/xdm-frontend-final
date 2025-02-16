@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,20 +11,22 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface Lead {
-  id: number;
+  id: string;
   username: string;
   name: string;
   followers: number;
   following: number;
   bio: string;
-  status: "Qualified" | "Pending" | "Contacted";
+  status: "Qualified" | "Pending" | "Contacted" | "Active";
 }
 
 export const defaultLeads: Lead[] = [
   {
-    id: 1,
+    id: "1",
     username: "@sarahsmith",
     name: "Sarah Smith",
     followers: 12500,
@@ -32,7 +35,7 @@ export const defaultLeads: Lead[] = [
     status: "Qualified",
   },
   {
-    id: 2,
+    id: "2",
     username: "@mikejohnson",
     name: "Mike Johnson",
     followers: 8900,
@@ -41,7 +44,7 @@ export const defaultLeads: Lead[] = [
     status: "Pending",
   },
   {
-    id: 3,
+    id: "3",
     username: "@amychen",
     name: "Amy Chen",
     followers: 15600,
@@ -56,76 +59,107 @@ interface LeadsListProps {
 }
 
 export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const leadsPerPage = 15;
+  
+  // Calculate pagination
+  const indexOfLastLead = currentPage * leadsPerPage;
+  const indexOfFirstLead = indexOfLastLead - leadsPerPage;
+  const currentLeads = leads.slice(indexOfFirstLead, indexOfLastLead);
+  const totalPages = Math.ceil(leads.length / leadsPerPage);
+
   return (
-    <div className="rounded-lg border" data-oid="mxtz0xw">
-      <Table data-oid="9ius503">
-        <TableHeader data-oid="mv:-o38">
-          <TableRow className="bg-gray-50" data-oid="pww.-ml">
-            <TableHead className="w-[30px]" data-oid="0xje4x8">
-              <Checkbox data-oid="28hl456" />
-            </TableHead>
-            <TableHead data-oid="5m0xx7n">Name</TableHead>
-            <TableHead data-oid="9rn28.g">Bio</TableHead>
-            <TableHead className="text-right" data-oid="14cxx3g">
-              Followers
-            </TableHead>
-            <TableHead className="text-right" data-oid="h81rd3d">
-              Following
-            </TableHead>
-            <TableHead data-oid="x3b6v.p">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody data-oid="cz.yzhw">
-          {leads.map((lead) => (
-            <TableRow key={lead.id} data-oid="sdty3ft">
-              <TableCell data-oid="0ap32l7">
-                <Checkbox data-oid="2_u-nk_" />
-              </TableCell>
-              <TableCell data-oid="276.l:b">
-                <div data-oid="tl.abi_">
-                  <div className="font-medium" data-oid="z0on_ep">
-                    {lead.name}
-                  </div>
-                  <div
-                    className="text-sm text-muted-foreground"
-                    data-oid="c0to5jv"
-                  >
-                    {lead.username}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="max-w-[300px] truncate" data-oid="da392j0">
-                {lead.bio}
-              </TableCell>
-              <TableCell className="text-right" data-oid="12:6jzx">
-                {lead.followers.toLocaleString()}
-              </TableCell>
-              <TableCell className="text-right" data-oid="podaiuw">
-                {lead.following.toLocaleString()}
-              </TableCell>
-              <TableCell data-oid="v2fc.le">
-                <Badge
-                  variant={
-                    lead.status === "Qualified"
-                      ? "default"
-                      : lead.status === "Contacted"
-                        ? "secondary"
-                        : "outline"
-                  }
-                  className={
-                    lead.status === "Qualified"
-                      ? "bg-[#0F172A] hover:bg-[#1E293B]"
-                      : ""
-                  }
-                  data-oid="wmg3b-_"
-                >
-                  {lead.status}
-                </Badge>
-              </TableCell>
+    <div className="space-y-4">
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-50">
+              <TableHead className="w-[30px]">
+                <Checkbox />
+              </TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Bio</TableHead>
+              <TableHead className="text-right">Followers</TableHead>
+              <TableHead className="text-right">Following</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {currentLeads.map((lead) => (
+              <TableRow key={lead.id}>
+                <TableCell>
+                  <Checkbox />
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">
+                      {lead.name}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {lead.username}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="max-w-[300px] truncate">
+                  {lead.bio}
+                </TableCell>
+                <TableCell className="text-right">
+                  {lead.followers.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right">
+                  {lead.following.toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      lead.status === "Qualified"
+                        ? "default"
+                        : lead.status === "Contacted"
+                          ? "secondary"
+                          : "outline"
+                    }
+                    className={
+                      lead.status === "Qualified"
+                        ? "bg-[#0F172A] hover:bg-[#1E293B]"
+                        : ""
+                    }
+                  >
+                    {lead.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between px-2">
+        <div className="text-sm text-gray-500">
+          Showing {indexOfFirstLead + 1} to {Math.min(indexOfLastLead, leads.length)} of {leads.length} leads
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="text-sm">
+            Page {currentPage} of {totalPages}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

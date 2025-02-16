@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,38 +16,207 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StepsNavigation } from "@/components/ui/steps-navigation";
+import { useUser } from "@/contexts/user-context";
+
+interface AutomatedLead {
+  id: string;
+  leadName: string;
+  totalLeads: number;
+  createdAt: string;
+  followers: any[];
+}
+
 interface Campaign {
   id: number;
   name: string;
   progress: { sent: number; total: number };
   status: "Running" | "Paused";
 }
+
+interface TwitterAccount {
+  id: string;
+  twitterAccountName: string;
+  createdAt: string;
+  cookies: any[];
+}
+
+interface dmQueueList {
+  id: string;
+  messageSent: string;
+  totalLeads: number;
+  processedLeads: number;
+  failedLeads: number;
+  createdAt: string;
+  campaignName: string;
+}
+
 export default function CampaignPage() {
-  const [campaigns] = useState<Campaign[]>([
-    {
-      id: 1,
-      name: "PH Reachout",
-      progress: { sent: 150, total: 928 },
-      status: "Paused",
-    },
-  ]);
   const [isCreating, setIsCreating] = useState(false);
   const [step, setStep] = useState(1);
   const [campaignName, setCampaignName] = useState("");
   const [messageTemplate, setMessageTemplate] = useState("");
-  const [selectedLeadList, setSelectedLeadList] = useState("");
+  const [selectedLeadList, setSelectedLeadList] = useState<AutomatedLead | null>(null);
   const [messageVariants, setMessageVariants] = useState([
     { id: 1, content: "", isEnabled: true },
   ]);
   const [delay, setDelay] = useState("15");
   const [dailyLimit, setDailyLimit] = useState("50");
-  const [selectedAccount, setSelectedAccount] = useState(1);
+  const [selectedAccount, setSelectedAccount] = useState<TwitterAccount | null>(null);
+  const [leadLists, setLeadLists] = useState<AutomatedLead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { userId } = useUser();
+  const [twitterAccounts, setTwitterAccounts] = useState<TwitterAccount[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dmqueueList, setDmqueueList] = useState<dmQueueList[]>([]);
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
     { title: "Write Message", subtitle: "Craft your campaign message" },
     { title: "Configure Variants", subtitle: "Set up message variations" },
     { title: "Start Automation", subtitle: "Review and launch campaign" },
   ];
+
+  const sendDM = async () => {
+    if (!selectedAccount?.cookies) {
+      console.error("No cookies available");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const recipientIds = selectedLeadList?.followers.map((follower) => follower.id);
+
+      // First, create a message record in the database
+      const messageResponse = await fetch("/api/messages/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messageSent: messageTemplate,
+          recipients: recipientIds,
+          campaignName: campaignName,
+          userId: userId
+        }),
+      });
+
+      if (!messageResponse.ok) {
+        throw new Error("Failed to create message record");
+      }
+
+      // Then start the DM sending process
+      const response = await fetch("/api/send-DM", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "start",
+          recipients: recipientIds,
+          messageTemplate,
+          cookies: selectedAccount?.cookies,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start DM process");
+      }
+
+      const data = await response.json();
+      console.log("DM process started:", data);
+    } catch (error) {
+      console.error("Failed to send DMs:", error);
+      setError(error instanceof Error ? error.message : "Failed to send DMs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch messages to show the queue processing
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!userId) return;
+
+      try {
+        const response = await fetch(`/api/messages?userId=${userId}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          // Transform the data to calculate the required metrics
+          const transformedData: dmQueueList[] = data.messages.map(
+            (message: any) => {
+              const totalLeads = message.messages.length;
+              const processedLeads = message.messages.filter(
+                (m: any) => m.status === true,
+              ).length;
+              const failedLeads = message.messages.filter(
+                (m: any) => m.status === false,
+              ).length;
+
+              return {
+                id: message.id,
+                messageSent: message.messageSent,
+                totalLeads,
+                processedLeads,
+                failedLeads,
+                createdAt: message.createdAt,
+                campaignName: message.campaignName,
+              };
+            },
+          );
+
+          setDmqueueList(transformedData);
+        }
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMessages();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchLeadLists = async () => {
+      if (!userId) return;
+      
+      try {
+        const response = await fetch(`/api/leads?userId=${userId}`);
+        if (!response.ok) throw new Error('Failed to fetch lead lists');
+        
+        const data = await response.json();
+        setLeadLists(data.leads);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching lead lists:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchLeadLists();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchTwitterAccounts = async () => {
+      if (!userId) return;
+      
+      try {
+        const response = await fetch(`/api/twitter/get-accounts?userId=${userId}`);
+        if (!response.ok) throw new Error('Failed to fetch Twitter accounts');
+        
+        const data = await response.json();
+        setTwitterAccounts(data.accounts);
+      } catch (error) {
+        console.error('Error fetching Twitter accounts:', error);
+      } finally {
+        setAccountsLoading(false);
+      }
+    };
+
+    fetchTwitterAccounts();
+  }, [userId]);
 
   const addMessageVariant = () => {
     setMessageVariants([
@@ -93,7 +262,9 @@ export default function CampaignPage() {
                     {" "}
                     Select Lead Source{" "}
                   </h2>{" "}
-                  {campaigns.length === 0 ? (
+                  {loading ? (
+                    <div className="text-center">Loading lead lists...</div>
+                  ) : leadLists.length === 0 ? (
                     <div className="text-center space-y-4">
                       {" "}
                       <p className="text-gray-600">You do not have any lead lists yet.</p>{" "}
@@ -109,11 +280,11 @@ export default function CampaignPage() {
                   ) : (
                     <div className="grid grid-cols-3 gap-6">
                       {" "}
-                      {["PH Launch", "New Leads", "Tech Founders"].map((list) => (
+                      {leadLists.map((list) => (
                         <Card
-                          key={list}
+                          key={list.id}
                           className={`border-2 p-6 cursor-pointer transition-all hover:shadow-lg ${
-                            selectedLeadList === list
+                            selectedLeadList?.id === list.id
                               ? "ring-2 ring-black border-black"
                               : "hover:border-gray-400"
                           }`}
@@ -121,9 +292,9 @@ export default function CampaignPage() {
                         >
                           {" "}
                           <h3 className="font-medium text-xl mb-2">
-                            {list}
+                            {list.leadName}
                           </h3>{" "}
-                          <p className="text-gray-500">1,051 leads</p>{" "}
+                          <p className="text-gray-500">{list.totalLeads.toLocaleString()} leads</p>{" "}
                         </Card>
                       ))}{" "}
                     </div>
@@ -543,38 +714,45 @@ export default function CampaignPage() {
                           {" "}
                           <Label className="text-lg">Select Twitter Account</Label>
                           <div className="grid gap-4">
-                            {[
-                              { id: 1, handle: '@johndoe', avatar: '👨‍💻', isConnected: true },
-                              { id: 2, handle: '@janedoe', avatar: '👩‍💻', isConnected: true },
-                              { id: 3, handle: '@marksmith', avatar: '👨‍💼', isConnected: false },
-                            ].map((account) => (
-                              <div
-                                key={account.id}
-                                className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer hover:border-gray-400 transition-all ${
-                                  selectedAccount === account.id
-                                    ? 'border-black bg-gray-50'
-                                    : 'border-gray-200'
-                                }`}
-                                onClick={() => account.isConnected && setSelectedAccount(account.id)}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl">
-                                    {account.avatar}
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">{account.handle}</div>
-                                    <div className="text-sm text-gray-500">
-                                      {account.isConnected ? 'Connected' : 'Not Connected'}
+                            {accountsLoading ? (
+                              <div className="text-center py-4 text-gray-500">Loading accounts...</div>
+                            ) : twitterAccounts.length === 0 ? (
+                              <div className="text-center py-4 text-gray-500">
+                                No Twitter accounts connected. 
+                                <Button 
+                                  variant="link" 
+                                  className="text-black underline hover:text-gray-700"
+                                  onClick={() => window.location.href = '/settings'}
+                                >
+                                  Connect an account →
+                                </Button>
+                              </div>
+                            ) : (
+                              twitterAccounts.map((account) => (
+                                <div
+                                  key={account.id}
+                                  className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer hover:border-gray-400 transition-all ${
+                                    selectedAccount?.id === account.id ? 'border-black bg-gray-50' : 'border-gray-200'
+                                  }`}
+                                  onClick={() => setSelectedAccount(account)}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl">
+                                      👤
+                                    </div>
+                                    <div>
+                                      <div className="font-medium">@{account.twitterAccountName}</div>
+                                      <div className="text-sm text-gray-500">Connected</div>
                                     </div>
                                   </div>
+                                  {selectedAccount?.id === account.id && (
+                                    <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
+                                      <Check className="w-4 h-4 text-white" />
+                                    </div>
+                                  )}
                                 </div>
-                                {selectedAccount === account.id && (
-                                  <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
-                                    <Check className="w-4 h-4 text-white" />
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                              ))
+                            )}
                           </div>
                         </div>
 
@@ -609,11 +787,12 @@ export default function CampaignPage() {
                       </Button>{" "}
                       <Button
                         className="bg-black hover:bg-gray-800 text-white px-12 py-6 text-lg rounded-xl"
-                        onClick={() => {
+                        onClick={async () => {
+                          await sendDM();
                           setIsCreating(false);
                           setStep(1);
                         }}
-                        disabled={!campaignName.trim() || !selectedAccount}
+                        disabled={!campaignName || !selectedAccount || !selectedLeadList}
                       >
                         {" "}
                         Start Campaign{" "}
@@ -648,66 +827,49 @@ export default function CampaignPage() {
       </div>{" "}
       <div className="space-y-6">
         {" "}
-        {campaigns.map((campaign) => (
-          <Card key={campaign.id} className="p-6 border-2">
-            {" "}
+        {dmqueueList.map((queue) => (
+          <Card key={queue.id} className="p-6 border-2">
             <div className="space-y-6">
-              {" "}
               <div className="flex justify-between items-start">
-                {" "}
                 <div className="space-y-1">
-                  {" "}
-                  <h3 className="text-xl font-medium">{campaign.name}</h3>{" "}
+                  <h3 className="text-xl font-medium">{queue.campaignName}</h3>
                   <p className="text-sm text-gray-500">
-                    {" "}
-                    Progress - {campaign.progress.sent}/{" "}
-                    {campaign.progress.total} sent{" "}
-                  </p>{" "}
-                </div>{" "}
+                    Progress - {queue.processedLeads}/{queue.totalLeads} sent 
+                    {queue.failedLeads > 0 && ` (${queue.failedLeads} failed)`}
+                  </p>
+                </div>
                 <div className="text-sm text-gray-500">
-                  {" "}
-                  Status - {campaign.status}{" "}
-                </div>{" "}
-              </div>{" "}
+                  Status - {queue.processedLeads === queue.totalLeads ? 'Completed' : 'In Progress'}
+                </div>
+              </div>
               <div className="w-full bg-gray-100 rounded-full h-2.5">
-                {" "}
                 <div
                   className="bg-[#0F172A] h-2.5 rounded-full"
                   style={{
-                    width: `${(campaign.progress.sent / campaign.progress.total) * 100}%`,
+                    width: `${(queue.processedLeads / queue.totalLeads) * 100}%`,
                   }}
-                />{" "}
-              </div>{" "}
+                />
+              </div>
               <div className="flex justify-end gap-2">
-                {" "}
                 <Button variant="outline" className="border-2">
-                  {" "}
-                  {campaign.status === "Running" ? (
+                  {queue.processedLeads === queue.totalLeads ? (
                     <>
-                      {" "}
-                      <Pause className="h-4 w-4 mr-2" /> Pause{" "}
+                      <Play className="h-4 w-4 mr-2" /> Retry Failed
                     </>
                   ) : (
                     <>
-                      {" "}
-                      <Play className="h-4 w-4 mr-2" /> Resume{" "}
+                      <Pause className="h-4 w-4 mr-2" /> Pause
                     </>
-                  )}{" "}
-                </Button>{" "}
+                  )}
+                </Button>
                 <Button variant="outline" className="border-2">
-                  {" "}
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit{" "}
-                </Button>{" "}
-                <Button variant="outline" className="border-2">
-                  {" "}
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete{" "}
-                </Button>{" "}
-              </div>{" "}
-            </div>{" "}
+                  Delete
+                </Button>
+              </div>
+            </div>
           </Card>
-        ))}{" "}
+        ))}
       </div>{" "}
     </div>
   );

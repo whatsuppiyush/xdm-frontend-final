@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, Upload, X } from "lucide-react";
+import { ArrowLeft, Plus, Upload, X, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -10,6 +10,7 @@ import LeadsList, { defaultLeads, Lead } from "@/components/leads/leads-list";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
+import { useUser } from "@/contexts/user-context";
 
 interface TwitterProfile {
   handle: string;
@@ -20,6 +21,16 @@ interface FilterOption {
   title: string;
   description: string;
   key: string;
+}
+
+interface ScrapedFollower extends Lead {
+  id: string;
+  name: string;
+  username: string;
+  bio?: string;
+  followers: number;
+  following: number;
+  status: string;
 }
 
 interface ImportLeadsProps {
@@ -38,6 +49,87 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
   const [filteredCount, setFilteredCount] = useState(0);
   const [leads, setLeads] = useState<Lead[]>(defaultLeads);
   const [leadsName, setLeadsName] = useState("");
+  const { userId } = useUser();
+  const [cookies, setCookies] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [scrapedFollowers, setScrapedFollowers] = useState<Lead[]>(
+    [],
+  );
+
+  useEffect(() => {
+    const fetchCookies = async () => {
+      try {
+        const response = await fetch(
+          `/api/twitter/get-accounts?userId=${userId}`,
+        );
+        if (!response.ok) throw new Error("Failed to fetch cookies");
+        const data = await response.json();
+        if (data.accounts && data.accounts.length > 0) {
+          setCookies(data.accounts[0].cookies);
+        }
+      } catch (error) {
+        console.error("Error fetching cookies:", error);
+      }
+    };
+
+    if (userId) {
+      fetchCookies();
+    }
+  }, [userId]);
+
+  async function importLeads() {
+    if (!cookies) {
+      console.error("No cookies available");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch("/api/twitter/scrape-followers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          profileUrl:'https://x.com/'+twitterProfiles[0].handle,
+          count: twitterProfiles[0].followerCount,
+          cookies: cookies,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to scrape followers");
+      }
+
+      if (!data.items || !Array.isArray(data.items)) {
+        throw new Error("Invalid response format from scraper");
+      }
+
+      // Transform the scraped data to match our Lead interface
+      const transformedFollowers: Lead[] = data.items.map((item: any) => ({
+        id: item.userId || item.id,
+        name: item.name || "",
+        username: item.username || item.screen_name || "",
+        bio: item.description || item.bio || "",
+        followers: item.followers_count || item.followersCount || 0,
+        following: item.following_count || item.followingCount || 0,
+        canDM: item.can_dm || item.canDM || false,
+        status: "Active" // Add default status
+      }));
+
+      setScrapedFollowers(transformedFollowers);
+    } catch (error) {
+      console.error("Error importing leads:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to import leads",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const steps = [
     {
@@ -112,7 +204,7 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
     }
     return handle.replace("@", "");
   };
-
+  
   // Generate default leads name when profiles change or when reaching step 3
   useEffect(() => {
     if (step === 3 || twitterProfiles.some(p => p.handle)) {
@@ -129,6 +221,38 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
       setLeadsName(`${profileNames}_${datetime}`);
     }
   }, [step, twitterProfiles]);
+
+  const handleNext = async () => {
+    setLoading(true);
+    await importLeads();
+    setStep(2);
+    setLoading(false);
+  };
+
+  const handleSaveLeads = async () => {
+    try {
+      const response = await fetch('/api/leads/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          leadName: leadsName,
+          followers: scrapedFollowers,
+          userId
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save leads');
+      }
+
+      onBack(); // Return to previous screen after successful save
+    } catch (error) {
+      console.error('Error saving leads:', error);
+      // Handle error (maybe show a toast notification)
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -284,10 +408,17 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
                 <div className="flex justify-end">
                   <Button
                     className="bg-black hover:bg-gray-800 text-white px-8 py-6 text-lg rounded-xl"
-                    onClick={() => setStep(2)}
-                    disabled={!twitterProfiles.some(p => p.handle)}
+                    onClick={() => handleNext()}
+                    disabled={!twitterProfiles.some(p => p.handle) || loading}
                   >
-                    Continue to Filters
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Scraping Followers...
+                      </>
+                    ) : (
+                      'Continue to Filters'
+                    )}
                   </Button>
                 </div>
               </div>
@@ -430,10 +561,10 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
                         Preview Leads
                       </h3>
                       <div className="bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-medium">
-                        {leads.length} Leads Found
+                        {scrapedFollowers.length} Leads Found
                       </div>
                     </div>
-                    <LeadsList leads={leads} />
+                    <LeadsList leads={scrapedFollowers} />
                   </div>
                 </div>
 
@@ -447,7 +578,7 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
                   </Button>
                   <Button
                     className="bg-black hover:bg-gray-800 text-white px-16 py-6 text-xl rounded-xl shadow-lg hover:shadow-xl transition-all"
-                    onClick={onBack}
+                    onClick={handleSaveLeads}
                     disabled={!leadsName.trim()}
                   >
                     Save Leads

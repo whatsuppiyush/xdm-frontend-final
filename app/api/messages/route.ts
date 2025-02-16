@@ -7,24 +7,36 @@ export async function GET(request: Request) {
     const userId = searchParams.get('userId');
 
     if (!userId) {
-      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+      return NextResponse.json({ messages: [] });
     }
 
     const messages = await prisma.message.findMany({
       where: {
         userId: userId
       },
+      include: {
+        user: true
+      },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    return NextResponse.json({ messages });
+    // Transform messages to ensure proper JSON serialization
+    const serializedMessages = messages.map(message => ({
+      ...message,
+      createdAt: message.createdAt.toISOString(),
+    }));
+
+    return NextResponse.json({ 
+      messages: serializedMessages 
+    });
+
   } catch (error) {
     console.error('Failed to fetch messages:', error);
     return NextResponse.json({ 
-      error: 'Failed to fetch messages',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+      messages: [],
+      error: 'Failed to fetch messages' 
+    });
   }
 } 

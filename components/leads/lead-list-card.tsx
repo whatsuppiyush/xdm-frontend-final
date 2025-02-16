@@ -1,16 +1,24 @@
 interface LeadListCardProps {
+  id: string;
   name: string;
   leadCount: number;
   onCreateAutomation: () => void;
-  onDelete: () => void;
+  onDelete: (id: string) => void;
 }
 
 export default function LeadListCard({
+  id,
   name,
   leadCount,
   onCreateAutomation,
   onDelete,
 }: LeadListCardProps) {
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this lead list?')) {
+      onDelete(id);
+    }
+  };
+
   return (
     <div className="border-2 rounded-lg" data-oid="wapobin">
       <div className="p-4 space-y-1" data-oid="95quu_9">
@@ -30,9 +38,8 @@ export default function LeadListCard({
           Create Automation
         </button>
         <button
-          onClick={onDelete}
-          className="p-2 text-center hover:bg-gray-50 text-sm"
-          data-oid="f8a.-ye"
+          onClick={handleDelete}
+          className="p-2 text-center hover:bg-gray-50 text-sm text-red-600"
         >
           Delete
         </button>
