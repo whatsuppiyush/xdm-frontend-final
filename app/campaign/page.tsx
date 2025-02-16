@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, Pencil, Trash2, ArrowLeft, Check } from "lucide-react";
+import { Play, Pause, Pencil, Trash2, ArrowLeft, Check, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,6 +69,7 @@ export default function CampaignPage() {
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dmqueueList, setDmqueueList] = useState<dmQueueList[]>([]);
+  const [sendingDM, setSendingDM] = useState(false);
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
     { title: "Write Message", subtitle: "Craft your campaign message" },
@@ -114,7 +115,7 @@ export default function CampaignPage() {
         body: JSON.stringify({
           action: "start",
           recipients: recipientIds,
-          messageTemplate,
+          message: messageTemplate,
           cookies: selectedAccount?.cookies,
         }),
       });
@@ -788,14 +789,25 @@ export default function CampaignPage() {
                       <Button
                         className="bg-black hover:bg-gray-800 text-white px-12 py-6 text-lg rounded-xl"
                         onClick={async () => {
-                          await sendDM();
-                          setIsCreating(false);
-                          setStep(1);
+                          setSendingDM(true);
+                          try {
+                            await sendDM();
+                            setIsCreating(false);
+                            setStep(1);
+                          } finally {
+                            setSendingDM(false);
+                          }
                         }}
-                        disabled={!campaignName || !selectedAccount || !selectedLeadList}
+                        disabled={!campaignName || !selectedAccount || !selectedLeadList || sendingDM}
                       >
-                        {" "}
-                        Start Campaign{" "}
+                        {sendingDM ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Starting Campaign...
+                          </>
+                        ) : (
+                          'Start Campaign'
+                        )}
                       </Button>{" "}
                     </div>{" "}
                   </div>{" "}
