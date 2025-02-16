@@ -225,6 +225,24 @@ export default function CampaignPage() {
       { id: messageVariants.length + 1, content: "", isEnabled: true },
     ]);
   };
+
+  const handleDeleteCampaign = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this campaign?')) return;
+
+    try {
+      const response = await fetch(`/api/messages/delete?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete campaign');
+
+      // Remove the campaign from the UI
+      setDmqueueList(prevList => prevList.filter(queue => queue.id !== id));
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+    }
+  };
+
   if (isCreating) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -632,10 +650,9 @@ export default function CampaignPage() {
                                       setMessageVariants(newVariants);
                                     }}
                                   >
-                                    {" "}
-                                    Delete{" "}
-                                  </Button>{" "}
-                                </div>{" "}
+                                    Delete
+                                  </Button>
+                                </div>
                                 <Textarea
                                   value={variant.content}
                                   onChange={(e) => {
@@ -874,7 +891,11 @@ export default function CampaignPage() {
                     </>
                   )}
                 </Button>
-                <Button variant="outline" className="border-2">
+                <Button 
+                  variant="outline" 
+                  className="border-2"
+                  onClick={() => handleDeleteCampaign(queue.id)}
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </Button>
