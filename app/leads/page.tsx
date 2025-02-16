@@ -94,7 +94,7 @@ export default function LeadsPage() {
           </div>
         ) : (
           <div className="text-center py-4 text-gray-500">
-            No lead lists found. Click "Add new leads" to create one.
+            No lead lists found. Click Add new leads to create one.
           </div>
         )}
       </div>
