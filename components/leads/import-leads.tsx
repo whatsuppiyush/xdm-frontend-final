@@ -23,16 +23,6 @@ interface FilterOption {
   key: string;
 }
 
-interface ScrapedFollower extends Lead {
-  id: string;
-  name: string;
-  username: string;
-  bio?: string;
-  followers: number;
-  following: number;
-  status: string;
-}
-
 interface ImportLeadsProps {
   onBack: () => void;
 }

@@ -6,6 +6,18 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { ObjectId } from 'mongodb';
 
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      provider?: string;
+    }
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -82,7 +94,7 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, user, account, trigger }) {
-      if (trigger === 'signIn' && user) {
+      if (trigger === 'signIn' && user && user.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email }
         });
