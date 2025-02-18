@@ -27,24 +27,19 @@ export function LogoutButton() {
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      // Clear any stored data or cookies
+      
+      await signOut({
+        redirect: false,
+        callbackUrl: '/'
+      });
+
+      // Clear any stored data
       localStorage.clear();
       sessionStorage.clear();
 
-      // Sign out and redirect to login
-      await signOut({
-        redirect: false,
-      });
-
-      toast({
-        title: "Logging out...",
-        description: "Please wait while we sign you out.",
-      });
-
-      // Redirect to login page after a short delay to show the animation
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
+      // Force reload to clear all states
+      window.location.href = '/';
+      
     } catch (error) {
       console.error("Logout failed:", error);
       toast({

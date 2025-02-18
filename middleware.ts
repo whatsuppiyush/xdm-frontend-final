@@ -4,19 +4,19 @@ import type { NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request });
-  const isAuthPage = request.nextUrl.pathname === '/';
+  const isAuthPage = request.nextUrl.pathname === '/login';
 
   if (!token && !isAuthPage) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   if (token && isAuthPage) {
-    return NextResponse.redirect(new URL('/campaign', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/', '/leads', '/campaign', '/settings']
+  matcher: ['/login', '/', '/leads', '/campaign', '/settings']
 }; 

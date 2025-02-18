@@ -58,6 +58,8 @@ export default function Login() {
           title: "Success!",
           description: "You have successfully logged in.",
         });
+        router.push("/");
+        router.refresh();
       }
     } catch (error) {
       console.error("Login failed:", error);
@@ -74,7 +76,15 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      await signIn("google", { redirect: false });
+      const result = await signIn("google", {
+        redirect: false,
+        callbackUrl: "/"
+      });
+
+      if (result?.ok) {
+        router.push("/");
+        router.refresh();
+      }
     } catch (error) {
       console.error("Google login failed:", error);
       toast({

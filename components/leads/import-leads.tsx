@@ -175,7 +175,22 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
 
   const updateProfile = (index: number, field: keyof TwitterProfile, value: string | number) => {
     const newProfiles = [...twitterProfiles];
-    newProfiles[index] = { ...newProfiles[index], [field]: value };
+    
+    if (field === 'followerCount') {
+      let numValue = value === '' ? 0 : parseInt(value.toString());
+      // Clamp value between 0 and 10000
+      numValue = Math.max(0, Math.min(10000, numValue));
+      newProfiles[index] = { 
+        ...newProfiles[index], 
+        followerCount: numValue 
+      };
+    } else {
+      newProfiles[index] = { 
+        ...newProfiles[index], 
+        handle: value.toString() 
+      };
+    }
+    
     setTwitterProfiles(newProfiles);
   };
 
@@ -359,11 +374,20 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
                           <Label className="text-sm text-gray-500 mb-1 block">Followers to scrape</Label>
                           <Input
                             type="number"
-                            min={1}
-                            max={100000}
                             className="border-2 rounded-xl text-lg py-6 px-6"
-                            value={profile.followerCount}
-                            onChange={(e) => updateProfile(index, "followerCount", parseInt(e.target.value) || 1000)}
+                            value={profile.followerCount || ''}
+                            onChange={(e) => updateProfile(index, "followerCount", e.target.value)}
+                            onBlur={(e) => {
+                              if (e.target.value) {
+                                let value = parseInt(e.target.value);
+                                if (!isNaN(value)) {
+                                  // Only clamp if value is outside allowed range
+                                  if (value < 0) value = 0;
+                                  if (value > 10000) value = 10000;
+                                  updateProfile(index, "followerCount", value);
+                                }
+                              }
+                            }}
                           />
                         </div>
                         {twitterProfiles.length > 1 && (
