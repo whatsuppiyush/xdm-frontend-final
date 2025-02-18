@@ -114,7 +114,7 @@ export default function CampaignPage() {
         },
         body: JSON.stringify({
           action: "start",
-          recipients: recipientIds,
+          recipients: selectedLeadList?.followers,
           message: messageTemplate,
           cookies: selectedAccount?.cookies,
         }),
@@ -307,7 +307,9 @@ export default function CampaignPage() {
                               ? "ring-2 ring-black border-black"
                               : "hover:border-gray-400"
                           }`}
-                          onClick={() => setSelectedLeadList(list)}
+                          onClick={() =>{ 
+                            console.log("selected list", list);
+                            setSelectedLeadList(list)}}
                         >
                           {" "}
                           <h3 className="font-medium text-xl mb-2">

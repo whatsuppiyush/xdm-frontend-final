@@ -266,7 +266,7 @@ const sendDM = async (recipientId, message, cookies) => {
 
         // Click the send button
         await sendButton.click();
-
+        console.log("sendButton clicked");
         // Wait for the message to be sent
         await page.waitForFunction(
             (text) => {
@@ -401,11 +401,19 @@ const processQueue = async () => {
         console.log('Queue processing completed');
     }
 };
-
+const messageTransformFunction = (message,recipient) => {
+    let transformedMessage = message.replace("{name}",recipient.name?recipient.name.split(" ")[0]:"");
+    transformedMessage = transformedMessage.replace("{username}",recipient.username?recipient.username:"");
+    transformedMessage = transformedMessage.replace("{url}",recipient.url?recipient.url:"");
+    transformedMessage = transformedMessage.replace("{bio}",recipient.bio?recipient.bio:"");
+    transformedMessage = transformedMessage.replace("{followers}",recipient.followers?recipient.followers:"");
+    transformedMessage = transformedMessage.replace("{following}",recipient.following?recipient.following:"");
+    return transformedMessage;
+}
 export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { action, message, cookies,recipients } = req.body;
-        console.log("recipientIds",recipients);
+        //console.log("recipientIds",recipients);
         let updatedCookies = [];
         for(let cookie of cookies){
             if(cookie.name=="ct0"||cookie.name=="auth_token"){
@@ -422,9 +430,12 @@ export default async function handler(req, res) {
             queue = [];
 
             // Add new recipients to queue
-            recipients.forEach(recipientId => 
-                queue.push({ recipientId, message, cookies: updatedCookies })
-            );
+            recipients.forEach(recipient => {
+                //console.log("recipient",recipient);
+                let transformedMessage = messageTransformFunction(message,recipient);
+                console.log("transformedMessage",transformedMessage);
+                queue.push({ recipientId: recipient.id, message:transformedMessage, cookies: updatedCookies });
+            });
 
             if (!currentJob) {
                 currentJob = true;
