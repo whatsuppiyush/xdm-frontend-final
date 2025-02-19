@@ -22,9 +22,9 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
+  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams?.get("error");
-  const router = useRouter();
 
   const getErrorMessage = (error: string) => {
     switch (error) {
