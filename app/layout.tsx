@@ -3,9 +3,14 @@
 import { Inter } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from '@/components/ui/toaster';
-import Sidebar from '@/components/layout/sidebar';
+import dynamic from 'next/dynamic';
 import './globals.css';
 import { UserProvider } from '@/contexts/user-context';
+
+const Sidebar = dynamic(() => import('@/components/layout/sidebar'), {
+  ssr: false,
+  loading: () => <div>Loading...</div>
+});
 
 const inter = Inter({ subsets: ['latin'] });
 

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, Pencil, Trash2, ArrowLeft, Check, Loader2 } from "lucide-react";
+import { Play, Pause, Pencil, Trash2, ArrowLeft, Check, Loader2, Square } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/select";
 import { StepsNavigation } from "@/components/ui/steps-navigation";
 import { useUser } from "@/contexts/user-context";
+import { cn } from "@/lib/utils";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { toast } from "@/components/ui/use-toast";
 
 interface AutomatedLead {
   id: string;
@@ -48,6 +51,7 @@ interface dmQueueList {
   failedLeads: number;
   createdAt: string;
   campaignName: string;
+  status: string;
 }
 
 export default function CampaignPage() {
@@ -70,6 +74,10 @@ export default function CampaignPage() {
   const [error, setError] = useState<string | null>(null);
   const [dmqueueList, setDmqueueList] = useState<dmQueueList[]>([]);
   const [sendingDM, setSendingDM] = useState(false);
+  const [stoppingCampaigns, setStoppingCampaigns] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
     { title: "Write Message", subtitle: "Craft your campaign message" },
@@ -88,12 +96,9 @@ export default function CampaignPage() {
       setError(null);
       const recipientIds = selectedLeadList?.followers.map((follower) => follower.id);
 
-      // First, create a message record in the database
       const messageResponse = await fetch("/api/messages/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messageSent: messageTemplate,
           recipients: recipientIds,
@@ -102,30 +107,41 @@ export default function CampaignPage() {
         }),
       });
 
-      if (!messageResponse.ok) {
-        throw new Error("Failed to create message record");
-      }
+      if (!messageResponse.ok) throw new Error("Failed to create message record");
 
-      // Then start the DM sending process
+      const messageData = await messageResponse.json();
+      const campaignId = messageData.message.id;
+
       const response = await fetch("/api/send-DM", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "start",
+          campaignId,
           recipients: selectedLeadList?.followers,
           message: messageTemplate,
           cookies: selectedAccount?.cookies,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to start DM process");
-      }
+      if (!response.ok) throw new Error("Failed to start DM process");
 
-      const data = await response.json();
-      console.log("DM process started:", data);
+      // Add the new campaign to the list immediately
+      const newCampaign = {
+        id: campaignId,
+        messageSent: messageTemplate,
+        totalLeads: recipientIds?.length || 0,
+        processedLeads: 0,
+        failedLeads: 0,
+        createdAt: new Date().toISOString(),
+        campaignName: campaignName,
+        status: "In Progress"
+      };
+
+      setDmqueueList(prev => [newCampaign, ...prev]);
+      setIsCreating(false);
+      setStep(1);
+
     } catch (error) {
       console.error("Failed to send DMs:", error);
       setError(error instanceof Error ? error.message : "Failed to send DMs");
@@ -144,7 +160,6 @@ export default function CampaignPage() {
         const data = await response.json();
 
         if (response.ok) {
-          // Transform the data to calculate the required metrics
           const transformedData: dmQueueList[] = data.messages.map(
             (message: any) => {
               const totalLeads = message.messages.length;
@@ -163,6 +178,7 @@ export default function CampaignPage() {
                 failedLeads,
                 createdAt: message.createdAt,
                 campaignName: message.campaignName,
+                status: message.status || "In Progress"
               };
             },
           );
@@ -226,20 +242,90 @@ export default function CampaignPage() {
     ]);
   };
 
-  const handleDeleteCampaign = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
+  const handleDeleteCampaign = (campaignId: string) => {
+    setCampaignToDelete(campaignId);
+    setDeleteDialogOpen(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!campaignToDelete) return;
+    
+    setIsDeleting(true);
     try {
-      const response = await fetch(`/api/messages/delete?id=${id}`, {
+      const response = await fetch(`/api/messages/delete?id=${campaignToDelete}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Failed to delete campaign');
 
-      // Remove the campaign from the UI
-      setDmqueueList(prevList => prevList.filter(queue => queue.id !== id));
+      setDmqueueList(prev => prev.filter(queue => queue.id !== campaignToDelete));
+      toast({
+        title: "Campaign deleted",
+        description: "The campaign has been successfully deleted.",
+      });
     } catch (error) {
-      console.error('Error deleting campaign:', error);
+      console.error('Failed to delete campaign:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete campaign. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setCampaignToDelete(null);
+    }
+  };
+
+  // Add a function to handle stopping the campaign
+  const handleStopCampaign = async (campaignId: string) => {
+    try {
+      setStoppingCampaigns(prev => new Set(prev).add(campaignId));
+      
+      // Update campaign status in database
+      const updateResponse = await fetch(`/api/messages/update-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messageId: campaignId,
+          status: 'Stopped'
+        }),
+      });
+
+      if (!updateResponse.ok) throw new Error('Failed to update campaign status');
+
+      // Stop the campaign queue
+      const response = await fetch('/api/send-DM', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'stop',
+          campaignId
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to stop campaign');
+
+      // Update the UI
+      setDmqueueList(prevList => 
+        prevList.map(queue => 
+          queue.id === campaignId 
+            ? { ...queue, status: 'Stopped' }
+            : queue
+        )
+      );
+    } catch (error) {
+      console.error('Error stopping campaign:', error);
+    } finally {
+      setStoppingCampaigns(prev => {
+        const next = new Set(prev);
+        next.delete(campaignId);
+        return next;
+      });
     }
   };
 
@@ -811,8 +897,6 @@ export default function CampaignPage() {
                           setSendingDM(true);
                           try {
                             await sendDM();
-                            setIsCreating(false);
-                            setStep(1);
                           } finally {
                             setSendingDM(false);
                           }
@@ -858,54 +942,100 @@ export default function CampaignPage() {
       </div>{" "}
       <div className="space-y-6">
         {" "}
-        {dmqueueList.map((queue) => (
-          <Card key={queue.id} className="p-6 border-2">
-            <div className="space-y-6">
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <h3 className="text-xl font-medium">{queue.campaignName}</h3>
-                  <p className="text-sm text-gray-500">
-                    Progress - {queue.processedLeads}/{queue.totalLeads} sent 
-                    {queue.failedLeads > 0 && ` (${queue.failedLeads} failed)`}
-                  </p>
-                </div>
-                <div className="text-sm text-gray-500">
-                  Status - {queue.processedLeads === queue.totalLeads ? 'Completed' : 'In Progress'}
-                </div>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2.5">
-                <div
-                  className="bg-[#0F172A] h-2.5 rounded-full"
-                  style={{
-                    width: `${(queue.processedLeads / queue.totalLeads) * 100}%`,
-                  }}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" className="border-2">
-                  {queue.processedLeads === queue.totalLeads ? (
-                    <>
-                      <Play className="h-4 w-4 mr-2" /> Retry Failed
-                    </>
-                  ) : (
-                    <>
-                      <Pause className="h-4 w-4 mr-2" /> Pause
-                    </>
-                  )}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="border-2"
-                  onClick={() => handleDeleteCampaign(queue.id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
+        {loading ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+            <p className="text-gray-500 mt-2">Loading campaigns...</p>
+          </div>
+        ) : dmqueueList.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
+            <div className="space-y-3">
+              <h3 className="text-lg font-medium text-gray-900">No campaigns yet</h3>
+              <p className="text-gray-500">Create your first campaign to start sending messages</p>
+              <Button
+                variant="outline"
+                onClick={() => setIsCreating(true)}
+                className="mt-2"
+              >
+                Create Campaign
+              </Button>
             </div>
-          </Card>
-        ))}
+          </div>
+        ) : (
+          dmqueueList.map((queue) => (
+            <Card key={queue.id} className="p-6 border-2">
+              <div className="space-y-6">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-medium">{queue.campaignName}</h3>
+                    <p className="text-sm text-gray-500">
+                      Progress - {queue.processedLeads}/{queue.totalLeads} sent 
+                      {queue.failedLeads > 0 && ` (${queue.failedLeads} failed)`}
+                    </p>
+                  </div>
+                  <div className="text-sm">
+                    <span className={cn(
+                      "px-2 py-1 rounded-full",
+                      queue.status === "In Progress" && "bg-blue-100 text-blue-700",
+                      queue.status === "Stopped" && "bg-yellow-100 text-yellow-700",
+                      queue.processedLeads === queue.totalLeads && "bg-green-100 text-green-700"
+                    )}>
+                      {queue.processedLeads === queue.totalLeads ? 'Completed' : queue.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                  <div
+                    className="bg-[#0F172A] h-2.5 rounded-full"
+                    style={{
+                      width: `${(queue.processedLeads / queue.totalLeads) * 100}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="border-2"
+                    onClick={() => handleDeleteCampaign(queue.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="border-2"
+                    onClick={() => handleStopCampaign(queue.id)}
+                    disabled={queue.status === 'Stopped' || stoppingCampaigns.has(queue.id)}
+                  >
+                    {stoppingCampaigns.has(queue.id) ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Stopping...
+                      </>
+                    ) : (
+                      <>
+                        <Square className="h-4 w-4 mr-2" />
+                        Stop
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
       </div>{" "}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setCampaignToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Campaign"
+        description="Are you sure you want to delete this campaign? This action cannot be undone."
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

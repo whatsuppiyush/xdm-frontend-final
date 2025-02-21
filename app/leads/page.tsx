@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import ImportLeads from "@/components/leads/import-leads";
 import LeadListCard from "@/components/leads/lead-list-card";
 import { useUser } from "@/contexts/user-context";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { toast } from "@/components/ui/use-toast";
 
 interface LeadList {
   id: string;
@@ -18,6 +20,9 @@ export default function LeadsPage() {
   const [leadLists, setLeadLists] = useState<LeadList[]>([]);
   const [loading, setLoading] = useState(true);
   const { userId } = useUser();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchLeadLists = async () => {
@@ -44,18 +49,38 @@ export default function LeadsPage() {
     fetchLeadLists();
   }, [userId]);
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteLead = (leadId: string) => {
+    setLeadToDelete(leadId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!leadToDelete) return;
+    
+    setIsDeleting(true);
     try {
-      const response = await fetch(`/api/leads/delete?id=${id}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/leads/delete?id=${leadToDelete}`, {
+        method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error('Failed to delete lead');
+      if (!response.ok) throw new Error('Failed to delete lead list');
 
-      // Remove the deleted lead from state
-      setLeadLists(prevLists => prevLists.filter(list => list.id !== id));
+      setLeadLists(prev => prev.filter(lead => lead.id !== leadToDelete));
+      toast({
+        title: "Lead list deleted",
+        description: "The lead list has been successfully deleted.",
+      });
     } catch (error) {
-      console.error('Error deleting lead:', error);
+      console.error('Failed to delete lead list:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete lead list. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setLeadToDelete(null);
     }
   };
 
@@ -88,7 +113,7 @@ export default function LeadsPage() {
                 name={list.leadName}
                 leadCount={list.totalLeads}
                 onCreateAutomation={() => {}}
-                onDelete={handleDelete}
+                onDelete={handleDeleteLead}
               />
             ))}
           </div>
@@ -98,6 +123,18 @@ export default function LeadsPage() {
           </div>
         )}
       </div>
+
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setLeadToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Lead List"
+        description="Are you sure you want to delete this lead list? This action cannot be undone."
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

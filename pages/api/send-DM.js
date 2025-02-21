@@ -5,13 +5,161 @@ import puppeteer from 'puppeteer-core';
 import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
+import redis from '@/lib/redis';
 const prisma = new PrismaClient();
-
-let currentJob = null;
-let queue = [];
-let processedRecipients = new Set();
-let totalAttempts = 0;
 const MAX_RETRIES = 2;
+
+// Add campaign queue management
+// const campaignQueues = new Map(); // Store queues for each campaign
+console.log("-------- campaignQueues",redis);
+// Update the queue structure
+class CampaignQueue {
+  constructor(campaignId) {
+    this.campaignId = campaignId;
+    this.queue = [];
+    this.processedRecipients = new Set();
+    this.totalAttempts = 0;
+    this.isProcessing = false;
+    this.isStopped = false;
+  }
+
+  async saveToRedis() {
+    const queueState = {
+      campaignId: this.campaignId,
+      queue: this.queue,
+      processedRecipients: Array.from(this.processedRecipients),
+      isProcessing: this.isProcessing,
+      isStopped: this.isStopped,
+      status: this.isStopped ? 'Stopped' : 'Running'
+    };
+    await redis.set(`queue:${this.campaignId}`, JSON.stringify(queueState));
+  }
+
+  async loadFromRedis() {
+    const queueState = await redis.get(`queue:${this.campaignId}`);
+    if (queueState) {
+      const state = typeof queueState === 'string' ? JSON.parse(queueState) : queueState;
+      this.queue = state.queue || [];
+      this.processedRecipients = new Set(state.processedRecipients || []);
+      this.isProcessing = state.isProcessing || false;
+      this.isStopped = state.isStopped || false;
+      console.log(`Loaded queue state for ${this.campaignId}:`);
+    }
+  }
+
+  async addRecipients(recipients, message, cookies) {
+    await this.loadFromRedis();
+    recipients.forEach(recipient => {
+      let transformedMessage = messageTransformFunction(message, recipient);
+      this.queue.push({ 
+        recipientId: recipient.id, 
+        message: transformedMessage, 
+        cookies 
+      });
+    });
+    await this.saveToRedis();
+  }
+
+  async updateMessageStatus(recipientId, message) {
+    try {
+      // Find and update the message for this specific campaign
+      const messageRecord = await prisma.message.findUnique({
+        where: { 
+          id: this.campaignId 
+        }
+      });
+
+      if (messageRecord) {
+        const updatedMessages = messageRecord.messages.map(msg => 
+          msg.recipientId === recipientId 
+            ? { ...msg, status: true }
+            : msg
+        );
+
+        await prisma.message.update({
+          where: { 
+            id: this.campaignId 
+          },
+          data: { 
+            messages: updatedMessages 
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update message status:', error);
+    }
+  }
+
+  async process() {
+    await this.loadFromRedis();
+    if (this.isProcessing || this.isStopped) return;
+    
+    this.isProcessing = true;
+    await this.saveToRedis();
+
+    try {
+      while (this.queue.length > 0) {
+        // Check Redis state before each message
+        await this.loadFromRedis();
+        console.log("-------- campaignQueues",this.isStopped);
+        if (this.isStopped) {
+          console.log(`Campaign ${this.campaignId} stopped, breaking process loop`);
+          break;
+        }
+
+        const { recipientId, message, cookies } = this.queue[0];
+
+        if (this.processedRecipients.has(recipientId)) {
+          this.queue.shift();
+          await this.saveToRedis();
+          continue;
+        }
+
+        const delay = 1 * 60000;
+        console.log(`Waiting ${delay/60000} minutes before sending next message...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        // Check again after delay
+        await this.loadFromRedis();
+        if (this.isStopped) break;
+
+        const success = await sendDM(recipientId, message, cookies);
+        
+        if (success) {
+          await this.updateMessageStatus(recipientId, message);
+          this.processedRecipients.add(recipientId);
+          this.queue.shift();
+          this.totalAttempts = 0;
+          await this.saveToRedis();
+        } else {
+          await this.handleFailedAttempt(recipientId);
+        }
+      }
+    } catch (error) {
+      console.error(`Error in campaign ${this.campaignId}:`, error);
+    } finally {
+      this.isProcessing = false;
+      this.queue = [];
+      await redis.del(`queue:${this.campaignId}`);
+    }
+  }
+
+  handleFailedAttempt(recipientId) {
+    this.totalAttempts++;
+    if (this.totalAttempts >= MAX_RETRIES) {
+      this.processedRecipients.add(recipientId);
+      this.queue.shift();
+      this.totalAttempts = 0;
+    }
+  }
+
+  async stop() {
+    await this.loadFromRedis();
+    this.isStopped = true;
+    await this.saveToRedis();
+    console.log(`Campaign ${this.campaignId} marked as stopped in Redis`);
+  }
+}
 
 const sendDM = async (recipientId, message, cookies) => {
     let browser = null;
@@ -315,92 +463,6 @@ const sendDM = async (recipientId, message, cookies) => {
     }
 };
 
-const processQueue = async () => {
-    console.log('Processing queue...');
-
-    try {
-        while (queue.length > 0 && currentJob) {
-            const { recipientId, message, cookies } = queue[0];
-
-            // Check if we've already processed this recipient
-            if (processedRecipients.has(recipientId)) {
-                console.log(`Skipping already processed recipient: ${recipientId}`);
-                queue.shift();
-                continue;
-            }
-
-            // Random delay between messages (30 seconds)
-            const delay = Math.floor(Math.random() * (5 - 2 + 1) + 2) * 60000;
-            console.log(`Waiting ${delay/60000} minutes before sending next message...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-
-            const success = await sendDM(recipientId, message, cookies);
-            
-            if (success) {
-                // Update message status in database
-                try {
-                    const messages = await prisma.message.findMany({
-                        where: {
-                            messageSent: message,
-                            messages: {
-                                some: {
-                                    recipientId: recipientId,
-                                    status: false
-                                }
-                            }
-                        },
-                        orderBy: {
-                            createdAt: 'desc'
-                        },
-                        take: 1
-                    });
-
-                    if (messages.length > 0) {
-                        const currentMessage = messages[0];
-                        const updatedMessages = currentMessage.messages.map(msg => 
-                            msg.recipientId === recipientId 
-                                ? { ...msg, status: true }
-                                : msg
-                        );
-
-                        await prisma.message.update({
-                            where: { id: currentMessage.id },
-                            data: { messages: updatedMessages }
-                        });
-                    }
-                } catch (error) {
-                    console.error('Failed to update message status:', error);
-                }
-
-                // Mark recipient as processed and remove from queue
-                processedRecipients.add(recipientId);
-                queue.shift();
-                totalAttempts = 0; // Reset attempts counter on success
-            } else {
-                totalAttempts++;
-                if (totalAttempts >= MAX_RETRIES) {
-                    console.log(`Failed to send message to ${recipientId} after ${MAX_RETRIES} attempts, skipping...`);
-                    processedRecipients.add(recipientId); // Mark as processed even though failed
-                    queue.shift();
-                    totalAttempts = 0; // Reset attempts counter
-                } else {
-                    // If failed but still have retries, wait 30 seconds and try again
-                    console.log(`Retry attempt ${totalAttempts} for recipient ${recipientId}`);
-                    await new Promise(resolve => setTimeout(resolve, 30000));
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error in process queue:', error);
-    } finally {
-        // Clean up when queue is empty or job is stopped
-        currentJob = null;
-        queue = [];
-        processedRecipients.clear();
-        totalAttempts = 0;
-        console.log('Queue processing completed');
-    }
-};
 const messageTransformFunction = (message,recipient) => {
     let transformedMessage = message.replace("{name}",recipient.name?recipient.name.split(" ")[0]:"");
     transformedMessage = transformedMessage.replace("{username}",recipient.username?recipient.username:"");
@@ -412,63 +474,74 @@ const messageTransformFunction = (message,recipient) => {
 }
 export default async function handler(req, res) {
     if (req.method === 'POST') {
-        const { action, message, cookies,recipients } = req.body;
+        const { action, message, cookies, recipients, campaignId } = req.body;
+        //const recipients = ['1393223661851607042','1393223661851607042','1393223661851607042','1393223661851607042']//['1393223661851607042',"1151640228349612032"];
         //console.log("recipientIds",recipients);
-        let updatedCookies = [];
-        for(let cookie of cookies){
-            if(cookie.name=="ct0"||cookie.name=="auth_token"){
-                updatedCookies.push(cookie);
+        if (action === 'stop') {
+            console.log(`Received stop request for campaign ${campaignId}`);
+            console.log("Active campaign queues:", Array.from(redis.keys('queue:*')));
+            
+            const campaignQueue = new CampaignQueue(campaignId);
+            await campaignQueue.loadFromRedis();
+            
+            if (!campaignQueue.isStopped) {
+                await campaignQueue.stop();
+                console.log(`Stopped existing queue for campaign ${campaignId}`);
             }
-        }
-        console.log('updatedCookies',updatedCookies);
-        //const recipientIds = ['1393223661851607042']//['1393223661851607042',"1151640228349612032"];
-        
-        if (action === 'start') {
-            // Clear previous state
-            processedRecipients.clear();
-            totalAttempts = 0;
-            queue = [];
 
-            // Add new recipients to queue
-            recipients.forEach(recipient => {
-                //console.log("recipient",recipient);
-                let transformedMessage = messageTransformFunction(message,recipient);
-                console.log("transformedMessage",transformedMessage);
-                queue.push({ recipientId: recipient.id, message:transformedMessage, cookies: updatedCookies });
-            });
-
-            if (!currentJob) {
-                currentJob = true;
-                processQueue().catch(error => {
-                    console.error('Process queue error:', error);
-                    currentJob = null;
+            // Update the message status in database
+            try {
+                await prisma.message.update({
+                    where: { id: campaignId },
+                    data: { status: 'Stopped' }
                 });
+            } catch (error) {
+                console.error('Failed to update message status:', error);
             }
 
             return res.status(200).json({ 
                 success: true, 
-                message: 'Messages are being sent in the background.',
-                queueLength: queue.length,
+                message: 'Campaign stopped',
+                campaignId 
+            });
+        }
+        let updatedCookies = [];
+        if(cookies){
+            for(let cookie of cookies){
+                if(cookie.name=="ct0"||cookie.name=="auth_token"){
+                    updatedCookies.push(cookie);
+                }
+            }
+        }
+        //console.log('updatedCookies',updatedCookies);
+        
+        if (action === 'start') {
+            // Create or get existing campaign queue
+            const campaignQueue = new CampaignQueue(campaignId);
+            await campaignQueue.loadFromRedis();
+
+            // Add recipients to queue and start processing
+            await campaignQueue.addRecipients(recipients, message, updatedCookies);
+            console.log("Active campaign queues in start action:", Array.from(redis.keys('queue:*')));
+            campaignQueue.process().catch(console.error);
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Campaign started',
+                queueLength: campaignQueue.queue.length,
                 totalRecipients: recipients.length
             });
         }
-
-        if (action === 'stop') {
-            currentJob = null;
-            queue = [];
-            processedRecipients.clear();
-            totalAttempts = 0;
-            return res.status(200).json({ 
-                success: true, 
-                message: 'Scheduler stopped successfully.' 
-            });
-        }
     } else if (req.method === 'GET') {
+        const { campaignId } = req.query;
+        const campaignQueue = new CampaignQueue(campaignId);
+        await campaignQueue.loadFromRedis();
+        
         res.json({
-            remainingTasks: queue.length,
-            processedCount: processedRecipients.size,
-            currentJob: !!currentJob,
-            currentAttempt: totalAttempts
+            isActive: !campaignQueue.isStopped,
+            remainingTasks: campaignQueue.queue.length,
+            processedCount: campaignQueue.processedRecipients.size,
+            status: campaignQueue.isProcessing ? 'processing' : 'waiting'
         });
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' });

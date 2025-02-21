@@ -36,6 +36,7 @@ model Message {
   messageSent   String        // The text of the message that was sent
   campaignName  String?       // Optional campaign name
   messages      MessageItem[] // Array of message items with recipient and status
+  status        String        @default("In Progress")
   userId        String        @db.ObjectId
   user          User          @relation(fields: [userId], references: [id])
 }

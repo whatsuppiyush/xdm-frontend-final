@@ -1,3 +1,9 @@
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Trash2, Play } from "lucide-react";
+import { useState } from "react";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+
 interface LeadListCardProps {
   id: string;
   name: string;
@@ -13,37 +19,41 @@ export default function LeadListCard({
   onCreateAutomation,
   onDelete,
 }: LeadListCardProps) {
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this lead list?')) {
-      onDelete(id);
-    }
-  };
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   return (
-    <div className="border-2 rounded-lg" data-oid="wapobin">
-      <div className="p-4 space-y-1" data-oid="95quu_9">
-        <h3 className="font-medium" data-oid="_m2lhe0">
-          {name}
-        </h3>
-        <p className="text-sm text-gray-600" data-oid="2d74v4h">
-          {leadCount} leads
-        </p>
-      </div>
-      <div className="grid grid-cols-2 border-t-2" data-oid="vzmm29p">
-        <button
-          onClick={onCreateAutomation}
-          className="p-2 text-center hover:bg-gray-50 text-sm border-r-2"
-          data-oid="p42od1-"
-        >
-          Create Automation
-        </button>
-        <button
-          onClick={handleDelete}
-          className="p-2 text-center hover:bg-gray-50 text-sm text-red-600"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
+    <>
+      <Card className="p-6 space-y-4">
+        <div>
+          <h3 className="text-xl font-medium">{name}</h3>
+          <p className="text-sm text-gray-500">{leadCount} leads</p>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            className="border-2"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+          <Button className="border-2" variant="outline" onClick={onCreateAutomation}>
+            <Play className="h-4 w-4 mr-2" />
+            Create Automation
+          </Button>
+        </div>
+      </Card>
+
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={() => {
+          onDelete(id);
+          setDeleteDialogOpen(false);
+        }}
+        title="Delete Lead List"
+        description={`Are you sure you want to delete "${name}"? This action cannot be undone.`}
+      />
+    </>
   );
 }
