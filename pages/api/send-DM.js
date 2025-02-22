@@ -115,7 +115,7 @@ class CampaignQueue {
           continue;
         }
 
-        const delay = 2 * 60000;
+        const delay = Math.floor(Math.random() * (5 - 2 + 1) + 2) * 60000;
         console.log(`Waiting ${delay/60000} minutes before sending next message...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
