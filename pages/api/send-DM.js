@@ -115,7 +115,7 @@ class CampaignQueue {
           continue;
         }
 
-        const delay = 1 * 60000;
+        const delay = 2 * 60000;
         console.log(`Waiting ${delay/60000} minutes before sending next message...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -133,7 +133,7 @@ class CampaignQueue {
           await this.saveToRedis();
         } else {
           await this.handleFailedAttempt(recipientId);
-        }
+        }       
       }
     } catch (error) {
       console.error(`Error in campaign ${this.campaignId}:`, error);
@@ -416,14 +416,6 @@ const sendDM = async (recipientId, message, cookies) => {
         await sendButton.click();
         console.log("sendButton clicked");
         // Wait for the message to be sent
-        await page.waitForFunction(
-            (text) => {
-                const messages = document.querySelectorAll('[data-testid="messageEntry"]');
-                return Array.from(messages).some(msg => msg.textContent.includes(text));
-            },
-            { timeout: 30000 },
-            message
-        );
 
         console.log(`Message sent to recipient: ${recipientId}`);
         return true;

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -54,6 +54,14 @@ interface dmQueueList {
   status: string;
 }
 
+interface CampaignProgress {
+  id: string;
+  messages: any[];
+  status: string;
+  processedCount: number;
+  failedCount: number;
+}
+
 export default function CampaignPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [step, setStep] = useState(1);
@@ -78,12 +86,16 @@ export default function CampaignPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [campaignProgress, setCampaignProgress] = useState<Record<string, number>>({});
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
     { title: "Write Message", subtitle: "Craft your campaign message" },
     { title: "Configure Variants", subtitle: "Set up message variations" },
     { title: "Start Automation", subtitle: "Review and launch campaign" },
   ];
+
+  // Add ref to track polling status
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const sendDM = async () => {
     if (!selectedAccount?.cookies) {
@@ -328,6 +340,81 @@ export default function CampaignPage() {
       });
     }
   };
+
+  // Add this effect for initial campaign loading
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const response = await fetch('/api/messages/get-progress');
+        const { campaigns } = await response.json();
+        if (!campaigns.length) return;
+
+        setDmqueueList(prevList => 
+          prevList.map(queue => {
+            const update = campaigns.find((c: CampaignProgress) => c.id === queue.id);
+            if (update && queue.status === 'In Progress') {
+              return {
+                ...queue,
+                processedLeads: update.processedCount,
+                failedLeads: update.failedCount,
+                status: update.status
+              };
+            }
+            return queue;
+          })
+        );
+      } catch (error) {
+        console.error('Error fetching campaigns:', error);
+      }
+    };
+
+    fetchCampaigns();
+  }, []); // Run once on mount
+
+  // Separate effect for polling
+  useEffect(() => {
+    const hasActiveCampaigns = dmqueueList.some(queue => queue.status === 'In Progress');
+    
+    if (!hasActiveCampaigns) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const response = await fetch('/api/messages/get-progress');
+        const { campaigns } = await response.json();
+        if (!campaigns.length) return;
+
+        setDmqueueList(prevList => 
+          prevList.map(queue => {
+            const update = campaigns.find((c: CampaignProgress) => c.id === queue.id);
+            if (update && queue.status === 'In Progress') {
+              return {
+                ...queue,
+                processedLeads: update.processedCount,
+                failedLeads: update.failedCount,
+                status: update.status
+              };
+            }
+            return queue;
+          })
+        );
+      } catch (error) {
+        console.error('Error polling campaigns:', error);
+      }
+    }, 120000); // Poll every 2 minutes
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [dmqueueList]); // Only re-run when campaign list changes
 
   if (isCreating) {
     return (
