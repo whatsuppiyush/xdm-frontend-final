@@ -129,10 +129,10 @@ class CampaignQueue {
           this.processedRecipients.add(recipientId);
           this.queue.shift();
           this.totalAttempts = 0;
-          await this.saveToRedis();
         } else {
-          await this.handleFailedAttempt(recipientId);
-        }       
+          this.handleFailedAttempt(recipientId);
+        }
+        await this.saveToRedis();       
       }
     } catch (error) {
       console.error(`Error in campaign ${this.campaignId}:`, error);
@@ -146,6 +146,7 @@ class CampaignQueue {
   handleFailedAttempt(recipientId) {
     this.totalAttempts++;
     if (this.totalAttempts >= MAX_RETRIES) {
+    console.log("processedRecipients",this.totalAttempts,recipientId);
       this.processedRecipients.add(recipientId);
       this.queue.shift();
       this.totalAttempts = 0;
