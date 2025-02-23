@@ -11,7 +11,6 @@ const MAX_RETRIES = 2;
 
 // Add campaign queue management
 // const campaignQueues = new Map(); // Store queues for each campaign
-console.log("-------- campaignQueues",redis);
 // Update the queue structure
 class CampaignQueue {
   constructor(campaignId) {
@@ -115,7 +114,7 @@ class CampaignQueue {
           continue;
         }
 
-        const delay = Math.floor(Math.random() * (5 - 2 + 1) + 2) * 60000;
+        const delay = 3 * 60000;
         console.log(`Waiting ${delay/60000} minutes before sending next message...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -246,7 +245,7 @@ const sendDM = async (recipientId, message, cookies) => {
                 }
             };
         });
-        console.log('Initial Twitter page state:', initialState);
+        console.log('Initial Twitter page state:');
 
         // Wait for authentication
         await page.waitForSelector('div[data-testid="primaryColumn"]', { 
@@ -283,7 +282,7 @@ const sendDM = async (recipientId, message, cookies) => {
                 }
             };
         });
-        //console.log('DM page initial state:', dmPageInitialState);
+        console.log('DM page initial state:');
 
         // Wait a bit and check again (sometimes elements load dynamically)
         await page.waitForTimeout(5000);
@@ -414,10 +413,10 @@ const sendDM = async (recipientId, message, cookies) => {
 
         // Click the send button
         await sendButton.click();
-        console.log("sendButton clicked");
+        console.log("sendButton clicked",message.slice(0, 10));
         // Wait for the message to be sent
 
-        console.log(`Message sent to recipient: ${recipientId}`);
+        console.log(`Message sent to recipient: ${recipientId} ${message.slice(0, 10)}`);
         return true;
     } catch (error) {
         console.log(`Failed to send message to recipient: ${recipientId}. Error: ${error.message}`);
