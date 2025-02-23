@@ -20,6 +20,7 @@ class CampaignQueue {
     this.totalAttempts = 0;
     this.isProcessing = false;
     this.isStopped = false;
+    this.browser = null; // Add browser instance tracking
   }
 
   async saveToRedis() {
@@ -97,14 +98,24 @@ class CampaignQueue {
     await this.saveToRedis();
 
     try {
+      // Launch browser once for the campaign
+      const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
+      const isWindows = process.platform === 'win32';
+      const executablePath = isLocal && isWindows ? 
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
+        await chromium.executablePath();
+
+      this.browser = await puppeteer.launch({
+        args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+        executablePath,
+        headless: isLocal ? false : chromium.headless,
+        defaultViewport: { width: 1920, height: 1080 }
+      });
+      console.log("----- browser launched for campaign",this.campaignId);
       while (this.queue.length > 0) {
-        // Check Redis state before each message
         await this.loadFromRedis();
-        console.log("-------- campaignQueues",this.isStopped);
-        if (this.isStopped) {
-          console.log(`Campaign ${this.campaignId} stopped, breaking process loop`);
-          break;
-        }
+        console.log("----- queue length",this.queue.length,this.isStopped);
+        if (this.isStopped) break;
 
         const { recipientId, message, cookies } = this.queue[0];
 
@@ -118,11 +129,10 @@ class CampaignQueue {
         console.log(`Waiting ${delay/60000} minutes before sending next message...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
-        // Check again after delay
         await this.loadFromRedis();
         if (this.isStopped) break;
 
-        const success = await sendDM(recipientId, message, cookies);
+        const success = await sendDM(recipientId, message, cookies, this.browser);
         
         if (success) {
           await this.updateMessageStatus(recipientId, message);
@@ -132,11 +142,16 @@ class CampaignQueue {
         } else {
           this.handleFailedAttempt(recipientId);
         }
-        await this.saveToRedis();       
+        await this.saveToRedis();
       }
     } catch (error) {
       console.error(`Error in campaign ${this.campaignId}:`, error);
     } finally {
+      if (this.browser) {
+        console.log("Closing browser");
+        await this.browser.close();
+        this.browser = null;
+      }
       this.isProcessing = false;
       this.queue = [];
       await redis.del(`queue:${this.campaignId}`);
@@ -161,66 +176,13 @@ class CampaignQueue {
   }
 }
 
-const sendDM = async (recipientId, message, cookies) => {
-    let browser = null;
+// Update sendDM to accept browser instance
+const sendDM = async (recipientId, message, cookies, browser) => {
     let page = null;
     
     try {
-        // Configure browser launch options based on environment
-        const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
-        const isWindows = process.platform === 'win32';
-
-        let executablePath;
-        if (isLocal && isWindows) {
-            try {
-                // For local Windows development
-                const localChromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-                if (fs.existsSync(localChromePath)) {
-                    executablePath = localChromePath;
-                } else {
-                    executablePath = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
-                }
-            } catch (error) {
-                console.error('Error finding local Chrome:', error);
-                executablePath = await chromium.executablePath('win32');
-            }
-        } else {
-            // For production or non-Windows environments
-            executablePath = await chromium.executablePath();
-        }
-
-        console.log('Environment:', process.env.NEXT_PUBLIC_APP_ENV);
-        console.log('Platform:', process.platform);
-        console.log('Using Chrome path:', executablePath);
-
-        // Launch browser with appropriate options
-        browser = await puppeteer.launch({
-            args: [
-                ...chromium.args,
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu'
-            ],
-            executablePath,
-            headless: isLocal ? false : chromium.headless,
-            defaultViewport: {
-                width: 1920,
-                height: 1080
-            },
-            ignoreHTTPSErrors: true
-        });
-
-        console.log('Browser launched successfully',recipientId);
-
-        // Create a new page
-        page = await browser.newPage();
-        
-        // Set default timeouts
-        // await page.setDefaultNavigationTimeout(90000);
-        // await page.setDefaultTimeout(90000);
-        
         // Set viewport
+        page = await browser.newPage();
         await page.setViewport({ width: 1920, height: 1080 });
         
         // Set cookies
@@ -454,8 +416,8 @@ const sendDM = async (recipientId, message, cookies) => {
         }
         return false;
     } finally {
+        console.log("---- closing page");
         if (page) await page.close().catch(console.error);
-        if (browser) await browser.close().catch(console.error);
     }
 };
 
@@ -470,8 +432,8 @@ const messageTransformFunction = (message,recipient) => {
 }
 export default async function handler(req, res) {
     if (req.method === 'POST') {
-        const { action, message, cookies, recipients, campaignId } = req.body;
-        //const recipients = ['1393223661851607042','1393223661851607042','1393223661851607042','1393223661851607042']//['1393223661851607042',"1151640228349612032"];
+        const { action, message, cookies,recipients, campaignId } = req.body;
+        //const recipients = [{id:'1393223661851607042'},{id:'1393223661851607042'},{id:'1393223661851607042'},{id:'1393223661851607042'}]//['1393223661851607042',"1151640228349612032"];
         //console.log("recipientIds",recipients);
         if (action === 'stop') {
             console.log(`Received stop request for campaign ${campaignId}`);
