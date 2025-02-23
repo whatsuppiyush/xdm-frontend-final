@@ -114,7 +114,7 @@ class CampaignQueue {
           continue;
         }
 
-        const delay = 3 * 60000;
+        const delay = 2 * 60000;
         console.log(`Waiting ${delay/60000} minutes before sending next message...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -211,7 +211,7 @@ const sendDM = async (recipientId, message, cookies) => {
             ignoreHTTPSErrors: true
         });
 
-        console.log('Browser launched successfully');
+        console.log('Browser launched successfully',recipientId);
 
         // Create a new page
         page = await browser.newPage();
@@ -227,7 +227,7 @@ const sendDM = async (recipientId, message, cookies) => {
         await page.setCookie(...cookies);
 
         // Navigate to Twitter and verify authentication
-        console.log('Navigating to Twitter...');
+        console.log('Navigating to Twitter...',recipientId);
         await page.goto('https://twitter.com', { 
             waitUntil: 'domcontentloaded',
             timeout: 60000 
@@ -254,7 +254,7 @@ const sendDM = async (recipientId, message, cookies) => {
             visible: true 
         });
 
-        console.log('Successfully authenticated, navigating to DM page...');
+        console.log('Successfully authenticated, navigating to DM page...',recipientId);
 
         // Navigate to DM compose page
         await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
@@ -283,7 +283,7 @@ const sendDM = async (recipientId, message, cookies) => {
                 }
             };
         });
-        console.log('DM page initial state:');
+        console.log('DM page initial state:',recipientId);
 
         // Wait a bit and check again (sometimes elements load dynamically)
         await page.waitForTimeout(5000);
@@ -332,11 +332,15 @@ const sendDM = async (recipientId, message, cookies) => {
             'div[data-contents="true"]'
         ];
 
+        // Wait longer for Twitter's dynamic content
+        await page.waitForTimeout(5000);
+
+        // Try each selector with increased timeout
         let composerElement = null;
         for (const selector of possibleSelectors) {
             try {
                 composerElement = await page.waitForSelector(selector, {
-                    timeout: 20000,
+                    timeout: 30000,
                     visible: true
                 });
                 if (composerElement) {
@@ -349,7 +353,7 @@ const sendDM = async (recipientId, message, cookies) => {
         }
 
         if (!composerElement) {
-            throw new Error('Could not find DM composer with any known selector');
+            throw new Error('DM composer not found after trying all selectors');
         }
         // Ensure the page is fully loaded and interactive
         await page.waitForFunction(() => {
@@ -358,7 +362,7 @@ const sendDM = async (recipientId, message, cookies) => {
                    document.querySelector('[data-testid="dmComposerTextInput"]')?.getAttribute('contenteditable') === 'true';
         }, { timeout: 300000 });
 
-        console.log('Found composer, typing message...');
+        console.log('Found composer, typing message...',recipientId);
 
         // Try different methods to input text
         try {
