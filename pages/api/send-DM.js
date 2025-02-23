@@ -295,14 +295,14 @@ const sendDM = async (recipientId, message, cookies, browser) => {
         ];
 
         // Wait longer for Twitter's dynamic content
-        await page.waitForTimeout(5000);
+        await page.waitForTimeout(10000);
 
         // Try each selector with increased timeout
         let composerElement = null;
         for (const selector of possibleSelectors) {
             try {
                 composerElement = await page.waitForSelector(selector, {
-                    timeout: 30000,
+                    timeout: 20000,
                     visible: true
                 });
                 if (composerElement) {
@@ -318,11 +318,11 @@ const sendDM = async (recipientId, message, cookies, browser) => {
             throw new Error('DM composer not found after trying all selectors');
         }
         // Ensure the page is fully loaded and interactive
-        await page.waitForFunction(() => {
-            return document.readyState === 'complete' && 
-                   !document.querySelector('.DMComposer-loading') &&
-                   document.querySelector('[data-testid="dmComposerTextInput"]')?.getAttribute('contenteditable') === 'true';
-        }, { timeout: 300000 });
+        // await page.waitForFunction(() => {
+        //     return document.readyState === 'complete' && 
+        //            !document.querySelector('.DMComposer-loading') &&
+        //            document.querySelector('[data-testid="dmComposerTextInput"]')?.getAttribute('contenteditable') === 'true';
+        // }, { timeout: 300000 });
 
         console.log('Found composer, typing message...',recipientId);
 
