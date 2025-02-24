@@ -106,10 +106,11 @@ class CampaignQueue {
         await chromium.executablePath();
 
       this.browser = await puppeteer.launch({
-        args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+        args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu'],
         executablePath,
         headless: isLocal ? false : chromium.headless,
-        defaultViewport: { width: 1920, height: 1080 }
+        defaultViewport: { width: 1920, height: 1080 },
+        ignoreHTTPSErrors: true
       });
       console.log("----- browser launched for campaign",this.campaignId);
       while (this.queue.length > 0) {
