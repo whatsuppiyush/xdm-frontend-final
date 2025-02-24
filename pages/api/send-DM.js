@@ -106,11 +106,25 @@ class CampaignQueue {
         await chromium.executablePath();
 
       this.browser = await puppeteer.launch({
-        args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu'],
+        args: [
+          ...chromium.args, 
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-infobars',
+          '--window-position=0,0',
+          '--ignore-certifcate-errors',
+          '--ignore-certifcate-errors-spki-list',
+          `--window-size=1920,1080`,
+          '--start-maximized'
+        ],
         executablePath,
         headless: isLocal ? false : chromium.headless,
         defaultViewport: { width: 1920, height: 1080 },
-        ignoreHTTPSErrors: true
+        ignoreHTTPSErrors: true,
+        timeout: 90000,
+        protocolTimeout: 90000
       });
       console.log("----- browser launched for campaign",this.campaignId);
       while (this.queue.length > 0) {
@@ -126,7 +140,7 @@ class CampaignQueue {
           continue;
         }
 
-        const delay = 2 * 60000;
+        const delay = 1.5 * 60000;
         console.log(`Waiting ${delay/60000} minutes before sending next message...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -182,19 +196,47 @@ const sendDM = async (recipientId, message, cookies, browser) => {
     let page = null;
     
     try {
-        // Set viewport
         page = await browser.newPage();
+        await page.setDefaultNavigationTimeout(90000);
         await page.setViewport({ width: 1920, height: 1080 });
-        
-        // Set cookies
         await page.setCookie(...cookies);
 
-        // Navigate to Twitter and verify authentication
-        console.log('Navigating to Twitter...',recipientId);
-        await page.goto('https://twitter.com', { 
-            waitUntil: 'domcontentloaded',
-            timeout: 60000 
+        // Add resource blocking to improve performance
+        console.log("setting request interception",recipientId);
+        await page.setRequestInterception(true);
+        page.on('request', (req) => {
+            if (req.resourceType() === 'image' || req.resourceType() === 'stylesheet' || req.resourceType() === 'font') {
+                req.abort();
+            } else {
+                req.continue();
+            }
         });
+        console.log("request interception set",recipientId);
+        // Navigate with retry logic
+        let retries = 0;
+        const maxRetries = 2;
+        
+        while (retries < maxRetries) {
+            try {
+              console.log("navigating to twitter with retry",retries,recipientId);
+                await page.goto('https://twitter.com', { 
+                    waitUntil: 'domcontentloaded',
+                    timeout: 60000 
+                });
+                
+                await page.waitForSelector('div[data-testid="primaryColumn"]', {
+                    timeout: 30000,
+                    visible: true
+                });
+                
+                break;
+            } catch (error) {
+                retries++;
+                if (retries === maxRetries) throw error;
+                console.log(`Retry ${retries} for recipient ${recipientId}`);
+                await page.waitForTimeout(5000 * retries);
+            }
+        }
 
         // Debug: Check initial Twitter page state
         const initialState = await page.evaluate(() => {
@@ -212,10 +254,10 @@ const sendDM = async (recipientId, message, cookies, browser) => {
         console.log('Initial Twitter page state:');
 
         // Wait for authentication
-        await page.waitForSelector('div[data-testid="primaryColumn"]', { 
-            timeout: 60000,
-            visible: true 
-        });
+        // await page.waitForSelector('div[data-testid="primaryColumn"]', { 
+        //     timeout: 60000,
+        //     visible: true 
+        // });
 
         console.log('Successfully authenticated, navigating to DM page...',recipientId);
 
@@ -387,37 +429,9 @@ const sendDM = async (recipientId, message, cookies, browser) => {
         console.log(`Message sent to recipient: ${recipientId} ${message.slice(0, 10)}`);
         return true;
     } catch (error) {
-        console.log(`Failed to send message to recipient: ${recipientId}. Error: ${error.message}`);
-        // Take a screenshot on error for debugging
-        if (page) {
-            try {
-                // Create screenshots directory if it doesn't exist
-                const screenshotsDir = path.join(process.cwd(), 'screenshots');
-                await fs.promises.mkdir(screenshotsDir, { recursive: true });
-                
-                // Save screenshot with timestamp
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                const screenshotPath = path.join(screenshotsDir, `error-${timestamp}.png`);
-                await page.screenshot({ path: screenshotPath });
-                console.log('Error screenshot saved to:', screenshotPath);
-
-                // Store the latest screenshot path in a .json file for tracking
-                const metadataPath = path.join(screenshotsDir, 'latest.json');
-                await fs.promises.writeFile(
-                    metadataPath,
-                    JSON.stringify({ 
-                        latestScreenshot: screenshotPath,
-                        timestamp: new Date().toISOString(),
-                        error: error.message
-                    })
-                );
-            } catch (screenshotError) {
-                console.error('Failed to take error screenshot:', screenshotError.message);
-            }
-        }
+        console.error(`Failed to send message to ${recipientId}:`, error.message);
         return false;
     } finally {
-        console.log("---- closing page");
         if (page) await page.close().catch(console.error);
     }
 };
