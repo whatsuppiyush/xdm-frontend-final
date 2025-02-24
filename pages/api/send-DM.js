@@ -229,22 +229,37 @@ const sendDM = async (recipientId, message, cookies, browser) => {
         await page.waitForTimeout(5000);
 
         // Try to find composer with multiple methods
-        const composerElement = await page.evaluate(() => {
-            const selectors = [
-                '[data-testid="dmComposerTextInput"]',
-                '[role="textbox"]',
-                '[contenteditable="true"]'
-            ];
-            for (const selector of selectors) {
-                const element = document.querySelector(selector);
-                if (element) return true;
-            }
-            return false;
-        });
-        console.log("----- composerElement",composerElement);
-        if (!composerElement) {
-            throw new Error('DM composer not found');
-        }
+        // Try multiple selectors for the DM composer
+        const possibleSelectors = [
+          '[data-testid="dmComposerTextInput"]',
+          'div[role="textbox"][data-testid="dmComposerTextInput"]',
+          'div[contenteditable="true"][data-testid="dmComposerTextInput"]',
+          'div[data-contents="true"]'
+      ];
+
+      // Wait longer for Twitter's dynamic content
+      await page.waitForTimeout(10000);
+
+      // Try each selector with increased timeout
+      let composerElement = null;
+      for (const selector of possibleSelectors) {
+          try {
+              composerElement = await page.waitForSelector(selector, {
+                  timeout: 20000,
+                  visible: true
+              });
+              if (composerElement) {
+                  console.log(`Found composer with selector: ${selector}`);
+                  break;
+              }
+          } catch (error) {
+              console.log(`Selector ${selector} not found, trying next...`);
+          }
+      }
+
+      if (!composerElement) {
+          throw new Error('DM composer not found after trying all selectors');
+      }
 
         // Type and send message
         await page.type('[data-testid="dmComposerTextInput"]', message);
