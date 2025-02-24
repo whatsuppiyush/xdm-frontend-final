@@ -21,6 +21,7 @@ class CampaignQueue {
     this.isProcessing = false;
     this.isStopped = false;
     this.browser = null; // Add browser instance tracking
+    this.browserWSEndpoint = null; // Add this line
   }
 
   async saveToRedis() {
@@ -98,7 +99,7 @@ class CampaignQueue {
     await this.saveToRedis();
 
     try {
-      // Launch browser once for the campaign
+      // Launch browser with reduced memory usage
       const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
       const isWindows = process.platform === 'win32';
       const executablePath = isLocal && isWindows ? 
@@ -107,26 +108,27 @@ class CampaignQueue {
 
       this.browser = await puppeteer.launch({
         args: [
-          ...chromium.args, 
+          ...chromium.args,
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-gpu',
-          '--disable-infobars',
-          '--window-position=0,0',
-          '--ignore-certifcate-errors',
-          '--ignore-certifcate-errors-spki-list',
-          `--window-size=1920,1080`,
-          '--start-maximized'
+          '--single-process', // Add this
+          '--no-zygote',     // Add this
+          '--deterministic-fetch',
+          '--memory-pressure-off',
+          '--js-flags="--max-old-space-size=500"' // Limit memory
         ],
         executablePath,
         headless: isLocal ? false : chromium.headless,
-        defaultViewport: { width: 1920, height: 1080 },
-        ignoreHTTPSErrors: true,
-        timeout: 90000,
-        protocolTimeout: 90000
+        defaultViewport: { width: 1280, height: 800 } // Reduced viewport
       });
+
+      // Save browser endpoint for reuse
+      this.browserWSEndpoint = await this.browser.wsEndpoint();
+
       console.log("----- browser launched for campaign",this.campaignId);
+      console.log("----- browser endpoint",this.browserWSEndpoint);
       while (this.queue.length > 0) {
         // Check stopped status before each message
         await this.loadFromRedis();
