@@ -128,22 +128,25 @@ class CampaignQueue {
       });
       console.log("----- browser launched for campaign",this.campaignId);
       while (this.queue.length > 0) {
+        // Check stopped status before each message
         await this.loadFromRedis();
-        console.log("----- queue length",this.queue.length,this.isStopped);
-        if (this.isStopped) break;
+        if (this.isStopped) {
+          console.log(`Campaign ${this.campaignId} stopped, breaking process`);
+          break;
+        }
 
         const { recipientId, message, cookies } = this.queue[0];
 
+        // Check if already processed
         if (this.processedRecipients.has(recipientId)) {
           this.queue.shift();
           await this.saveToRedis();
           continue;
         }
 
-        const delay = 1.5 * 60000;
-        console.log(`Waiting ${delay/60000} minutes before sending next message...`);
+        // Check stopped status after delay
+        const delay = 1 * 60000;
         await new Promise(resolve => setTimeout(resolve, delay));
-
         await this.loadFromRedis();
         if (this.isStopped) break;
 
@@ -184,10 +187,25 @@ class CampaignQueue {
   }
 
   async stop() {
-    await this.loadFromRedis();
-    this.isStopped = true;
-    await this.saveToRedis();
-    console.log(`Campaign ${this.campaignId} marked as stopped in Redis`);
+    try {
+      // Force update Redis state
+      await redis.set(`queue:${this.campaignId}`, JSON.stringify({
+        campaignId: this.campaignId,
+        queue: [],
+        processedRecipients: Array.from(this.processedRecipients),
+        isProcessing: false,
+        isStopped: true,
+        status: 'Stopped'
+      }));
+      
+      this.isStopped = true;
+      this.isProcessing = false;
+      this.queue = [];
+      
+      console.log(`Campaign ${this.campaignId} stopped and Redis state updated`);
+    } catch (error) {
+      console.error('Error stopping campaign:', error);
+    }
   }
 }
 
@@ -201,232 +219,39 @@ const sendDM = async (recipientId, message, cookies, browser) => {
         await page.setViewport({ width: 1920, height: 1080 });
         await page.setCookie(...cookies);
 
-        // Add resource blocking to improve performance
-        console.log("setting request interception",recipientId);
-        await page.setRequestInterception(true);
-        page.on('request', (req) => {
-            if (req.resourceType() === 'image' || req.resourceType() === 'stylesheet' || req.resourceType() === 'font') {
-                req.abort();
-            } else {
-                req.continue();
-            }
-        });
-        console.log("request interception set",recipientId);
-        // Navigate with retry logic
-        let retries = 0;
-        const maxRetries = 2;
-        
-        while (retries < maxRetries) {
-            try {
-              console.log("navigating to twitter with retry",retries,recipientId);
-                await page.goto('https://twitter.com', { 
-                    waitUntil: 'domcontentloaded',
-                    timeout: 60000 
-                });
-                
-                await page.waitForSelector('div[data-testid="primaryColumn"]', {
-                    timeout: 30000,
-                    visible: true
-                });
-                
-                break;
-            } catch (error) {
-                retries++;
-                if (retries === maxRetries) throw error;
-                console.log(`Retry ${retries} for recipient ${recipientId}`);
-                await page.waitForTimeout(5000 * retries);
-            }
-        }
-
-        // Debug: Check initial Twitter page state
-        const initialState = await page.evaluate(() => {
-            return {
-                url: window.location.href,
-                readyState: document.readyState,
-                bodyContent: document.body.innerHTML.length,
-                availableElements: {
-                    primaryColumn: !!document.querySelector('div[data-testid="primaryColumn"]'),
-                    sideNavigation: !!document.querySelector('div[data-testid="sideNavigation"]'),
-                    appContent: !!document.querySelector('div[data-testid="appContent"]')
-                }
-            };
-        });
-        console.log('Initial Twitter page state:');
-
-        // Wait for authentication
-        // await page.waitForSelector('div[data-testid="primaryColumn"]', { 
-        //     timeout: 60000,
-        //     visible: true 
-        // });
-
-        console.log('Successfully authenticated, navigating to DM page...',recipientId);
-
-        // Navigate to DM compose page
+        // Navigate directly to DM compose page
         await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
             waitUntil: 'domcontentloaded',
-            timeout: 90000
+            timeout: 60000
         });
-
-        // Debug: Check DM page initial load
-        const dmPageInitialState = await page.evaluate(() => {
-            const allDataTestIds = Array.from(document.querySelectorAll('[data-testid]'))
-                .map(el => el.getAttribute('data-testid'));
-            
-            return {
-                url: window.location.href,
-                readyState: document.readyState,
-                dataTestIds: allDataTestIds,
-                dmElements: {
-                    drawer: !!document.querySelector('div[data-testid="DMDrawer"]'),
-                    composer: !!document.querySelector('[data-testid="dmComposerTextInput"]'),
-                    sendButton: !!document.querySelector('[data-testid="dmComposerSendButton"]')
-                },
-                inputElements: {
-                    contentEditables: document.querySelectorAll('[contenteditable="true"]').length,
-                    textboxRoles: document.querySelectorAll('[role="textbox"]').length,
-                    textareas: document.querySelectorAll('textarea').length
-                }
-            };
-        });
-        console.log('DM page initial state:',recipientId);
-
-        // Wait a bit and check again (sometimes elements load dynamically)
+        console.log("----- page loaded",recipientId);
+        // Wait for page load
         await page.waitForTimeout(5000);
-        const dmPageAfterWait = await page.evaluate(() => {
-            const getElementDetails = (selector) => {
-                const el = document.querySelector(selector);
-                if (!el) return null;
-                return {
-                    exists: true,
-                    visible: el.offsetParent !== null,
-                    attributes: {
-                        role: el.getAttribute('role'),
-                        contentEditable: el.getAttribute('contenteditable'),
-                        dataTestId: el.getAttribute('data-testid'),
-                        ariaLabel: el.getAttribute('aria-label')
-                    },
-                    computedStyle: {
-                        display: window.getComputedStyle(el).display,
-                        visibility: window.getComputedStyle(el).visibility
-                    }
-                };
-            };
 
-            return {
-                dmComposer: getElementDetails('[data-testid="dmComposerTextInput"]'),
-                dmDrawer: getElementDetails('div[data-testid="DMDrawer"]'),
-                sendButton: getElementDetails('[data-testid="dmComposerSendButton"]'),
-                allVisibleInputs: Array.from(document.querySelectorAll('input, [contenteditable="true"], [role="textbox"]'))
-                    .filter(el => el.offsetParent !== null)
-                    .map(el => ({
-                        tag: el.tagName,
-                        role: el.getAttribute('role'),
-                        dataTestId: el.getAttribute('data-testid'),
-                        ariaLabel: el.getAttribute('aria-label')
-                    }))
-            };
+        // Try to find composer with multiple methods
+        const composerElement = await page.evaluate(() => {
+            const selectors = [
+                '[data-testid="dmComposerTextInput"]',
+                '[role="textbox"]',
+                '[contenteditable="true"]'
+            ];
+            for (const selector of selectors) {
+                const element = document.querySelector(selector);
+                if (element) return true;
+            }
+            return false;
         });
-        //console.log('DM page state after waiting:', dmPageAfterWait);
-
-
-        // Try multiple selectors for the DM composer
-        const possibleSelectors = [
-            '[data-testid="dmComposerTextInput"]',
-            'div[role="textbox"][data-testid="dmComposerTextInput"]',
-            'div[contenteditable="true"][data-testid="dmComposerTextInput"]',
-            'div[data-contents="true"]'
-        ];
-
-        // Wait longer for Twitter's dynamic content
-        await page.waitForTimeout(10000);
-
-        // Try each selector with increased timeout
-        let composerElement = null;
-        for (const selector of possibleSelectors) {
-            try {
-                composerElement = await page.waitForSelector(selector, {
-                    timeout: 20000,
-                    visible: true
-                });
-                if (composerElement) {
-                    console.log(`Found composer with selector: ${selector}`);
-                    break;
-                }
-            } catch (error) {
-                console.log(`Selector ${selector} not found, trying next...`);
-            }
-        }
-
+        console.log("----- composerElement",composerElement);
         if (!composerElement) {
-            throw new Error('DM composer not found after trying all selectors');
-        }
-        // Ensure the page is fully loaded and interactive
-        // await page.waitForFunction(() => {
-        //     return document.readyState === 'complete' && 
-        //            !document.querySelector('.DMComposer-loading') &&
-        //            document.querySelector('[data-testid="dmComposerTextInput"]')?.getAttribute('contenteditable') === 'true';
-        // }, { timeout: 300000 });
-
-        console.log('Found composer, typing message...',recipientId);
-
-        // Try different methods to input text
-        try {
-            // Method 1: Using type
-            await composerElement.type(message, { delay: 200 });
-        } catch (error) {
-            console.log('Type method failed, trying focus and keyboard send...');
-            try {
-                // Method 2: Using focus and keyboard send
-                await composerElement.focus();
-                await page.keyboard.type(message, { delay: 200 });
-            } catch (error) {
-                console.log('Keyboard method failed, trying evaluate...');
-                // Method 3: Using evaluate
-                await page.evaluate((selector, text) => {
-                    const element = document.querySelector(selector);
-                    if (element) {
-                        element.textContent = text;
-                        element.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                }, '[data-testid="dmComposerTextInput"]', message);
-            }
+            throw new Error('DM composer not found');
         }
 
-        console.log('Message typed, waiting for send button...');
-
-        // Wait for and click the send button
-        const sendButtonSelectors = [
-            'button[data-testid="dmComposerSendButton"]',
-            'div[data-testid="dmComposerSendButton"]',
-            '[role="button"][data-testid="dmComposerSendButton"]'
-        ];
-
-        let sendButton = null;
-        for (const selector of sendButtonSelectors) {
-            try {
-                sendButton = await page.waitForSelector(selector, {
-                    timeout: 20000,
-                    visible: true
-                });
-                if (sendButton) {
-                    console.log(`Found send button with selector: ${selector}`);
-                    break;
-                }
-            } catch (error) {
-                console.log(`Send button selector ${selector} not found, trying next...`);
-            }
-        }
-
-        if (!sendButton) {
-            throw new Error('Could not find send button with any known selector');
-        }
-
-        // Click the send button
-        await sendButton.click();
-        console.log("sendButton clicked",message.slice(0, 10));
-        // Wait for the message to be sent
-
-        console.log(`Message sent to recipient: ${recipientId} ${message.slice(0, 10)}`);
+        // Type and send message
+        await page.type('[data-testid="dmComposerTextInput"]', message);
+        console.log("----- message typed",recipientId);
+        await page.click('[data-testid="dmComposerSendButton"]');
+        await page.waitForTimeout(2000);
+        console.log("----- message sent",recipientId);
         return true;
     } catch (error) {
         console.error(`Failed to send message to ${recipientId}:`, error.message);
@@ -520,3 +345,4 @@ export default async function handler(req, res) {
         res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }
+
