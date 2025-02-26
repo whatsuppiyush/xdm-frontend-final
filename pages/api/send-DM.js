@@ -154,14 +154,19 @@ class CampaignQueue {
             this.processedRecipients.add(recipientId);
             this.queue.shift();
             this.totalAttempts = 0;
+            // Reset consecutive errors counter on success
+            consecutiveMemoryErrors = 0;
           } else {
             this.handleFailedAttempt(recipientId);
           }
         } catch (error) {
-          // Check for memory-related errors
+          // Check for memory-related errors - add the specific Target.createTarget error
+          console.log("error inside process catch block",error);
           if (error.message.includes('Target.createTarget timed out') || 
               error.message.includes('out of memory') || 
-              error.message.includes('Browser closed')) {
+              error.message.includes('Browser closed') ||
+              error.message.includes('Protocol error') || 
+              error.message.includes('Increase the \'protocolTimeout\'')) {
             
             // Increment consecutive errors
             consecutiveMemoryErrors++;
@@ -352,7 +357,17 @@ const sendDM = async (recipientId, message, cookies, browser) => {
   } catch (error) {
     console.error(`[${recipientId}] FAILED: ${error.message}`);
     console.error(`[${recipientId}] Error stack: ${error.stack.split('\n')[0]}`);
-    return false;
+    
+    // Check if it's a memory-related error and rethrow it so the outer catch block can handle it
+    if (error.message.includes('Target.createTarget timed out') || 
+        error.message.includes('out of memory') || 
+        error.message.includes('Browser closed') ||
+        error.message.includes('Protocol error') || 
+        error.message.includes('Increase the \'protocolTimeout\'')) {
+      throw error; // Rethrow memory errors
+    }
+    
+    return false; // Return false for non-memory errors
   } finally {
     if (page) {
       console.log(`[${recipientId}] Cleaning up page`);
