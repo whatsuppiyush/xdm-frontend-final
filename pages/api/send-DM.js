@@ -97,9 +97,12 @@ class CampaignQueue {
     
     this.isProcessing = true;
     await this.saveToRedis();
+    
+    let browserRestartCount = 0;
+    let consecutiveMemoryErrors = 0;
 
     try {
-      // Launch browser with reduced memory usage
+      // Launch browser with memory optimization arguments
       const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
       const isWindows = process.platform === 'win32';
       const executablePath = isLocal && isWindows ? 
@@ -112,62 +115,98 @@ class CampaignQueue {
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--disable-gpu',
           '--js-flags="--max-old-space-size=256"',
           '--single-process',
-          '--disable-extensions',
-          '--disable-component-extensions-with-background-pages',
-          '--disable-default-apps',
-          '--mute-audio',
-          '--no-zygote'
         ],
         executablePath,
         headless: isLocal ? false : chromium.headless,
         defaultViewport: { width: 800, height: 600 },
         protocolTimeout: 180000,
-        timeout: 180000,
-        ignoreHTTPSErrors: true
+        timeout: 180000
       });
 
-      // Save browser endpoint for reuse
-      this.browserWSEndpoint = await this.browser.wsEndpoint();
+      console.log(`Browser launched for campaign ${this.campaignId}`);
 
-      console.log("----- browser launched for campaign",this.campaignId);
-      console.log("----- browser endpoint",this.browserWSEndpoint);
       while (this.queue.length > 0) {
-        // Check stopped status before each message
         await this.loadFromRedis();
-        if (this.isStopped) {
-          console.log(`Campaign ${this.campaignId} stopped, breaking process`);
-          break;
-        }
+        if (this.isStopped) break;
 
         const { recipientId, message, cookies } = this.queue[0];
-
-        // Check if already processed
+        
         if (this.processedRecipients.has(recipientId)) {
           this.queue.shift();
           await this.saveToRedis();
           continue;
         }
 
-        // Check stopped status after delay
+        // Apply delay between messages
         const delay = 2 * 60000;
-        console.log("Waiting ",delay);
         await new Promise(resolve => setTimeout(resolve, delay));
+        
         await this.loadFromRedis();
         if (this.isStopped) break;
 
-        const success = await sendDM(recipientId, message, cookies, this.browser);
-        
-        if (success) {
-          await this.updateMessageStatus(recipientId, message);
-          this.processedRecipients.add(recipientId);
-          this.queue.shift();
-          this.totalAttempts = 0;
-        } else {
-          this.handleFailedAttempt(recipientId);
+        try {
+          const success = await sendDM(recipientId, message, cookies, this.browser);
+          
+          if (success) {
+            await this.updateMessageStatus(recipientId, message);
+            this.processedRecipients.add(recipientId);
+            this.queue.shift();
+            this.totalAttempts = 0;
+          } else {
+            this.handleFailedAttempt(recipientId);
+          }
+        } catch (error) {
+          // Check for memory-related errors
+          if (error.message.includes('Target.createTarget timed out') || 
+              error.message.includes('out of memory') || 
+              error.message.includes('Browser closed')) {
+            
+            // Increment consecutive errors
+            consecutiveMemoryErrors++;
+            console.log(`Browser memory issue detected: ${error.message}`);
+            console.log(`Performing browser restart and cooldown (attempt ${++browserRestartCount}, consecutive: ${consecutiveMemoryErrors})`);
+            
+            // Save current state
+            await this.saveToRedis();
+            
+            // Close browser
+            if (this.browser) {
+              await this.browser.close().catch(console.error);
+              this.browser = null;
+            }
+            
+            // Progressive cooldown period - increases with consecutive errors
+            const cooldownMinutes = Math.min(3 + (consecutiveMemoryErrors * 2), 15);
+            console.log(`Cooling down for ${cooldownMinutes} minutes before restarting browser`);
+            await new Promise(resolve => setTimeout(resolve, cooldownMinutes * 60000));
+            
+            // Restart browser with minimal settings
+            this.browser = await puppeteer.launch({
+              args: [
+                ...chromium.args,
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--js-flags="--max-old-space-size=256"'
+              ],
+              executablePath,
+              headless: isLocal ? false : chromium.headless,
+              defaultViewport: { width: 800, height: 600 }
+            });
+            
+            console.log("Browser restarted after cooldown");
+            
+            // Don't count this as a failure
+            continue;
+          } else {
+            // For other errors, count as a failure
+            console.error(`Error sending message to ${recipientId}:`, error);
+            this.handleFailedAttempt(recipientId);
+          }
         }
+        
         await this.saveToRedis();
       }
     } catch (error) {
@@ -175,12 +214,11 @@ class CampaignQueue {
     } finally {
       if (this.browser) {
         console.log("Closing browser");
-        await this.browser.close();
+        await this.browser.close().catch(console.error);
         this.browser = null;
       }
       this.isProcessing = false;
-      this.queue = [];
-      await redis.del(`queue:${this.campaignId}`);
+      await this.saveToRedis();
     }
   }
 
@@ -334,6 +372,34 @@ const messageTransformFunction = (message,recipient) => {
     transformedMessage = transformedMessage.replace("{following}",recipient.following?recipient.following:"");
     return transformedMessage;
 }
+
+// Add these helper functions at the top level
+function getMemoryUsage() {
+  const memoryUsage = process.memoryUsage();
+  console.log("memoryUsage", memoryUsage);
+  return {
+    percentage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+    rss: Math.round(memoryUsage.rss / 1024 / 1024),
+    heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+    heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024)
+  };
+}
+
+async function performMemoryCleanup() {
+  // Remove global.gc() call as it won't work on Render
+  
+  // Run some lightweight operations to encourage GC
+  const temp = [];
+  for (let i = 0; i < 1000; i++) {
+    temp.push({});
+    if (i % 100 === 0) temp.length = 0;
+  }
+  
+  console.log("Performing memory cleanup and waiting for 3 minutes");
+  // The 5-minute cooldown is good for a 2GB/1CPU machine
+  return new Promise(resolve => setTimeout(resolve, 180000));
+}
+
 export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { action, message, cookies,recipients, campaignId } = req.body;
