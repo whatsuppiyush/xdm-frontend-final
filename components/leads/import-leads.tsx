@@ -25,9 +25,10 @@ interface FilterOption {
 
 interface ImportLeadsProps {
   onBack: () => void;
+  refreshLeads?: () => void;
 }
 
-export default function ImportLeads({ onBack }: ImportLeadsProps) {
+export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) {
   const [step, setStep] = useState(1);
   const [twitterProfiles, setTwitterProfiles] = useState<TwitterProfile[]>([{ handle: "", followerCount: 1000 }]);
   const [remainingCredits, setRemainingCredits] = useState(10000); // This should be fetched from your API
@@ -46,6 +47,7 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
   const [scrapedFollowers, setScrapedFollowers] = useState<Lead[]>(
     [],
   );
+  const [selectedFilter, setSelectedFilter] = useState<string>("followers");
 
   useEffect(() => {
     const fetchCookies = async () => {
@@ -68,7 +70,7 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
     }
   }, [userId]);
 
-  async function importLeads() {
+  const handleNext = async () => {
     if (!cookies) {
       console.error("No cookies available");
       return;
@@ -76,46 +78,50 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
 
     try {
       setLoading(true);
+      
+      // Simply advance to the next step without scraping
+      setStep(2);
+    } catch (error) {
+      console.error("Error in step navigation:", error);
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveLeads = async () => {
+    try {
+      setLoading(true);
+      
+      // Call scrape-followers API with selected filter type
       const response = await fetch("/api/twitter/scrape-followers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          profileUrl:'https://x.com/'+twitterProfiles[0].handle,
+          profileUrl: 'https://x.com/' + twitterProfiles[0].handle,
           count: twitterProfiles[0].followerCount,
           cookies: cookies,
+          leadName: leadsName || `${twitterProfiles[0].handle}_${Date.now()}`,
+          userId,
+          friendshipType: getTwitterFriendshipType(selectedFilter)
         }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to scrape followers");
+      
+      // Wait for response to ensure API was called
+      await response.json();
+      
+      // Refresh leads list and navigate back
+      if (refreshLeads) {
+        await refreshLeads();
       }
-
-      if (!data.items || !Array.isArray(data.items)) {
-        throw new Error("Invalid response format from scraper");
-      }
-
-      // Transform the scraped data to match our Lead interface
-      const transformedFollowers: Lead[] = data.items.map((item: any) => ({
-        id: item.userId || item.id,
-        name: item.name || "",
-        username: item.username || item.screen_name || "",
-        bio: item.description || item.bio || "",
-        followers: item.followers_count || item.followersCount || 0,
-        following: item.following_count || item.followingCount || 0,
-        canDM: item.can_dm || item.canDM || false,
-        status: "Active" // Add default status
-      }));
-
-      setScrapedFollowers(transformedFollowers);
+      
+      // Force redirect back to manage leads page
+      onBack();
     } catch (error) {
-      console.error("Error importing leads:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to import leads",
-      );
+      console.error('Error saving leads:', error);
+      setError(error instanceof Error ? error.message : "Failed to save leads");
     } finally {
       setLoading(false);
     }
@@ -148,25 +154,20 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
       key: "following",
     },
     {
-      title: "Number of Tweets",
-      description: "Filter Leads by the number of tweets they have",
-      key: "tweets",
+      title: "Verified Followers",
+      description: "Filter Leads by verified followers",
+      key: "verifiedFollowers",
     },
     {
-      title: "Bio contents",
-      description: "Filter Leads by the contents of their bio",
-      key: "bio",
+      title: "Followers you know",
+      description: "Filter Leads by followers you know",
+      key: "followersYouKnow",
     },
     {
-      title: "Exclude bio contents",
-      description: "Exclude Leads by the contents of their bio",
-      key: "excludeBio",
-    },
-    {
-      title: "Saved Filter",
-      description: "Reuse a saved filter",
-      key: "saved",
-    },
+      title: "Subscriptions",
+      description: "Filter Leads by subscriptions",
+      key: "subscriptions",
+    }
   ];
 
   const addNewProfile = () => {
@@ -227,36 +228,23 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
     }
   }, [step, twitterProfiles]);
 
-  const handleNext = async () => {
-    setLoading(true);
-    await importLeads();
-    setStep(2);
-    setLoading(false);
+  // Map filter keys to Twitter API friendshipTypes
+  const getTwitterFriendshipType = (filterKey: string): string => {
+    const mappings: {[key: string]: string} = {
+      followers: "followers",
+      following: "following",
+      verifiedFollowers: "verifiedFollowers",
+      followersYouKnow: "followersYouKnow",
+      subscriptions: "subscribedTo"
+    };
+    
+    return mappings[filterKey] || "followers";
   };
 
-  const handleSaveLeads = async () => {
-    try {
-      const response = await fetch('/api/leads/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          leadName: leadsName,
-          followers: scrapedFollowers,
-          userId
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save leads');
-      }
-
-      onBack(); // Return to previous screen after successful save
-    } catch (error) {
-      console.error('Error saving leads:', error);
-      // Handle error (maybe show a toast notification)
-    }
+  // In the expandedFilter handler
+  const handleFilterSelect = (filterKey: string) => {
+    setExpandedFilter(filterKey);
+    setSelectedFilter(filterKey);
   };
 
   return (
@@ -472,7 +460,7 @@ export default function ImportLeads({ onBack }: ImportLeadsProps) {
                     <Card
                       key={option.key}
                       className={`border-2 p-8 cursor-pointer transition-all hover:shadow-lg ${expandedFilter === option.key ? "ring-2 ring-purple-600 border-purple-600 bg-purple-50" : "hover:border-purple-300"}`}
-                      onClick={() => setExpandedFilter(option.key)}
+                      onClick={() => handleFilterSelect(option.key)}
                       data-oid="b3pb74p"
                     >
                       <div
