@@ -416,6 +416,38 @@ export default function CampaignPage() {
     };
   }, [dmqueueList]); // Only re-run when campaign list changes
 
+  // Add this at the top of your component before any other useEffects
+  useEffect(() => {
+    // Check for stored lead data
+    const storedLeadData = localStorage.getItem('automationLead');
+    
+    if (storedLeadData) {
+      try {
+        const leadData = JSON.parse(storedLeadData);
+        
+        // Set isCreating to true to show the campaign creation UI
+        setIsCreating(true);
+        
+        // Set the selected lead
+        setSelectedLeadList({
+          id: leadData.id,
+          leadName: leadData.name,
+          totalLeads: 0,
+          createdAt: new Date().toISOString(),
+          followers: []
+        });
+        
+        // Skip to step 2
+        setStep(2);
+        
+        // Clear the stored data
+        localStorage.removeItem('automationLead');
+      } catch (error) {
+        console.error("Error parsing stored lead data:", error);
+      }
+    }
+  }, []);
+
   if (isCreating) {
     return (
       <div className="min-h-screen bg-gray-50">
