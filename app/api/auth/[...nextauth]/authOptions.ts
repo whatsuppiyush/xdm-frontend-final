@@ -18,11 +18,12 @@ declare module "next-auth" {
   }
 }
 
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID! || 'ABC',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET! || 'ABC',
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
       name: 'Credentials',
@@ -71,6 +72,15 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (existingUser) {
+            // Update the user's provider if they're signing in with Google
+            await prisma.user.update({
+              where: { email: user.email },
+              data: {
+                provider: 'google',
+                image: user.image,
+                updatedAt: new Date(),
+              },
+            });
             return true;
           }
 
@@ -90,6 +100,7 @@ export const authOptions: NextAuthOptions = {
         }
         return true;
       } catch (error) {
+        console.error("Sign-in error:", error);
         return false;
       }
     },
@@ -127,6 +138,7 @@ export const authOptions: NextAuthOptions = {
     signIn: '/',
     error: '/?error=AuthError',
   },
+
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt',
