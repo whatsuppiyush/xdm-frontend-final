@@ -85,8 +85,8 @@ class CampaignQueue {
             messages: updatedMessages 
           }
         });
-      }
-    } catch (error) {
+                }
+            } catch (error) {
       console.error('Failed to update message status:', error);
     }
   }
@@ -97,9 +97,12 @@ class CampaignQueue {
     
     this.isProcessing = true;
     await this.saveToRedis();
+    
+    let browserRestartCount = 0;
+    let consecutiveMemoryErrors = 0;
 
     try {
-      // Launch browser with reduced memory usage
+      // Launch browser with memory optimization arguments
       const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
       const isWindows = process.platform === 'win32';
       const executablePath = isLocal && isWindows ? 
@@ -112,56 +115,103 @@ class CampaignQueue {
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--single-process', // Add this
-          '--no-zygote',     // Add this
-          '--deterministic-fetch',
-          '--memory-pressure-off',
-          '--js-flags="--max-old-space-size=500"' // Limit memory
+          '--js-flags="--max-old-space-size=256"',
+          '--single-process',
         ],
         executablePath,
         headless: isLocal ? false : chromium.headless,
-        defaultViewport: { width: 1280, height: 800 } // Reduced viewport
+        defaultViewport: { width: 800, height: 600 },
+        protocolTimeout: 180000,
+        timeout: 180000
       });
 
-      // Save browser endpoint for reuse
-      this.browserWSEndpoint = await this.browser.wsEndpoint();
+      console.log(`Browser launched for campaign ${this.campaignId}`);
 
-      console.log("----- browser launched for campaign",this.campaignId);
-      console.log("----- browser endpoint",this.browserWSEndpoint);
       while (this.queue.length > 0) {
-        // Check stopped status before each message
         await this.loadFromRedis();
-        if (this.isStopped) {
-          console.log(`Campaign ${this.campaignId} stopped, breaking process`);
-          break;
-        }
+        if (this.isStopped) break;
 
         const { recipientId, message, cookies } = this.queue[0];
-
-        // Check if already processed
+        
         if (this.processedRecipients.has(recipientId)) {
           this.queue.shift();
           await this.saveToRedis();
           continue;
         }
 
-        // Check stopped status after delay
-        const delay = 1 * 60000;
+        // Apply delay between messages
+        const delay = 2 * 60000;
         await new Promise(resolve => setTimeout(resolve, delay));
+        
         await this.loadFromRedis();
         if (this.isStopped) break;
 
-        const success = await sendDM(recipientId, message, cookies, this.browser);
-        
-        if (success) {
-          await this.updateMessageStatus(recipientId, message);
-          this.processedRecipients.add(recipientId);
-          this.queue.shift();
-          this.totalAttempts = 0;
-        } else {
-          this.handleFailedAttempt(recipientId);
+        try {
+          const success = await sendDM(recipientId, message, cookies, this.browser);
+          
+          if (success) {
+            await this.updateMessageStatus(recipientId, message);
+            this.processedRecipients.add(recipientId);
+            this.queue.shift();
+            this.totalAttempts = 0;
+            // Reset consecutive errors counter on success
+            consecutiveMemoryErrors = 0;
+          } else {
+            this.handleFailedAttempt(recipientId);
+          }
+        } catch (error) {
+          // Check for memory-related errors - add the specific Target.createTarget error
+          console.log("error inside process catch block",error);
+          if (error.message.includes('Target.createTarget timed out') || 
+              error.message.includes('out of memory') || 
+              error.message.includes('Browser closed') ||
+              error.message.includes('Protocol error') || 
+              error.message.includes('Increase the \'protocolTimeout\'')) {
+            
+            // Increment consecutive errors
+            consecutiveMemoryErrors++;
+            console.log(`Browser memory issue detected: ${error.message}`);
+            console.log(`Performing browser restart and cooldown (attempt ${++browserRestartCount}, consecutive: ${consecutiveMemoryErrors})`);
+            
+            // Save current state
+            await this.saveToRedis();
+            
+            // Close browser
+            if (this.browser) {
+              await this.browser.close().catch(console.error);
+              this.browser = null;
+            }
+            
+            // Progressive cooldown period - increases with consecutive errors
+            const cooldownMinutes = Math.min(3 + (consecutiveMemoryErrors * 2), 15);
+            console.log(`Cooling down for ${cooldownMinutes} minutes before restarting browser`);
+            await new Promise(resolve => setTimeout(resolve, cooldownMinutes * 60000));
+            
+            // Restart browser with minimal settings
+            this.browser = await puppeteer.launch({
+              args: [
+                ...chromium.args,
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--js-flags="--max-old-space-size=256"'
+              ],
+              executablePath,
+              headless: isLocal ? false : chromium.headless,
+              defaultViewport: { width: 800, height: 600 }
+            });
+            
+            console.log("Browser restarted after cooldown");
+            
+            // Don't count this as a failure
+            continue;
+          } else {
+            // For other errors, count as a failure
+            console.error(`Error sending message to ${recipientId}:`, error);
+            this.handleFailedAttempt(recipientId);
+          }
         }
+        
         await this.saveToRedis();
       }
     } catch (error) {
@@ -169,12 +219,11 @@ class CampaignQueue {
     } finally {
       if (this.browser) {
         console.log("Closing browser");
-        await this.browser.close();
+        await this.browser.close().catch(console.error);
         this.browser = null;
       }
       this.isProcessing = false;
-      this.queue = [];
-      await redis.del(`queue:${this.campaignId}`);
+      await this.saveToRedis();
     }
   }
 
@@ -213,69 +262,120 @@ class CampaignQueue {
 
 // Update sendDM to accept browser instance
 const sendDM = async (recipientId, message, cookies, browser) => {
-    let page = null;
+  let page = null;
+  
+  try {
+    console.log(`[${recipientId}] Starting DM process`);
+    page = await browser.newPage();
     
+    // Block unnecessary resources
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const resourceType = req.resourceType();
+      if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+    
+    // Set minimal viewport
+    await page.setViewport({ width: 800, height: 600 });
+    
+    // Set minimal cookies
+    const essentialCookies = cookies.filter(c => 
+      ['auth_token', 'ct0'].includes(c.name)
+    );
+    await page.setCookie(...essentialCookies);
+    console.log(`[${recipientId}] Cookies set, essential count: ${essentialCookies.length}`);
+    
+    // Navigate directly with minimal wait
+    console.log(`[${recipientId}] Navigating to DM page`);
+    await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
+    });
+    console.log(`[${recipientId}] Navigation complete`);
+    
+    // Find composer with minimal DOM operations
+    console.log(`[${recipientId}] Waiting for composer selector`);
+    await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
+      timeout: 30000,
+      visible: true
+    });
+    console.log(`[${recipientId}] Composer found, attempting to type`);
+    
+    // Use a more reliable typing method
     try {
-        page = await browser.newPage();
-        await page.setDefaultNavigationTimeout(90000);
-        await page.setViewport({ width: 1920, height: 1080 });
-        await page.setCookie(...cookies);
-
-        // Navigate directly to DM compose page
-        await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
-            waitUntil: 'domcontentloaded',
-            timeout: 60000
-        });
-        console.log("----- page loaded",recipientId);
-        // Wait for page load
-        await page.waitForTimeout(5000);
-
-        // Try to find composer with multiple methods
-        // Try multiple selectors for the DM composer
-        const possibleSelectors = [
-          '[data-testid="dmComposerTextInput"]',
-          'div[role="textbox"][data-testid="dmComposerTextInput"]',
-          'div[contenteditable="true"][data-testid="dmComposerTextInput"]',
-          'div[data-contents="true"]'
-      ];
-
-      // Wait longer for Twitter's dynamic content
-      await page.waitForTimeout(10000);
-
-      // Try each selector with increased timeout
-      let composerElement = null;
-      for (const selector of possibleSelectors) {
-          try {
-              composerElement = await page.waitForSelector(selector, {
-                  timeout: 20000,
-                  visible: true
-              });
-              if (composerElement) {
-                  console.log(`Found composer with selector: ${selector}`);
-                  break;
-              }
-          } catch (error) {
-              console.log(`Selector ${selector} not found, trying next...`);
-          }
-      }
-
-      if (!composerElement) {
-          throw new Error('DM composer not found after trying all selectors');
-      }
-
-        // Type and send message
-        await page.type('[data-testid="dmComposerTextInput"]', message);
-        console.log("----- message typed",recipientId);
-        await page.click('[data-testid="dmComposerSendButton"]');
-        await page.waitForTimeout(2000);
-        console.log("----- message sent",recipientId);
-        return true;
+      // Try direct typing first (most reliable)
+      console.log(`[${recipientId}] Trying page.type method`);
+      await page.type('[data-testid="dmComposerTextInput"]', message);
+      console.log(`[${recipientId}] page.type succeeded`);
     } catch (error) {
-        console.error(`Failed to send message to ${recipientId}:`, error.message);
-        return false;
-    } finally {
-        if (page) await page.close().catch(console.error);
+      console.log(`[${recipientId}] page.type failed: ${error.message}`);
+      // Fallback method using evaluate with better error checking
+      console.log(`[${recipientId}] Trying evaluate method`);
+      await page.evaluate((msg) => {
+        const composer = document.querySelector('[data-testid="dmComposerTextInput"]');
+        if (composer) {
+          console.log('Found composer via main selector');
+          composer.innerText = msg;
+          composer.dispatchEvent(new Event('input', { bubbles: true }));
+          return true;
+        } else {
+          console.log('Main selector failed, trying alternatives');
+          // Try alternative selectors
+          const alternatives = [
+            '[role="textbox"]',
+            '[contenteditable="true"]',
+            'div[data-contents="true"]'
+          ];
+          
+          for (const selector of alternatives) {
+            const element = document.querySelector(selector);
+            if (element) {
+              console.log(`Found element via ${selector}`);
+              element.innerText = msg;
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+              return true;
+            }
+          }
+          return false;
+        }
+      }, message).then(result => {
+        console.log(`[${recipientId}] Evaluate method result: ${result}`);
+      });
     }
+    
+    // Click send
+    console.log(`[${recipientId}] Attempting to click send button`);
+    await page.click('[data-testid="dmComposerSendButton"]');
+    await page.waitForTimeout(1000);
+    console.log(`[${recipientId}] Message sent successfully`);
+    
+    return true;
+  } catch (error) {
+    console.error(`[${recipientId}] FAILED: ${error.message}`);
+    console.error(`[${recipientId}] Error stack: ${error.stack.split('\n')[0]}`);
+    
+    // Check if it's a memory-related error and rethrow it so the outer catch block can handle it
+    if (error.message.includes('Target.createTarget timed out') || 
+        error.message.includes('out of memory') || 
+        error.message.includes('Browser closed') ||
+        error.message.includes('Protocol error') || 
+        error.message.includes('Increase the \'protocolTimeout\'')) {
+      throw error; // Rethrow memory errors
+    }
+    
+    return false; // Return false for non-memory errors
+  } finally {
+    if (page) {
+      console.log(`[${recipientId}] Cleaning up page`);
+      // Close page and clean up
+      await page.removeAllListeners();
+      await page.close();
+    }
+  }
 };
 
 const messageTransformFunction = (message,recipient) => {
@@ -287,6 +387,34 @@ const messageTransformFunction = (message,recipient) => {
     transformedMessage = transformedMessage.replace("{following}",recipient.following?recipient.following:"");
     return transformedMessage;
 }
+
+// Add these helper functions at the top level
+function getMemoryUsage() {
+  const memoryUsage = process.memoryUsage();
+  console.log("memoryUsage", memoryUsage);
+  return {
+    percentage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+    rss: Math.round(memoryUsage.rss / 1024 / 1024),
+    heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+    heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024)
+  };
+}
+
+async function performMemoryCleanup() {
+  // Remove global.gc() call as it won't work on Render
+  
+  // Run some lightweight operations to encourage GC
+  const temp = [];
+  for (let i = 0; i < 1000; i++) {
+    temp.push({});
+    if (i % 100 === 0) temp.length = 0;
+  }
+  
+  console.log("Performing memory cleanup and waiting for 3 minutes");
+  // The 5-minute cooldown is good for a 2GB/1CPU machine
+  return new Promise(resolve => setTimeout(resolve, 180000));
+}
+
 export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { action, message, cookies,recipients, campaignId } = req.body;
@@ -322,11 +450,11 @@ export default async function handler(req, res) {
         }
         let updatedCookies = [];
         if(cookies){
-            for(let cookie of cookies){
-                if(cookie.name=="ct0"||cookie.name=="auth_token"){
-                    updatedCookies.push(cookie);
-                }
+        for(let cookie of cookies){
+            if(cookie.name=="ct0"||cookie.name=="auth_token"){
+                updatedCookies.push(cookie);
             }
+        }
         }
         //console.log('updatedCookies',updatedCookies);
         

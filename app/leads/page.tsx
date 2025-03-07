@@ -7,12 +7,14 @@ import LeadListCard from "@/components/leads/lead-list-card";
 import { useUser } from "@/contexts/user-context";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { toast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
 interface LeadList {
   id: string;
   leadName: string;
   totalLeads: number;
   createdAt: string;
+  status?: string;
 }
 
 export default function LeadsPage() {
@@ -23,9 +25,12 @@ export default function LeadsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchLeadLists = async () => {
+    let intervalId: NodeJS.Timeout | undefined;
+    
+    const fetchLeads = async () => {
       if (!userId) return;
       
       try {
@@ -33,39 +38,61 @@ export default function LeadsPage() {
         if (!response.ok) throw new Error('Failed to fetch lead lists');
         
         const data = await response.json();
-        setLeadLists(data.leads.map((lead: any) => ({
+        
+        const formattedLeads = data.leads.map((lead: any) => ({
           id: lead.id,
           leadName: lead.leadName,
           totalLeads: lead.totalLeads,
-          createdAt: lead.createdAt
-        })));
+          createdAt: lead.createdAt,
+          status: lead.status
+        }));
+        
+        setLeadLists(formattedLeads);
+        
+        // Check if any leads are still in progress
+        const hasInProgressLeads = formattedLeads.some(
+          (lead: any) => lead.status === 'in_progress'
+        );
+        
+        // Actually stop polling when complete
+        if (!hasInProgressLeads && intervalId) {
+          console.log('All leads complete, stopping polling');
+          clearInterval(intervalId);
+          intervalId = undefined;
+        } else if (hasInProgressLeads) {
+          console.log('In progress leads found, continuing to poll...');
+        }
       } catch (error) {
-        console.error('Error fetching lead lists:', error);
+        console.error('Error fetching leads:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchLeadLists();
+    
+    // Initial fetch
+    fetchLeads();
+    
+    // Set up polling every 10 seconds
+    intervalId = setInterval(fetchLeads, 10000);
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [userId]);
 
-  const handleDeleteLead = (leadId: string) => {
-    setLeadToDelete(leadId);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!leadToDelete) return;
-    
-    setIsDeleting(true);
+  const handleDeleteLead = async (leadId: string) => {
     try {
-      const response = await fetch(`/api/leads/delete?id=${leadToDelete}`, {
+      setIsDeleting(true);
+      
+      const response = await fetch(`/api/leads/delete?id=${leadId}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Failed to delete lead list');
 
-      setLeadLists(prev => prev.filter(lead => lead.id !== leadToDelete));
+      // Update the state to remove the deleted lead
+      setLeadLists(prev => prev.filter(lead => lead.id !== leadId));
+      
       toast({
         title: "Lead list deleted",
         description: "The lead list has been successfully deleted.",
@@ -79,13 +106,43 @@ export default function LeadsPage() {
       });
     } finally {
       setIsDeleting(false);
-      setDeleteDialogOpen(false);
-      setLeadToDelete(null);
+    }
+  };
+
+  const refreshLeads = async () => {
+    try {
+      const response = await fetch(`/api/leads?userId=${userId}`);
+      const data = await response.json();
+      setLeadLists(data.leads.map((lead: any) => ({
+        id: lead.id,
+        leadName: lead.leadName,
+        totalLeads: lead.totalLeads,
+        createdAt: lead.createdAt,
+        status: lead.status
+      })));
+    } catch (error) {
+      console.error('Error refreshing leads:', error);
+    }
+  };
+
+  const handleCreateAutomation = (leadId: string, leadName: string) => {
+    try {
+      // Store the lead information in localStorage before navigation
+      localStorage.setItem('automationLead', JSON.stringify({
+        id: leadId,
+        name: leadName,
+        autoStart: true
+      }));
+      
+      // Navigate to campaign page
+      window.location.href = '/campaign';
+    } catch (error) {
+      console.error("Navigation error:", error);
     }
   };
 
   if (isImporting) {
-    return <ImportLeads onBack={() => setIsImporting(false)} />;
+    return <ImportLeads onBack={() => setIsImporting(false)} refreshLeads={refreshLeads} />;
   }
 
   return (
@@ -112,7 +169,9 @@ export default function LeadsPage() {
                 id={list.id}
                 name={list.leadName}
                 leadCount={list.totalLeads}
-                onCreateAutomation={() => {}}
+                createdAt={list.createdAt}
+                status={list.status}
+                onCreateAutomation={() => handleCreateAutomation(list.id, list.leadName)}
                 onDelete={handleDeleteLead}
               />
             ))}
@@ -130,7 +189,12 @@ export default function LeadsPage() {
           setDeleteDialogOpen(false);
           setLeadToDelete(null);
         }}
-        onConfirm={handleConfirmDelete}
+        onConfirm={() => {
+          if (leadToDelete) {
+            handleDeleteLead(leadToDelete);
+          }
+          setDeleteDialogOpen(false);
+        }}
         title="Delete Lead List"
         description="Are you sure you want to delete this lead list? This action cannot be undone."
         isDeleting={isDeleting}

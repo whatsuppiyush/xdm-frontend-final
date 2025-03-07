@@ -39,6 +39,24 @@ export async function POST(request: Request) {
       }
     });
 
+    // Send welcome email
+    try {
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      await fetch(`${baseUrl}/api/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: user.name?.split(' ')[0] || 'User',
+          email: user.email,
+        }),
+      });
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError);
+      // Continue with signup even if email fails
+    }
+
     return NextResponse.json({
       success: true,
       user: {

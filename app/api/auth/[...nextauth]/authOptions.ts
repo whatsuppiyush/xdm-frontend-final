@@ -18,11 +18,12 @@ declare module "next-auth" {
   }
 }
 
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID! || 'ABC',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET! || 'ABC',
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
       name: 'Credentials',
@@ -71,11 +72,20 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (existingUser) {
+            // Update the user's provider if they're signing in with Google
+            await prisma.user.update({
+              where: { email: user.email },
+              data: {
+                provider: 'google',
+                image: user.image,
+                updatedAt: new Date(),
+              },
+            });
             return true;
           }
 
           // Create new user with MongoDB ObjectId
-          await prisma.user.create({
+          const newUser = await prisma.user.create({
             data: {
               id: new ObjectId().toString(),
               email: user.email,
@@ -86,10 +96,29 @@ export const authOptions: NextAuthOptions = {
               updatedAt: new Date(),
             },
           });
+
+          // Send welcome email for new Google sign-ups
+          try {
+            await fetch(`${process.env.NEXTAUTH_URL}/api/send`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                firstName: user.name?.split(' ')[0] || 'User',
+                email: user.email,
+              }),
+            });
+          } catch (emailError) {
+            console.error('Error sending welcome email:', emailError);
+            // Continue with sign-in even if email fails
+          }
+
           return true;
         }
         return true;
       } catch (error) {
+        console.error("Sign-in error:", error);
         return false;
       }
     },
@@ -127,6 +156,7 @@ export const authOptions: NextAuthOptions = {
     signIn: '/',
     error: '/?error=AuthError',
   },
+
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt',

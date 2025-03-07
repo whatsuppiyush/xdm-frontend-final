@@ -1,20 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { toast } from "@/components/ui/use-toast";
 
 export default function ProfileSettings() {
+  const { data: session, status } = useSession();
   const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    company: "Acme Inc",
-    role: "Marketing Director",
+    name: "",
+    email: "",
+    image: "",
   });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      setProfile({
+        name: session.user.name || "",
+        email: session.user.email || "",
+        image: session.user.image || "",
+      });
+      setIsLoading(false);
+    } else if (status === "unauthenticated") {
+      setIsLoading(false);
+    }
+  }, [session, status]);
+
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <p>Loading profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-oid="o0abbsy">
@@ -27,28 +62,37 @@ export default function ProfileSettings() {
             <div className="relative" data-oid="4f0-lby">
               <Avatar className="h-24 w-24" data-oid="_z.4j0x">
                 <AvatarImage
-                  src="https://github.com/shadcn.png"
+                  src={profile.image || ""}
+                  alt={profile.name}
                   data-oid="z0gdbg9"
                 />
-
-                <AvatarFallback data-oid="2sg8m-_">JD</AvatarFallback>
+                <AvatarFallback data-oid="2sg8m-_">
+                  {getInitials(profile.name)}
+                </AvatarFallback>
               </Avatar>
               <Button
                 size="icon"
                 variant="secondary"
                 className="absolute bottom-0 right-0 rounded-full"
                 data-oid="._31-yq"
+                disabled={session?.user?.provider === "google"}
+                title={session?.user?.provider === "google" ? "Profile image is managed by Google" : "Change profile image"}
               >
                 <Camera className="h-4 w-4" data-oid="ory0ksc" />
               </Button>
             </div>
             <div className="space-y-1" data-oid="i8042_g">
               <h3 className="font-medium" data-oid="c.6_93q">
-                {profile.name}
+                {profile.name || "User"}
               </h3>
               <p className="text-sm text-muted-foreground" data-oid="gel9x_5">
                 {profile.email}
               </p>
+              {session?.user?.provider && (
+                <p className="text-xs text-muted-foreground">
+                  Signed in with {session.user.provider === "google" ? "Google" : "Email"}
+                </p>
+              )}
             </div>
           </div>
 
@@ -60,9 +104,8 @@ export default function ProfileSettings() {
               <Input
                 id="name"
                 value={profile.name}
-                onChange={(e) =>
-                  setProfile({ ...profile, name: e.target.value })
-                }
+                disabled={true}
+                title="Name cannot be changed"
                 data-oid="z5g7lyf"
               />
             </div>
@@ -74,41 +117,12 @@ export default function ProfileSettings() {
                 id="email"
                 type="email"
                 value={profile.email}
-                onChange={(e) =>
-                  setProfile({ ...profile, email: e.target.value })
-                }
+                disabled={true}
+                title="Email cannot be changed"
                 data-oid="d.m5vx9"
               />
             </div>
-            <div className="space-y-2" data-oid="u9oam:0">
-              <Label htmlFor="company" data-oid="2.o06q:">
-                Company
-              </Label>
-              <Input
-                id="company"
-                value={profile.company}
-                onChange={(e) =>
-                  setProfile({ ...profile, company: e.target.value })
-                }
-                data-oid="m93b52y"
-              />
-            </div>
-            <div className="space-y-2" data-oid="_c8sypr">
-              <Label htmlFor="role" data-oid="h6pgkx6">
-                Role
-              </Label>
-              <Input
-                id="role"
-                value={profile.role}
-                onChange={(e) =>
-                  setProfile({ ...profile, role: e.target.value })
-                }
-                data-oid="4kjmhl7"
-              />
-            </div>
           </div>
-
-          <Button data-oid="-l7un0b">Save Changes</Button>
         </CardContent>
       </Card>
     </div>
