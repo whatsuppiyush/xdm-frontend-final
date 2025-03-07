@@ -17,6 +17,34 @@ export async function POST(request: Request) {
       }
     });
 
+    // Check if this is the user's first campaign
+    const userCampaignCount = await prisma.message.count({
+      where: {
+        userId
+      }
+    });
+
+    // If this is the first campaign, send a notification email
+    if (userCampaignCount === 1) {
+      try {
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        await fetch(`${baseUrl}/api/send-campaign-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            campaignName,
+            recipientCount: recipients.length,
+            userId
+          }),
+        });
+      } catch (emailError) {
+        console.error('Error sending campaign notification email:', emailError);
+        // Continue with campaign creation even if email fails
+      }
+    }
+
     return NextResponse.json({ message });
   } catch (error) {
     console.error('Failed to create message:', error);

@@ -85,7 +85,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Create new user with MongoDB ObjectId
-          await prisma.user.create({
+          const newUser = await prisma.user.create({
             data: {
               id: new ObjectId().toString(),
               email: user.email,
@@ -96,6 +96,24 @@ export const authOptions: NextAuthOptions = {
               updatedAt: new Date(),
             },
           });
+
+          // Send welcome email for new Google sign-ups
+          try {
+            await fetch(`${process.env.NEXTAUTH_URL}/api/send`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                firstName: user.name?.split(' ')[0] || 'User',
+                email: user.email,
+              }),
+            });
+          } catch (emailError) {
+            console.error('Error sending welcome email:', emailError);
+            // Continue with sign-in even if email fails
+          }
+
           return true;
         }
         return true;
