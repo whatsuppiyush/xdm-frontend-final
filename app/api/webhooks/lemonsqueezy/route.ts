@@ -78,8 +78,8 @@ function verifyWebhookSignature(payload: string, signature: string | null): bool
     const digest = hmac.update(payload).digest('hex');
     
     return crypto.timingSafeEqual(
-      Buffer.from(digest),
-      Buffer.from(signature)
+      new Uint8Array(Buffer.from(digest)),
+      new Uint8Array(Buffer.from(signature))
     );
   } catch (error) {
     console.error("Error verifying signature:", error);

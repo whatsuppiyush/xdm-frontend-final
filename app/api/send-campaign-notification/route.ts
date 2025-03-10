@@ -4,7 +4,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import prisma from "@/lib/prisma";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Check for API key and provide better error handling
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+if (!RESEND_API_KEY) {
+  console.error('RESEND_API_KEY is not defined in the environment variables');
+}
+
+// Create the resend instance with proper key
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +31,15 @@ export async function POST(request: Request) {
     }
 
     const firstName = user.name?.split(' ')[0] || 'User';
+
+    // Check if resend is properly initialized
+    if (!resend) {
+      console.error('Resend client not initialized. Missing API key.');
+      return Response.json({ 
+        error: 'Email service not configured', 
+        success: false 
+      }, { status: 500 });
+    }
 
     const { data, error } = await resend.emails.send({
       from: 'XAutoDM <hi@xcolddm.com>',

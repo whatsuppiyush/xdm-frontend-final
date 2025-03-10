@@ -19,7 +19,8 @@ model User {
   twitterAccounts TwitterAccount[] // Array of TwitterAccounts
   messages        Message[] // Array of Messages
   automatedLeads  AutomatedLead[] // Add this line
-  userCredits     UserCredits? // Relation to UserCredits
+  userCredits     userCredits? // Relation to UserCredits
+  userCredit      UserCredit?      // Add this relation field
 }
 
 model TwitterAccount {
@@ -66,10 +67,9 @@ model Follower {
 }
 
 // New model for user credits
-model UserCredits {
+model userCredits {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   userId         String   @unique @db.ObjectId
-  user           User     @relation(fields: [userId], references: [id])
   leadCredits    Int      @default(0)
   dmCredits      Int      @default(0) // Monthly DM credits
   planType       String? // "Mini", "Starter", or "Pro"
@@ -78,4 +78,18 @@ model UserCredits {
   subscriptionId String? // Lemon Squeezy subscription ID
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id])
+}
+
+model UserCredit {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String    @unique @db.ObjectId
+  leadCredits    Int       @default(0)
+  dmCredits      Int       @default(0)
+  planType       String?
+  orderId        String?
+  subscriptionId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id])
 }
