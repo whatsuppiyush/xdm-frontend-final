@@ -63,7 +63,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
 
   useEffect(() => {
     fetchAccounts();
-  }, []);
+  }, [fetchAccounts]);
 
   // Validate JSON whenever cookiesInput changes
   useEffect(() => {

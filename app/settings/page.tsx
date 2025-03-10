@@ -7,13 +7,19 @@ import TwitterAccounts from "@/components/settings/twitter-accounts";
 import DoNotContact from "@/components/settings/do-not-contact";
 import { useUser } from "@/contexts/user-context";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function SettingsPage() {
+// Create a wrapper component that uses useSearchParams
+function SettingsContent() {
   const { userId, isLoading } = useUser();
   const [activeTab, setActiveTab] = useState("profile");
   const searchParams = useSearchParams();
+
+  // Use useCallback to memoize the function
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+  }, []);
 
   useEffect(() => {
     // Check if tab parameter exists and set active tab accordingly
@@ -31,59 +37,60 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div
-        className="flex items-center justify-center min-h-screen"
-        data-oid="wi7vvl-"
-      >
-        <Loader2 className="h-6 w-6 animate-spin" data-oid="vzsq6j5" />
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
   }
 
+  // Add a guard for userId
   if (!userId) {
-    return null;
+    return <div className="p-8">Please log in to view settings</div>;
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8" data-oid="zigr9an">
-      <div className="flex justify-between items-center" data-oid="b-.ekon">
-        <h1 className="text-3xl font-bold" data-oid="ac1g1o3">
-          Settings
-        </h1>
+    <div className="p-8 max-w-7xl mx-auto space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Settings</h1>
       </div>
 
-      <Tabs defaultValue={activeTab || "profile"} className="space-y-6" data-oid="sdu2iiv">
-        <TabsList data-oid="r71a6ue">
-          <TabsTrigger value="profile" data-oid="f4qbx_d">
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="subscription" data-oid="f8rit69">
-            Subscription
-          </TabsTrigger>
-          <TabsTrigger value="twitter" data-oid="wpejzi.">
-            Twitter Accounts
-          </TabsTrigger>
-          <TabsTrigger value="dnc" data-oid="qgo_y1n">
-            Do Not Contact
-          </TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
+          <TabsTrigger value="twitter">Twitter Accounts</TabsTrigger>
+          <TabsTrigger value="dnc">Do Not Contact</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile" data-oid=":3:0eta">
-          <ProfileSettings data-oid="td1sn91" />
+        <TabsContent value="profile">
+          <ProfileSettings />
         </TabsContent>
 
-        <TabsContent value="subscription" data-oid="4:1n3zn">
-          <SubscriptionSettings data-oid="diltl1u" />
+        <TabsContent value="subscription">
+          <SubscriptionSettings />
         </TabsContent>
 
-        <TabsContent value="twitter" data-oid="hgu26hi">
-          <TwitterAccounts userId={userId} data-oid="2o7cnh." />
+        <TabsContent value="twitter">
+          <TwitterAccounts userId={userId} />
         </TabsContent>
 
-        <TabsContent value="dnc" data-oid="c_2_:am">
-          <DoNotContact data-oid="yzg1k2c" />
+        <TabsContent value="dnc">
+          <DoNotContact />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   );
 }

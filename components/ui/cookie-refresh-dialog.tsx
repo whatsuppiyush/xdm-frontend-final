@@ -37,7 +37,7 @@ export function CookieRefreshDialog({
                 <RefreshCcw className="h-4 w-4 mr-2" /> Why this happens
               </h4>
               <div className="text-sm">
-                Twitter cookies expire periodically for security reasons. You'll need to go to the Settings page 
+                Twitter cookies expire periodically for security reasons. You&apos;ll need to go to the Settings page 
                 and update your Twitter account with fresh cookies.
               </div>
             </div>
