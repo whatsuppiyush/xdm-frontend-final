@@ -4,23 +4,23 @@ import crypto from "crypto";
 
 // Define the plan IDs and their corresponding lead credits
 const PLAN_CREDITS = {
-  "714632": 3000,  // Mini plan - $19
-  "714642": 12000, // Starter plan - $57
-  "714643": 27000  // Pro plan - $97
+  "462170": 3000,  // Mini plan - $19
+  "462171": 12000, // Starter plan - $57
+  "462172": 27000  // Pro plan - $97
 };
 
 // Define the plan types
 const PLAN_TYPES = {
-  "714632": "Mini",
-  "714642": "Starter",
-  "714643": "Pro"
+  "462170": "Mini",
+  "462171": "Starter",
+  "462172": "Pro"
 };
 
 // Define the DM credits for each plan
 const DM_CREDITS = {
-  "714632": 1500,  // Mini plan - 1,500 DMs/month
-  "714642": 6000,  // Starter plan - 6,000 DMs/month
-  "714643": 13500  // Pro plan - 13,500 DMs/month
+  "462170": 1500,  // Mini plan - 1,500 DMs/month
+  "462171": 6000,  // Starter plan - 6,000 DMs/month
+  "462172": 13500  // Pro plan - 13,500 DMs/month
 };
 
 export async function POST(request: Request) {

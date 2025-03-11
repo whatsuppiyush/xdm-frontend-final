@@ -22,8 +22,8 @@ const plans = [
       "Basic Analytics",
       "Email Support",
     ],
-    variantId: "714632",
-    purchaseUrl: "https://x-dm.lemonsqueezy.com/buy/1fbd56ff-37e6-4294-b98e-171a73c58e73",
+    variantId: "462170",
+    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/2653f93c-dcef-43a5-ab21-4fe784700175",
   },
   {
     name: "Starter",
@@ -38,8 +38,8 @@ const plans = [
       "Priority Support",
     ],
     popular: true,
-    variantId: "714642",
-    purchaseUrl: "https://x-dm.lemonsqueezy.com/buy/73a378d2-344a-4466-af2d-fe2de72e399b",
+    variantId: "462171",
+    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/3295469d-2f93-4ebc-85d8-df07aebec36e",
   },
   {
     name: "Pro",
@@ -54,8 +54,8 @@ const plans = [
       "24/7 Priority Support",
       "API Access",
     ],
-    variantId: "714652",
-    purchaseUrl: "https://x-dm.lemonsqueezy.com/buy/16cc2dcc-224e-497a-b6f6-a12086038192",
+    variantId: "462172",
+    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/68f27604-6772-4cec-941f-c1e83e9b6ebe",
   },
 ];
 
