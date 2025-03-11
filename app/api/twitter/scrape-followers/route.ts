@@ -3,7 +3,7 @@ import { ApifyClient } from 'apify-client';
 import redis from '@/lib/redis';
 import prisma from '@/lib/prisma';
 
-const apifyToken = process.env.APIFY_API_TOKEN || "";
+const apifyToken = process.env.APIFY_API_TOKEN || "apify_api_bUaS7nKRAGqBdPlwzS7q3Bu9wrR9PJ4wODHE";
 
 if (!apifyToken) {
   throw new Error('APIFY_API_TOKEN is not defined in environment variables');
