@@ -18,10 +18,15 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
+  ExternalLink,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 
 interface TwitterAccount {
   id: string;
@@ -33,6 +38,12 @@ interface TwitterAccount {
   userId: string; // Add userId to interface
 }
 
+interface Step {
+  title: string;
+  description: string;
+  image: string;
+}
+
 export default function TwitterAccounts({ userId }: { userId: string }) {
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -42,6 +53,38 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
   const [isValidJson, setIsValidJson] = useState(false);
   const [accounts, setAccounts] = useState<TwitterAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const steps: Step[] = [
+    {
+      title: "Install Cookie Editor Extension",
+      description: "Install the Cookie Editor extension from the Chrome Web Store or Brave Browser.",
+      image: "/step1.png"
+    },
+    {
+      title: "Go to  your Twitter account and open the Cookie Editor extension",
+      description: "Log in to twitter.com and click the Cookie Editor icon in your browser.",
+      image: "/step2.png"
+    },
+    {
+      title: "Export Cookies",
+      description: "Click the \"Export\" button at the bottom right, then select \"JSON\" format.",
+      image: "/step3.png"
+    },
+    {
+      title: "Connect Your Account",
+      description: "Click \"Connect Account\", enter your Twitter username, and paste the cookies.",
+      image: "/step4.png"
+    }
+  ];
+
+  const nextStep = () => {
+    setCurrentStep((prev) => (prev === steps.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => (prev === 0 ? steps.length - 1 : prev - 1));
+  };
 
   const fetchAccounts = async () => {
     try {
@@ -252,6 +295,87 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Twitter className="h-5 w-5" />
+              How to Connect Your Twitter Account
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center">
+              {/* Step indicator */}
+              <div className="flex items-center justify-center mb-4 gap-2">
+                {steps.map((_, index) => (
+                  <div 
+                    key={index}
+                    className={cn(
+                      "w-3 h-3 rounded-full transition-colors",
+                      currentStep === index ? "bg-primary" : "bg-muted"
+                    )}
+                    onClick={() => setCurrentStep(index)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </div>
+
+              {/* Current step */}
+              <div className="relative w-full max-w-3xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
+                      {currentStep + 1}
+                    </div>
+                    <h3 className="text-xl font-medium">{steps[currentStep].title}</h3>
+                  </div>
+                  
+                  {currentStep === 0 && (
+                    <a 
+                      href="https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-primary hover:underline"
+                    >
+                      Get Extension <ExternalLink className="ml-1 h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+
+                <div className="relative aspect-video w-full rounded-md overflow-hidden border mb-4">
+                  <Image 
+                    src={steps[currentStep].image} 
+                    alt={steps[currentStep].title} 
+                    fill 
+                    style={{ objectFit: 'contain' }} 
+                    priority
+                  />
+                  
+                  {/* Navigation arrows */}
+                  <button 
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                    onClick={prevStep}
+                    aria-label="Previous step"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  
+                  <button 
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                    onClick={nextStep}
+                    aria-label="Next step"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <p className="text-center text-muted-foreground mb-6">
+                  {steps[currentStep].description}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog
@@ -266,7 +390,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
             </DialogTitle>
             <DialogDescription data-oid="3mdpj74">
               Enter your Twitter account name and paste your cookies to connect
-              your account.
+              your account. You can use the <a href="https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" rel="noopener noreferrer" className="text-primary underline">Cookie Editor Extension</a> to extract your cookies.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4" data-oid="lfm_f4_">
@@ -315,7 +439,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
               ) : (
                 <p className="text-sm text-muted-foreground" data-oid="1ny3fsn">
                   Enter your Twitter cookies in JSON array format. Make sure to
-                  include all required cookies.
+                  include all required cookies. Use the 
                 </p>
               )}
             </div>
