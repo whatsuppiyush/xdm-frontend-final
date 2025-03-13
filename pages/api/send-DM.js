@@ -360,6 +360,7 @@ const sendDM = async (recipientId, message, cookies, browser) => {
     
     // Check if it's a memory-related error and rethrow it so the outer catch block can handle it
     if (error.message.includes('Target.createTarget timed out') || 
+        error.message.includes('TimeoutError') ||
         error.message.includes('out of memory') || 
         error.message.includes('Browser closed') ||
         error.message.includes('Protocol error') || 
@@ -388,32 +389,6 @@ const messageTransformFunction = (message,recipient) => {
     return transformedMessage;
 }
 
-// Add these helper functions at the top level
-function getMemoryUsage() {
-  const memoryUsage = process.memoryUsage();
-  console.log("memoryUsage", memoryUsage);
-  return {
-    percentage: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
-    rss: Math.round(memoryUsage.rss / 1024 / 1024),
-    heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
-    heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024)
-  };
-}
-
-async function performMemoryCleanup() {
-  // Remove global.gc() call as it won't work on Render
-  
-  // Run some lightweight operations to encourage GC
-  const temp = [];
-  for (let i = 0; i < 1000; i++) {
-    temp.push({});
-    if (i % 100 === 0) temp.length = 0;
-  }
-  
-  console.log("Performing memory cleanup and waiting for 3 minutes");
-  // The 5-minute cooldown is good for a 2GB/1CPU machine
-  return new Promise(resolve => setTimeout(resolve, 180000));
-}
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
