@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     let updatedCount = count*2;
     // Extract username from profile URL
     const username = profileUrl.split('/').pop();
-    
+    console.log("cookies", cookies);
     // Create the lead immediately with 0 leads but "in_progress" status
     const newLead = await prisma.automatedLead.create({
       data: {
