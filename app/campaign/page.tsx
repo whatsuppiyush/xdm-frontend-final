@@ -64,7 +64,7 @@ interface CampaignProgress {
 
 export default function CampaignPage() {
   const [isCreating, setIsCreating] = useState(false);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number>(1);
   const [campaignName, setCampaignName] = useState("");
   const [messageTemplate, setMessageTemplate] = useState("");
   const [selectedLeadList, setSelectedLeadList] = useState<AutomatedLead | null>(null);
@@ -496,62 +496,67 @@ export default function CampaignPage() {
               {" "}
               {/* Step 1: Select Source */}{" "}
               {step === 1 && (
-                <div className="max-w-[95%] mx-auto space-y-8">
-                  {" "}
-                  <h2 className="text-3xl font-medium text-center mb-8">
-                    {" "}
-                    Select Lead Source{" "}
-                  </h2>{" "}
-                  {loading ? (
-                    <div className="text-center">Loading lead lists...</div>
-                  ) : leadLists.length === 0 ? (
-                    <div className="text-center space-y-4">
-                      {" "}
-                      <p className="text-gray-600">You do not have any lead lists yet.</p>{" "}
-                      <Button 
-                        variant="link" 
-                        className="text-black underline hover:text-gray-700"
-                        onClick={() => window.location.href = '/leads'}
-                      >
-                        {" "}
-                        Create lead list in Find Leads →{" "}
-                      </Button>{" "}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-6">
-                      {" "}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Select Lead Source</h3>
+                  
+                  {/* Scrollable container with custom styling for clean scrolling */}
+                  <div 
+                    className="max-h-[400px] overflow-y-auto border rounded-lg bg-gray-50/50 shadow-inner"
+                    style={{ 
+                      scrollbarWidth: 'none', /* Firefox */
+                      msOverflowStyle: 'none',  /* IE and Edge */
+                    }}
+                  >
+                    {/* Hide scrollbar for Chrome, Safari and Opera */}
+                    <style jsx>{`
+                      div::-webkit-scrollbar {
+                        display: none;
+                      }
+                    `}</style>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                       {leadLists.map((list) => (
                         <Card
                           key={list.id}
-                          className={`border-2 p-6 cursor-pointer transition-all hover:shadow-lg ${
+                          className={`border-2 p-6 cursor-pointer transition-all hover:shadow-md ${
                             selectedLeadList?.id === list.id
-                              ? "ring-2 ring-black border-black"
-                              : "hover:border-gray-400"
+                              ? "ring-2 ring-black border-black bg-white"
+                              : "hover:border-gray-300 bg-white"
                           }`}
-                          onClick={() =>{ 
-                            console.log("selected list", list);
-                            setSelectedLeadList(list)}}
+                          onClick={() => setSelectedLeadList(list)}
                         >
-                          {" "}
-                          <h3 className="font-medium text-xl mb-2">
-                            {list.leadName}
-                          </h3>{" "}
-                          <p className="text-gray-500">{list.totalLeads.toLocaleString()} leads</p>{" "}
+                          <h3 className="font-medium text-xl mb-2">{list.leadName}</h3>
+                          <p className="text-gray-500">{list.totalLeads.toLocaleString()} leads</p>
                         </Card>
-                      ))}{" "}
+                      ))}
                     </div>
-                  )}
-                  <div className="flex justify-end">
-                    {" "}
+                  </div>
+                  
+                  {/* Original button positioning */}
+                  <div className="flex justify-end gap-4 mt-6">
                     <Button
-                      className="bg-black hover:bg-gray-800 text-white px-12 py-6 text-lg rounded-xl"
-                      onClick={() => setStep(2)}
+                      variant="outline"
+                      className="px-6 py-2"
+                      onClick={() => {
+                        if (step > 1) {
+                          setStep(step - 1);
+                        }
+                      }}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-xl"
+                      onClick={() => {
+                        if (selectedLeadList) {
+                          setStep(step + 1);
+                        }
+                      }}
                       disabled={!selectedLeadList}
                     >
-                      {" "}
-                      Next{" "}
-                    </Button>{" "}
-                  </div>{" "}
+                      Next
+                    </Button>
+                  </div>
                 </div>
               )}{" "}
               {/* Step 2: Write Message */}{" "}
@@ -745,25 +750,30 @@ export default function CampaignPage() {
                       </div>{" "}
                     </div>{" "}
                     {/* Navigation Buttons */}{" "}
-                    <div className="flex justify-end gap-4 mt-8">
-                      {" "}
+                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-end gap-4 z-10">
                       <Button
                         variant="outline"
-                        className="px-8 py-3 hover:bg-gray-50 transition-colors duration-300"
-                        onClick={() => setStep(1)}
+                        className="px-6 py-2"
+                        onClick={() => {
+                          if (step > 1) {
+                            setStep(step - 1);
+                          }
+                        }}
                       >
-                        {" "}
-                        Back{" "}
-                      </Button>{" "}
+                        Back
+                      </Button>
                       <Button
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-lg"
-                        onClick={() => setStep(3)}
-                        disabled={!messageTemplate}
+                        className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-xl"
+                        onClick={() => {
+                          if (selectedLeadList) {
+                            setStep(step + 1);
+                          }
+                        }}
+                        disabled={!selectedLeadList}
                       >
-                        {" "}
-                        Continue to Variants{" "}
-                      </Button>{" "}
-                    </div>{" "}
+                        Next
+                      </Button>
+                    </div>
                   </div>{" "}
                 </div>
               )}{" "}
@@ -1097,67 +1107,69 @@ export default function CampaignPage() {
             </div>
           </div>
         ) : (
-          dmqueueList.map((queue) => (
-            <Card key={queue.id} className="p-6 border-2">
-              <div className="space-y-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-medium">{queue.campaignName}</h3>
-                    <p className="text-sm text-gray-500">
-                      Progress - {queue.processedLeads}/{queue.totalLeads} sent 
-                      {queue.failedLeads > 0 && ` (${queue.failedLeads} failed)`}
-                    </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {dmqueueList.map((queue) => (
+              <Card key={queue.id} className="p-6 border-2">
+                <div className="space-y-6">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-medium">{queue.campaignName}</h3>
+                      <p className="text-sm text-gray-500">
+                        Progress - {queue.processedLeads}/{queue.totalLeads} sent 
+                        {queue.failedLeads > 0 && ` (${queue.failedLeads} failed)`}
+                      </p>
+                    </div>
+                    <div className="text-sm">
+                      <span className={cn(
+                        "px-2 py-1 rounded-full",
+                        queue.status === "In Progress" && "bg-blue-100 text-blue-700",
+                        queue.status === "Stopped" && "bg-yellow-100 text-yellow-700",
+                        queue.processedLeads === queue.totalLeads && "bg-green-100 text-green-700"
+                      )}>
+                        {queue.processedLeads === queue.totalLeads ? 'Completed' : queue.status}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-sm">
-                    <span className={cn(
-                      "px-2 py-1 rounded-full",
-                      queue.status === "In Progress" && "bg-blue-100 text-blue-700",
-                      queue.status === "Stopped" && "bg-yellow-100 text-yellow-700",
-                      queue.processedLeads === queue.totalLeads && "bg-green-100 text-green-700"
-                    )}>
-                      {queue.processedLeads === queue.totalLeads ? 'Completed' : queue.status}
-                    </span>
+                  <div className="w-full bg-gray-100 rounded-full h-2.5">
+                    <div
+                      className="bg-[#0F172A] h-2.5 rounded-full"
+                      style={{
+                        width: `${(queue.processedLeads / queue.totalLeads) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="border-2"
+                      onClick={() => handleDeleteCampaign(queue.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-2"
+                      onClick={() => handleStopCampaign(queue.id)}
+                      disabled={queue.status === 'Stopped' || stoppingCampaigns.has(queue.id)}
+                    >
+                      {stoppingCampaigns.has(queue.id) ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Stopping...
+                        </>
+                      ) : (
+                        <>
+                          <Square className="h-4 w-4 mr-2" />
+                          Stop
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-2.5">
-                  <div
-                    className="bg-[#0F172A] h-2.5 rounded-full"
-                    style={{
-                      width: `${(queue.processedLeads / queue.totalLeads) * 100}%`,
-                    }}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="border-2"
-                    onClick={() => handleDeleteCampaign(queue.id)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="border-2"
-                    onClick={() => handleStopCampaign(queue.id)}
-                    disabled={queue.status === 'Stopped' || stoppingCampaigns.has(queue.id)}
-                  >
-                    {stoppingCampaigns.has(queue.id) ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Stopping...
-                      </>
-                    ) : (
-                      <>
-                        <Square className="h-4 w-4 mr-2" />
-                        Stop
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))
+              </Card>
+            ))}
+          </div>
         )}
       </div>{" "}
       <DeleteConfirmationDialog
