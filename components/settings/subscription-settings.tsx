@@ -17,7 +17,6 @@ const plans = [
     features: [
       "50 DMs per day",
       "3,000 Lead Credits",
-      "1,500 DMs per month",
       "1 Twitter Account",
       "Basic Analytics",
       "Email Support",
@@ -32,7 +31,6 @@ const plans = [
     features: [
       "200 DMs per day",
       "12,000 Lead Credits",
-      "6,000 DMs per month",
       "1 Twitter Account",
       "Advanced Analytics",
       "Priority Support",
@@ -48,7 +46,6 @@ const plans = [
     features: [
       "450 DMs per day",
       "27,000 Lead Credits",
-      "13,500 DMs per month",
       "Multiple Twitter Accounts",
       "Comprehensive Analytics",
       "24/7 Priority Support",
@@ -64,12 +61,10 @@ export default function SubscriptionSettings() {
   const [currentPlan, setCurrentPlan] = useState<{
     name: string;
     leadCredits: number;
-    dmCredits: number;
     planType: string | null;
   }>({
     name: "No Plan",
     leadCredits: 0,
-    dmCredits: 0,
     planType: null,
   });
   const [loading, setLoading] = useState(true);
@@ -87,7 +82,6 @@ export default function SubscriptionSettings() {
           setCurrentPlan({
             name: data.planType,
             leadCredits: data.leadCredits,
-            dmCredits: data.dmCredits || 0,
             planType: data.planType,
           });
         }
@@ -143,9 +137,6 @@ export default function SubscriptionSettings() {
                   <p data-oid=".s4kgw8">Billed monthly</p>
                   <p data-oid="b_-wq83">
                     Available Lead Credits: {currentPlan.leadCredits}
-                  </p>
-                  <p data-oid="dm-credits">
-                    Available DM Credits: {currentPlan.dmCredits}
                   </p>
                 </div>
               </div>

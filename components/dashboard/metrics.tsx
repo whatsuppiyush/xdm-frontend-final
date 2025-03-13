@@ -136,7 +136,7 @@ export default function DashboardMetrics() {
         </Card>
       ))}
       
-      <LeadCredits twitterAccountsCount={twitterAccounts} />
+      <LeadCredits />
     </div>
   );
 }
