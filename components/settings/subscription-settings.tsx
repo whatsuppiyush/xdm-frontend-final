@@ -17,13 +17,12 @@ const plans = [
     features: [
       "50 DMs per day",
       "3,000 Lead Credits",
-      "1,500 DMs per month",
       "1 Twitter Account",
       "Basic Analytics",
       "Email Support",
     ],
-    variantId: "714632",
-    purchaseUrl: "https://x-dm.lemonsqueezy.com/buy/1fbd56ff-37e6-4294-b98e-171a73c58e73",
+    variantId: "462170",
+    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/2653f93c-dcef-43a5-ab21-4fe784700175",
   },
   {
     name: "Starter",
@@ -32,14 +31,13 @@ const plans = [
     features: [
       "200 DMs per day",
       "12,000 Lead Credits",
-      "6,000 DMs per month",
       "1 Twitter Account",
       "Advanced Analytics",
       "Priority Support",
     ],
     popular: true,
-    variantId: "714642",
-    purchaseUrl: "https://x-dm.lemonsqueezy.com/buy/73a378d2-344a-4466-af2d-fe2de72e399b",
+    variantId: "462171",
+    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/3295469d-2f93-4ebc-85d8-df07aebec36e",
   },
   {
     name: "Pro",
@@ -48,14 +46,13 @@ const plans = [
     features: [
       "450 DMs per day",
       "27,000 Lead Credits",
-      "13,500 DMs per month",
       "Multiple Twitter Accounts",
       "Comprehensive Analytics",
       "24/7 Priority Support",
       "API Access",
     ],
-    variantId: "714652",
-    purchaseUrl: "https://x-dm.lemonsqueezy.com/buy/16cc2dcc-224e-497a-b6f6-a12086038192",
+    variantId: "462172",
+    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/68f27604-6772-4cec-941f-c1e83e9b6ebe",
   },
 ];
 
@@ -64,12 +61,10 @@ export default function SubscriptionSettings() {
   const [currentPlan, setCurrentPlan] = useState<{
     name: string;
     leadCredits: number;
-    dmCredits: number;
     planType: string | null;
   }>({
     name: "No Plan",
     leadCredits: 0,
-    dmCredits: 0,
     planType: null,
   });
   const [loading, setLoading] = useState(true);
@@ -87,7 +82,6 @@ export default function SubscriptionSettings() {
           setCurrentPlan({
             name: data.planType,
             leadCredits: data.leadCredits,
-            dmCredits: data.dmCredits || 0,
             planType: data.planType,
           });
         }
@@ -143,9 +137,6 @@ export default function SubscriptionSettings() {
                   <p data-oid=".s4kgw8">Billed monthly</p>
                   <p data-oid="b_-wq83">
                     Available Lead Credits: {currentPlan.leadCredits}
-                  </p>
-                  <p data-oid="dm-credits">
-                    Available DM Credits: {currentPlan.dmCredits}
                   </p>
                 </div>
               </div>

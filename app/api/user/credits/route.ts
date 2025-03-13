@@ -22,7 +22,6 @@ export async function GET() {
     if (!userCredits) {
       return NextResponse.json({ 
         leadCredits: 0,
-        dmCredits: 0,
         planType: null,
         subscriptionId: null
       });

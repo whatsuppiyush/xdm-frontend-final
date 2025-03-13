@@ -4,23 +4,16 @@ import crypto from "crypto";
 
 // Define the plan IDs and their corresponding lead credits
 const PLAN_CREDITS = {
-  "714632": 3000,  // Mini plan - $19
-  "714642": 12000, // Starter plan - $57
-  "714643": 27000  // Pro plan - $97
+  "462170": 3000,  // Mini plan - $19
+  "462171": 12000, // Starter plan - $57
+  "462172": 27000  // Pro plan - $97
 };
 
 // Define the plan types
 const PLAN_TYPES = {
-  "714632": "Mini",
-  "714642": "Starter",
-  "714643": "Pro"
-};
-
-// Define the DM credits for each plan
-const DM_CREDITS = {
-  "714632": 1500,  // Mini plan - 1,500 DMs/month
-  "714642": 6000,  // Starter plan - 6,000 DMs/month
-  "714643": 13500  // Pro plan - 13,500 DMs/month
+  "462170": "Mini",
+  "462171": "Starter",
+  "462172": "Pro"
 };
 
 export async function POST(request: Request) {
@@ -120,7 +113,6 @@ async function handleOrderCreated(payload: any) {
   // Get the lead credits for this plan
   const leadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
-  const dmCredits = DM_CREDITS[variantId as keyof typeof DM_CREDITS] || 0;
   
   // Update or create user credits
   try {
@@ -128,7 +120,6 @@ async function handleOrderCreated(payload: any) {
       where: { userId: user.id },
       update: {
         leadCredits: { increment: leadCredits },
-        dmCredits,
         planType,
         orderId,
         updatedAt: new Date()
@@ -136,7 +127,6 @@ async function handleOrderCreated(payload: any) {
       create: {
         userId: user.id,
         leadCredits,
-        dmCredits,
         planType,
         orderId,
         createdAt: new Date(),
@@ -173,7 +163,6 @@ async function handleSubscriptionCreated(payload: any) {
   // Get the lead credits for this plan
   const leadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
-  const dmCredits = DM_CREDITS[variantId as keyof typeof DM_CREDITS] || 0;
   
   // First try to find existing user credits
   const existingCredits = await prisma.userCredits.findUnique({
@@ -188,7 +177,6 @@ async function handleSubscriptionCreated(payload: any) {
         data: {
           subscriptionId: subscriptionId.toString(),
           leadCredits: leadCredits,
-          dmCredits,
           planType,
           updatedAt: new Date()
         }
@@ -200,7 +188,6 @@ async function handleSubscriptionCreated(payload: any) {
           userId: user.id,
           subscriptionId: subscriptionId.toString(),
           leadCredits,
-          dmCredits,
           planType,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -237,7 +224,6 @@ async function handleSubscriptionUpdated(payload: any) {
   // Get the lead credits for this plan
   const leadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
-  const dmCredits = DM_CREDITS[variantId as keyof typeof DM_CREDITS] || 0;
   
   try {
     // Update or create user credits
@@ -245,7 +231,6 @@ async function handleSubscriptionUpdated(payload: any) {
       where: { userId: user.id },
       update: {
         leadCredits,
-        dmCredits,
         planType,
         subscriptionId: subscriptionId.toString(),
         updatedAt: new Date()
@@ -253,7 +238,6 @@ async function handleSubscriptionUpdated(payload: any) {
       create: {
         userId: user.id,
         leadCredits,
-        dmCredits,
         planType,
         subscriptionId: subscriptionId.toString(),
         createdAt: new Date(),
