@@ -82,20 +82,34 @@ function verifyWebhookSignature(payload: string, signature: string | null): bool
 
 // Handle order_created event
 async function handleOrderCreated(payload: any) {
-  const { data } = payload;
+  const { data, meta } = payload;
   const orderId = data.id;
   const orderData = data.attributes;
+  
+  // Check if custom data with user_id is available
+  const customUserId = meta?.custom_data?.user_id;
   
   // Get the customer email from the order
   const customerEmail = orderData.user_email;
   
-  // Find the user by email
-  let user = await prisma.user.findUnique({
-    where: { email: customerEmail }
-  });
+  // Find the user by custom user ID first, then fall back to email
+  let user = null;
+  
+  if (customUserId) {
+    user = await prisma.user.findUnique({
+      where: { id: customUserId }
+    });
+  }
+  
+  // If user not found by custom ID, try to find by email
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: { email: customerEmail }
+    });
+  }
   
   if (!user) {
-    console.error(`User with email ${customerEmail} not found`);
+    console.error(`User not found. Email: ${customerEmail}, Custom ID: ${customUserId}`);
     return;
   }
   
@@ -140,20 +154,34 @@ async function handleOrderCreated(payload: any) {
 
 // Handle subscription_created event
 async function handleSubscriptionCreated(payload: any) {
-  const { data } = payload;
+  const { data, meta } = payload;
   const subscriptionId = data.id;
   const subscriptionData = data.attributes;
+  
+  // Check if custom data with user_id is available
+  const customUserId = meta?.custom_data?.user_id;
   
   // Get the customer email from the subscription
   const customerEmail = subscriptionData.user_email;
   
-  // Find the user by email
-  let user = await prisma.user.findUnique({
-    where: { email: customerEmail }
-  });
+  // Find the user by custom user ID first, then fall back to email
+  let user = null;
+  
+  if (customUserId) {
+    user = await prisma.user.findUnique({
+      where: { id: customUserId }
+    });
+  }
+  
+  // If user not found by custom ID, try to find by email
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: { email: customerEmail }
+    });
+  }
   
   if (!user) {
-    console.error(`User with email ${customerEmail} not found`);
+    console.error(`User not found. Email: ${customerEmail}, Custom ID: ${customUserId}`);
     return;
   }
   
@@ -201,20 +229,34 @@ async function handleSubscriptionCreated(payload: any) {
 
 // Handle subscription_updated event
 async function handleSubscriptionUpdated(payload: any) {
-  const { data } = payload;
+  const { data, meta } = payload;
   const subscriptionId = data.id;
   const subscriptionData = data.attributes;
+  
+  // Check if custom data with user_id is available
+  const customUserId = meta?.custom_data?.user_id;
   
   // Get the customer email from the subscription
   const customerEmail = subscriptionData.user_email;
   
-  // Find the user by email
-  let user = await prisma.user.findUnique({
-    where: { email: customerEmail }
-  });
+  // Find the user by custom user ID first, then fall back to email
+  let user = null;
+  
+  if (customUserId) {
+    user = await prisma.user.findUnique({
+      where: { id: customUserId }
+    });
+  }
+  
+  // If user not found by custom ID, try to find by email
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: { email: customerEmail }
+    });
+  }
   
   if (!user) {
-    console.error(`User with email ${customerEmail} not found`);
+    console.error(`User not found. Email: ${customerEmail}, Custom ID: ${customUserId}`);
     return;
   }
   
@@ -251,20 +293,34 @@ async function handleSubscriptionUpdated(payload: any) {
 
 // Handle subscription_cancelled event
 async function handleSubscriptionCancelled(payload: any) {
-  const { data } = payload;
+  const { data, meta } = payload;
   const subscriptionId = data.id;
   const subscriptionData = data.attributes;
+  
+  // Check if custom data with user_id is available
+  const customUserId = meta?.custom_data?.user_id;
   
   // Get the customer email from the subscription
   const customerEmail = subscriptionData.user_email;
   
-  // Find the user by email
-  let user = await prisma.user.findUnique({
-    where: { email: customerEmail }
-  });
+  // Find the user by custom user ID first, then fall back to email
+  let user = null;
+  
+  if (customUserId) {
+    user = await prisma.user.findUnique({
+      where: { id: customUserId }
+    });
+  }
+  
+  // If user not found by custom ID, try to find by email
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: { email: customerEmail }
+    });
+  }
   
   if (!user) {
-    console.error(`User with email ${customerEmail} not found`);
+    console.error(`User not found. Email: ${customerEmail}, Custom ID: ${customUserId}`);
     return;
   }
   

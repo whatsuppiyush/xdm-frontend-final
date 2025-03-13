@@ -102,6 +102,12 @@ export default function SubscriptionSettings() {
 
   const currentPlanDetails = getPlanDetails(currentPlan.planType);
 
+  // Function to get checkout URL with user ID as custom data
+  const getCheckoutUrl = (baseUrl: string) => {
+    if (!userId) return baseUrl;
+    return `${baseUrl}?checkout[custom][user_id]=${userId}`;
+  };
+
   return (
     <div className="space-y-8" data-oid="z.:q:g7">
       {/* Current Plan Card */}
@@ -154,12 +160,12 @@ export default function SubscriptionSettings() {
                     <Button 
                       data-oid="7dph_p5"
                       onClick={() => {
-                        const nextPlan = currentPlan.planType === "Mini" 
+                        const nextPlanBaseUrl = currentPlan.planType === "Mini" 
                           ? plans[1].purchaseUrl 
                           : currentPlan.planType === "Starter" 
                             ? plans[2].purchaseUrl 
                             : plans[2].purchaseUrl;
-                        window.open(nextPlan, "_blank");
+                        window.open(getCheckoutUrl(nextPlanBaseUrl), "_blank");
                       }}
                     >
                       <Zap className="mr-2 h-4 w-4" data-oid="sv3jz8m" />
@@ -169,7 +175,7 @@ export default function SubscriptionSettings() {
                 ) : (
                   <Button 
                     data-oid="7dph_p5"
-                    onClick={() => window.open(plans[0].purchaseUrl, "_blank")}
+                    onClick={() => window.open(getCheckoutUrl(plans[0].purchaseUrl), "_blank")}
                   >
                     <Zap className="mr-2 h-4 w-4" data-oid="sv3jz8m" />
                     Get Started
@@ -252,7 +258,7 @@ export default function SubscriptionSettings() {
                   <Button
                     className="w-full"
                     variant={currentPlan.planType === plan.name ? "outline" : "default"}
-                    onClick={() => window.open(plan.purchaseUrl, "_blank")}
+                    onClick={() => window.open(getCheckoutUrl(plan.purchaseUrl), "_blank")}
                     data-oid=".q8lgsg"
                   >
                     {currentPlan.planType === plan.name ? "Current Plan" : "Subscribe"}
