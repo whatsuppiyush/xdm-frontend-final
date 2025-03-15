@@ -202,7 +202,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
       
       const endpoint = isRefreshing 
         ? `/api/twitter/update-account?id=${refreshingAccount}` 
-        : '/api/twitter/connect-account';
+        : '/api/twitter/store-cookies';
       
       const response = await fetch(endpoint, {
         method: isRefreshing ? 'PUT' : 'POST',
