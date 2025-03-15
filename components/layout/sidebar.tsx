@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/ui/logout-button";
 import { LayoutDashboard, Settings, Users, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useUser } from "@/contexts/user-context";
+import { useSession } from "next-auth/react";
 
 const routes = [
   {
@@ -36,23 +39,43 @@ const routes = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { userId } = useUser();
+  const { data: session } = useSession();
+  const [credits, setCredits] = useState({
+    leadCredits: 0,
+    planType: null as string | null,
+    loading: true,
+  });
+
+  useEffect(() => {
+    const fetchUserCredits = async () => {
+      if (!userId) return;
+      
+      try {
+        const creditsResponse = await fetch("/api/user/credits");
+        const creditsData = await creditsResponse.json();
+        
+        setCredits({
+          leadCredits: creditsData.leadCredits || 0,
+          planType: creditsData.planType,
+          loading: false,
+        });
+      } catch (error) {
+        console.error("Error fetching credits:", error);
+        setCredits(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchUserCredits();
+  }, [userId]);
 
   return (
-    <div
-      className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white"
-      data-oid="i3n2j2a"
-    >
-      <div className="px-3 py-2 flex-1" data-oid="wnsbdha">
-        <Link
-          href="/"
-          className="flex items-center pl-3 mb-14"
-          data-oid="bxr-_r8"
-        >
-          <h1 className="text-2xl font-bold" data-oid="6s0:r2s">
-            XDM
-          </h1>
+    <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
+      <div className="px-3 py-2 flex-1">
+        <Link href="/" className="flex items-center pl-3 mb-14">
+          <h1 className="text-2xl font-bold">XDM</h1>
         </Link>
-        <div className="space-y-1" data-oid="z8d:oe.">
+        <div className="space-y-1">
           {routes.map((route) => (
             <Link
               key={route.href}
@@ -63,22 +86,35 @@ export default function Sidebar() {
                   ? "text-white bg-white/10"
                   : "text-zinc-400",
               )}
-              data-oid="02n25tg"
             >
-              <div className="flex items-center flex-1" data-oid="3ijbj4j">
-                <route.icon
-                  className={cn("h-5 w-5 mr-3", route.color)}
-                  data-oid="2nr9-0v"
-                />
-
+              <div className="flex items-center flex-1">
+                <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
                 {route.label}
               </div>
             </Link>
           ))}
         </div>
       </div>
-      <div className="px-3 py-2" data-oid="h-qvsg7">
-        <LogoutButton data-oid="as.srpx" />
+      
+      {/* Only show credits for paid users */}
+      {session?.user && credits.planType && !credits.loading && (
+        <div className="px-3 py-2 border-t border-gray-700">
+          <div className="space-y-3 px-3 py-2">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-zinc-400">Lead Credits Remaining:</span>
+              <span className={cn(
+                "font-medium",
+                credits.leadCredits <= 0 && "text-red-500"
+              )}>
+                {credits.leadCredits.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="px-3 py-2">
+        <LogoutButton />
       </div>
     </div>
   );

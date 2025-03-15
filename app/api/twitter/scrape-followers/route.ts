@@ -19,7 +19,22 @@ export async function POST(request: Request) {
     let updatedCount = count*2;
     // Extract username from profile URL
     const username = profileUrl.split('/').pop();
-    console.log("cookies", cookies);
+        
+    // Check if user has credits before starting the scrape
+    const userCredits = await prisma.userCredits.findUnique({
+      where: { userId }
+    });
+    
+    // Block scraping if user has no credits
+    if (!userCredits || userCredits.leadCredits <= 0) {
+      return NextResponse.json({ 
+        error: "Insufficient lead credits. Please upgrade your plan to get more credits.",
+        success: false
+      }, { status: 403 });
+    }
+    
+    // Check if user has available leads
+    const hasAvailableLeads = userCredits && userCredits.leadCredits > 0;
     // Create the lead immediately with 0 leads but "in_progress" status
     const newLead = await prisma.automatedLead.create({
       data: {
@@ -123,6 +138,32 @@ export async function POST(request: Request) {
           status: 'completed',
           count: transformedFollowers.length
         }));
+
+        // Reduce lead credits for users with available leads
+        if (hasAvailableLeads && transformedFollowers.length > 0) {
+          try {
+            // Call the credits update API
+            const updateResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/user/credits/update`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                userId,
+                leadsCount: transformedFollowers.length
+              }),
+            });
+            
+            const updateResult = await updateResponse.json();
+            console.log('Credits update result:', updateResult);
+            
+            if (!updateResult.success) {
+              console.error('Failed to update credits:', updateResult.error);
+            }
+          } catch (creditError) {
+            console.error('Error updating credits:', creditError);
+          }
+        }
 
         // After run completes, check the Actor execution status
         if (run.status === 'SUCCEEDED') {
