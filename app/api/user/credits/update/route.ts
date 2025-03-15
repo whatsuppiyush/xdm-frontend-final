@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
+export async function POST(request: Request) {
+  try {
+    const { userId, leadsCount } = await request.json();
+
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
+
+    if (!leadsCount || leadsCount <= 0) {
+      return NextResponse.json({ error: "Valid leads count is required" }, { status: 400 });
+    }
+
+    // Get the user's current credits
+    const userCredits = await prisma.userCredits.findUnique({
+      where: { userId }
+    });
+
+    if (!userCredits) {
+      return NextResponse.json({ 
+        error: "User credits not found",
+        success: false
+      }, { status: 404 });
+    }
+
+    // Check if user has enough credits
+    if (userCredits.leadCredits < leadsCount) {
+      return NextResponse.json({ 
+        error: "Insufficient lead credits",
+        success: false,
+        remainingCredits: userCredits.leadCredits
+      }, { status: 400 });
+    }
+
+    // Update the user's credits by reducing the lead credits
+    const updatedCredits = await prisma.userCredits.update({
+      where: { userId },
+      data: {
+        leadCredits: {
+          decrement: leadsCount
+        },
+        updatedAt: new Date()
+      }
+    });
+
+    return NextResponse.json({ 
+      success: true,
+      remainingCredits: updatedCredits.leadCredits
+    });
+  } catch (error) {
+    console.error("Error updating user credits:", error);
+    return NextResponse.json({ 
+      error: "Failed to update user credits",
+      success: false
+    }, { status: 500 });
+  }
+} 
