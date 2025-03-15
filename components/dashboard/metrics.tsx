@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/user-context";
 import Link from "next/link";
 
+// Add this interface near the top of your file
+interface MessageData {
+  id: string;
+  messages: any[];
+  [key: string]: any;
+}
+
 export default function DashboardMetrics() {
   const { userId } = useUser();
   const [metrics, setMetrics] = useState([
@@ -61,7 +68,7 @@ export default function DashboardMetrics() {
           
           // Count total message items sent
           let totalMessageItems = 0;
-          messagesData.messages?.forEach((message) => {
+          messagesData.messages?.forEach((message: MessageData) => {
             totalMessageItems += message.messages?.length || 0;
           });
           
