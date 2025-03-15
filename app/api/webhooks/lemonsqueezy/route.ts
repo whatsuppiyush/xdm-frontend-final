@@ -6,14 +6,20 @@ import crypto from "crypto";
 const PLAN_CREDITS = {
   "462170": 3000,  // Mini plan - $19
   "462171": 12000, // Starter plan - $57
-  "462172": 27000  // Pro plan - $97
+  "462172": 27000, // Pro plan - $97 (Standard Tier 1-2 accounts)
+  "469279": 27000, // Pro plan - $75 (Team Tier 3-4 accounts)
+  "469280": 27000, // Pro plan - $67 (Growth Tier 5-9 accounts)
+  "469282": 27000  // Pro plan - $49 (Enterprise Tier 10-15 accounts)
 };
 
 // Define the plan types
 const PLAN_TYPES = {
   "462170": "Mini",
   "462171": "Starter",
-  "462172": "Pro"
+  "462172": "Pro",
+  "469279": "Pro",
+  "469280": "Pro",
+  "469282": "Pro"
 };
 
 export async function POST(request: Request) {
@@ -124,29 +130,66 @@ async function handleOrderCreated(payload: any) {
   // Get the variant ID from the first order item
   const variantId = firstOrderItem.variant_id.toString();
   
+  // Get the quantity from the first order item
+  const quantity = firstOrderItem.quantity || 1;
+  
+  console.log(`Processing order with variantId: ${variantId}, quantity: ${quantity}`);
+  
   // Get the lead credits for this plan
-  const leadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
+  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
+  
+  // Calculate total lead credits based on the plan type and quantity
+  const leadCredits = baseLeadCredits * quantity;
+  
+  console.log(`Calculated lead credits: ${leadCredits} (${baseLeadCredits} per account × ${quantity} accounts)`);
+  
+  // Check for existing user credits
+  const existingCredits = await prisma.userCredits.findUnique({
+    where: { userId: user.id }
+  });
   
   // Update or create user credits
   try {
-    await prisma.userCredits.upsert({
-      where: { userId: user.id },
-      update: {
-        leadCredits: { increment: leadCredits },
-        planType,
-        orderId,
-        updatedAt: new Date()
-      },
-      create: {
-        userId: user.id,
-        leadCredits,
-        planType,
-        orderId,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    });
+    // If there's an existing subscription, preserve it
+    if (existingCredits && existingCredits.subscriptionId) {
+      console.log(`User has existing subscription ID: ${existingCredits.subscriptionId}, preserving it`);
+      
+      await prisma.userCredits.update({
+        where: { userId: user.id },
+        data: {
+          leadCredits: leadCredits,
+          planType,
+          orderId,
+          quantity, // Save the quantity from the order
+          updatedAt: new Date()
+          // Note: We don't update subscriptionId to preserve the existing subscription
+        }
+      });
+    } else {
+      // No existing subscription, do a regular upsert
+      await prisma.userCredits.upsert({
+        where: { userId: user.id },
+        update: {
+          leadCredits: leadCredits, // Set the total lead credits based on quantity
+          planType,
+          orderId,
+          quantity, // Save the quantity from the order
+          updatedAt: new Date()
+        },
+        create: {
+          userId: user.id,
+          leadCredits,
+          planType,
+          orderId,
+          quantity, // Save the quantity from the order
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    }
+    
+    console.log(`Successfully updated user credits for user ${user.id} with ${leadCredits} lead credits, plan type ${planType}, and quantity ${quantity}`);
   } catch (error) {
     console.error('Error updating user credits:', error);
   }
@@ -188,8 +231,13 @@ async function handleSubscriptionCreated(payload: any) {
   // Get the variant ID from the subscription
   const variantId = subscriptionData.variant_id.toString();
   
+  // Get the quantity from the subscription
+  const quantity = subscriptionData.quantity || 1;
+  
+  console.log(`Processing subscription with variantId: ${variantId}, quantity: ${quantity}`);
+  
   // Get the lead credits for this plan
-  const leadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
+  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
   
   // First try to find existing user credits
@@ -199,13 +247,27 @@ async function handleSubscriptionCreated(payload: any) {
   
   try {
     if (existingCredits) {
+      // For Pro plans, preserve the existing quantity if it's higher
+      // This ensures we don't overwrite a multi-account purchase with a subscription event
+      let finalQuantity = quantity;
+      let finalLeadCredits = baseLeadCredits * quantity;
+      
+      if (planType === "Pro" && existingCredits.quantity > quantity) {
+        console.log(`Preserving existing quantity ${existingCredits.quantity} which is higher than subscription quantity ${quantity}`);
+        finalQuantity = existingCredits.quantity;
+        finalLeadCredits = baseLeadCredits * finalQuantity;
+      }
+      
+      console.log(`Final quantity: ${finalQuantity}, Final lead credits: ${finalLeadCredits}`);
+      
       // Update existing credits
       await prisma.userCredits.update({
         where: { userId: user.id },
         data: {
           subscriptionId: subscriptionId.toString(),
-          leadCredits: leadCredits,
+          leadCredits: finalLeadCredits,
           planType,
+          quantity: finalQuantity, // Use the preserved quantity
           updatedAt: new Date()
         }
       });
@@ -215,13 +277,16 @@ async function handleSubscriptionCreated(payload: any) {
         data: {
           userId: user.id,
           subscriptionId: subscriptionId.toString(),
-          leadCredits,
+          leadCredits: baseLeadCredits * quantity,
           planType,
+          quantity, // Save the quantity from the subscription
           createdAt: new Date(),
           updatedAt: new Date()
         }
       });
     }
+    
+    console.log(`Successfully created/updated subscription for user ${user.id} with plan type ${planType}, and quantity ${quantity}`);
   } catch (error) {
     console.error('Error updating user credits:', error);
   }
@@ -263,29 +328,56 @@ async function handleSubscriptionUpdated(payload: any) {
   // Get the variant ID from the subscription
   const variantId = subscriptionData.variant_id.toString();
   
+  // Get the quantity from the subscription
+  const quantity = subscriptionData.quantity || 1;
+  
+  console.log(`Processing subscription update with variantId: ${variantId}, quantity: ${quantity}`);
+  
   // Get the lead credits for this plan
-  const leadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
+  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
   
+  // First try to find existing user credits
+  const existingCredits = await prisma.userCredits.findUnique({
+    where: { userId: user.id }
+  });
+  
   try {
+    // For Pro plans, preserve the existing quantity if it's higher
+    // This ensures we don't overwrite a multi-account purchase with a subscription event
+    let finalQuantity = quantity;
+    let finalLeadCredits = baseLeadCredits * quantity;
+    
+    if (existingCredits && planType === "Pro" && existingCredits.quantity > quantity) {
+      console.log(`Preserving existing quantity ${existingCredits.quantity} which is higher than subscription quantity ${quantity}`);
+      finalQuantity = existingCredits.quantity;
+      finalLeadCredits = baseLeadCredits * finalQuantity;
+    }
+    
+    console.log(`Final quantity: ${finalQuantity}, Final lead credits: ${finalLeadCredits}`);
+    
     // Update or create user credits
     await prisma.userCredits.upsert({
       where: { userId: user.id },
       update: {
-        leadCredits,
+        leadCredits: finalLeadCredits,
         planType,
         subscriptionId: subscriptionId.toString(),
+        quantity: finalQuantity, // Use the preserved quantity
         updatedAt: new Date()
       },
       create: {
         userId: user.id,
-        leadCredits,
+        leadCredits: baseLeadCredits * quantity,
         planType,
         subscriptionId: subscriptionId.toString(),
+        quantity, // Save the quantity from the subscription
         createdAt: new Date(),
         updatedAt: new Date()
       }
     });
+    
+    console.log(`Successfully updated subscription for user ${user.id} with plan type ${planType}, and quantity ${finalQuantity}`);
   } catch (error) {
     console.error('Error updating user credits:', error);
   }

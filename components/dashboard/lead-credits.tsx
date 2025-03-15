@@ -82,7 +82,7 @@ export default function LeadCredits() {
               Purchase a plan to get lead credits
             </p>
             <Button className="mt-4" size="sm">
-              <Link href="/settings">Purchase Plan</Link>
+              <Link href="/settings?tab=subscription">Purchase Plan</Link>
             </Button>
           </CardContent>
         </Card>
