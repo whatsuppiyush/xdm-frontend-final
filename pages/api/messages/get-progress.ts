@@ -2,6 +2,12 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+interface MessageData {
+  id: string;
+  messages: any[]; // You can define a more specific type if needed
+  [key: string]: any; // For other properties
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });

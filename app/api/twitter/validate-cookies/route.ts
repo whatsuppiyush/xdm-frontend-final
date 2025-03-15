@@ -40,9 +40,12 @@ async function validateMultipleAccounts(accounts: TwitterAccount[]) {
     // Launch browser with local or remote Chrome
     const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
     const isWindows = process.platform === 'win32';
-    const executablePath = isLocal && isWindows ? 
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
-      await chromium.executablePath();
+    const isMac = process.platform === 'darwin';
+    const executablePath = isLocal ? (
+      isWindows ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' :
+      isMac ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' :
+      await chromium.executablePath()
+    ) : await chromium.executablePath();
   
     browser = await puppeteer.launch({
       executablePath,
