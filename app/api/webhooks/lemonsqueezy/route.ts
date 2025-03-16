@@ -4,22 +4,22 @@ import crypto from "crypto";
 
 // Define the plan IDs and their corresponding lead credits
 const PLAN_CREDITS = {
-  "462170": 3000,  // Mini plan - $19
-  "462171": 12000, // Starter plan - $57
-  "462172": 27000, // Pro plan - $97 (Standard Tier 1-2 accounts)
-  "469279": 27000, // Pro plan - $75 (Team Tier 3-4 accounts)
-  "469280": 27000, // Pro plan - $67 (Growth Tier 5-9 accounts)
-  "469282": 27000  // Pro plan - $49 (Enterprise Tier 10-15 accounts)
+  "714798": 3000,  // Mini plan - $19
+  "714799": 12000, // Starter plan - $57
+  "714800": 27000, // Pro plan - $97 (Standard Tier 1-2 accounts)
+  "726374": 27000, // Pro plan - $75 (Team Tier 3-4 accounts)
+  "726375": 27000, // Pro plan - $67 (Growth Tier 5-9 accounts)
+  "726377": 27000  // Pro plan - $49 (Enterprise Tier 10-15 accounts)
 };
 
 // Define the plan types
 const PLAN_TYPES = {
-  "462170": "Mini",
-  "462171": "Starter",
-  "462172": "Pro",
-  "469279": "Pro",
-  "469280": "Pro",
-  "469282": "Pro"
+  "714798": "Mini",
+  "714799": "Starter",
+  "714800": "Pro",
+  "726374": "Pro",
+  "726375": "Pro",
+  "726377": "Pro"
 };
 
 export async function POST(request: Request) {
