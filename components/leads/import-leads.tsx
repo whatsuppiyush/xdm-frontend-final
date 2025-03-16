@@ -11,6 +11,15 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TwitterProfile {
   handle: string;
@@ -48,6 +57,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
     [],
   );
   const [selectedFilter, setSelectedFilter] = useState<string>("followers");
+  const [showNoCreditsAlert, setShowNoCreditsAlert] = useState(false);
 
   useEffect(() => {
     const fetchCookies = async () => {
@@ -78,6 +88,16 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
 
     try {
       setLoading(true);
+      
+      // Check user credits before proceeding
+      const creditsResponse = await fetch("/api/user/credits");
+      const creditsData = await creditsResponse.json();
+      
+      if (!creditsData.leadCredits || creditsData.leadCredits <= 0) {
+        setShowNoCreditsAlert(true);
+        return;
+      }
+      
       // Simply advance to the next step without scraping
       setStep(2);
     } catch (error) {
@@ -239,6 +259,24 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
 
   return (
     <div className="min-h-screen bg-white">
+      <AlertDialog open={showNoCreditsAlert} onOpenChange={setShowNoCreditsAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>No Lead Credits</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have no lead credits remaining. Please upgrade your plan to get more credits.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => {
+              window.location.href = "/settings?tab=subscription";
+            }}>
+              Upgrade Plan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="max-w-7xl mx-auto p-6">
         <Button
           variant="ghost"
