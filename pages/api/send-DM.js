@@ -225,8 +225,29 @@ class CampaignQueue {
       this.isProcessing = false;
       await this.saveToRedis();
       
-      // Delete the queue from Redis once processing is complete
-      // Only delete if the queue is empty or if we're stopping the campaign
+      // Check if queue is empty to mark as completed
+      if (this.queue.length === 0 && !this.isStopped) {
+        try {
+          // Update message status to Completed in MongoDB
+          const updateResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/messages/update-status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              messageId: this.campaignId,
+              status: 'Completed'
+            }),
+          });
+          
+          const updateResult = await updateResponse.json();
+          console.log(`Campaign ${this.campaignId} marked as Completed:`, updateResult);
+        } catch (updateError) {
+          console.error(`Failed to update campaign ${this.campaignId} status:`, updateError);
+        }
+      }
+      
+      // Delete the queue from Redis if empty or stopped
       if (this.queue.length === 0 || this.isStopped) {
         const queueKey = `queue:${this.campaignId}`;
         try {

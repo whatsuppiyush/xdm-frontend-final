@@ -3,11 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, Pause, Pencil, Trash2, ArrowLeft, Check, Loader2, Square } from "lucide-react";
+import { Trash2, ArrowLeft, Check, Loader2, Square } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -1124,9 +1123,9 @@ export default function CampaignPage() {
                         "px-2 py-1 rounded-full",
                         queue.status === "In Progress" && "bg-blue-100 text-blue-700",
                         queue.status === "Stopped" && "bg-yellow-100 text-yellow-700",
-                        queue.processedLeads === queue.totalLeads && "bg-green-100 text-green-700"
+                        queue.status === "Completed" && "bg-emerald-100 text-emerald-700 font-medium"
                       )}>
-                        {queue.processedLeads === queue.totalLeads ? 'Completed' : queue.status}
+                        {queue.status}
                       </span>
                     </div>
                   </div>
