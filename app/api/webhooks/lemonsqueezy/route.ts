@@ -9,7 +9,16 @@ const PLAN_CREDITS = {
   "462172": 27000, // Pro plan - $97 (Standard Tier 1-2 accounts)
   "469279": 27000, // Pro plan - $75 (Team Tier 3-4 accounts)
   "469280": 27000, // Pro plan - $67 (Growth Tier 5-9 accounts)
-  "469282": 27000  // Pro plan - $49 (Enterprise Tier 10-15 accounts)
+  "469282": 27000,  // Pro plan - $49 (Enterprise Tier 10-15 accounts)
+  // Test variant IDs
+  "726375": 3000,  // Test Mini plan
+  "726427": 12000, // Test Starter plan
+  "714632": 27000, // Test Pro plan
+  "726423": 27000, // Test Pro plan
+  "714643": 27000, // Test Pro plan
+  "714642": 27000, // Test Pro plan
+  "726422": 27000, // Test Pro plan
+  "714798": 3000   // Test plan
 };
 
 // Define the plan types
@@ -19,7 +28,16 @@ const PLAN_TYPES = {
   "462172": "Pro",
   "469279": "Pro",
   "469280": "Pro",
-  "469282": "Pro"
+  "469282": "Pro",
+  // Test variant IDs
+  "726375": "Mini",
+  "726427": "Starter",
+  "714632": "Pro",
+  "726423": "Pro",
+  "714643": "Pro",
+  "714642": "Pro",
+  "726422": "Pro",
+  "714798": "Mini"
 };
 
 export async function POST(request: Request) {
