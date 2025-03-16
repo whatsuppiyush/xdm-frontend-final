@@ -224,13 +224,46 @@ class CampaignQueue {
       }
       this.isProcessing = false;
       await this.saveToRedis();
+      
+      // Check if queue is empty to mark as completed
+      if (this.queue.length === 0 && !this.isStopped) {
+        try {
+          // Update message status to Completed in MongoDB
+          const updateResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/messages/update-status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              messageId: this.campaignId,
+              status: 'Completed'
+            }),
+          });
+          
+          const updateResult = await updateResponse.json();
+          console.log(`Campaign ${this.campaignId} marked as Completed:`, updateResult);
+        } catch (updateError) {
+          console.error(`Failed to update campaign ${this.campaignId} status:`, updateError);
+        }
+      }
+      
+      // Delete the queue from Redis if empty or stopped
+      if (this.queue.length === 0 || this.isStopped) {
+        const queueKey = `queue:${this.campaignId}`;
+        try {
+          await redis.del(queueKey);
+          console.log(`Cleaned up Redis queue for campaign ${this.campaignId}`);
+        } catch (redisError) {
+          console.error(`Failed to clean up Redis queue for campaign ${this.campaignId}:`, redisError);
+        }
+      }
     }
   }
 
   handleFailedAttempt(recipientId) {
     this.totalAttempts++;
     if (this.totalAttempts >= MAX_RETRIES) {
-    console.log("processedRecipients",this.totalAttempts,recipientId);
+    console.log("processedRecipients handleFailedAttempt",this.totalAttempts,recipientId);
       this.processedRecipients.add(recipientId);
       this.queue.shift();
       this.totalAttempts = 0;

@@ -149,15 +149,28 @@ export default function SubscriptionSettings() {
   // Get current price per account for Pro plan based on quantity
   const getProPriceForQuantity = (quantity: number) => {
     const proPlan = plans[2]; // Pro plan
-    const tier = proPlan.tiers.find(t => 
+    
+    // Add null check before accessing tiers
+    if (!proPlan || !proPlan.tiers) {
+      return 0; // Or some default price
+    }
+    
+    const tier = proPlan.tiers.find(t =>
       quantity >= t.minQuantity && quantity <= t.maxQuantity
     );
-    return tier ? tier.pricePerAccount : 97; // Default to 97 if not found
+    
+    return tier ? tier.pricePerAccount : 97; // Return tier price or default
   };
 
   // Get current tier for Pro plan based on quantity
   const getProTierForQuantity = (quantity: number) => {
     const proPlan = plans[2]; // Pro plan
+    
+    // Add null check before accessing tiers
+    if (!proPlan || !proPlan.tiers) {
+      return "Standard Tier"; // Default tier name
+    }
+    
     return proPlan.tiers.find(
       tier => quantity >= tier.minQuantity && quantity <= tier.maxQuantity
     )?.name || "Standard Tier";
@@ -166,6 +179,19 @@ export default function SubscriptionSettings() {
   // Get the current tier object for Pro plan based on quantity
   const getProTierObjectForQuantity = (quantity: number) => {
     const proPlan = plans[2]; // Pro plan
+    
+    // Add null check before accessing tiers
+    if (!proPlan || !proPlan.tiers) {
+      return { 
+        name: "Standard Tier", 
+        minQuantity: 1, 
+        maxQuantity: 2,
+        pricePerAccount: 97,
+        variantId: "462172",
+        purchaseUrl: plans[2].purchaseUrl
+      }; // Default tier object
+    }
+    
     return proPlan.tiers.find(
       tier => quantity >= tier.minQuantity && quantity <= tier.maxQuantity
     ) || proPlan.tiers[0]; // Default to first tier if not found
