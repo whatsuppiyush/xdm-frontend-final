@@ -22,7 +22,7 @@ const plans = [
       "Basic Analytics",
       "Email Support",
     ],
-    variantId: "462170",
+    variantId: "714798",
     purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/2653f93c-dcef-43a5-ab21-4fe784700175",
   },
   {
@@ -37,7 +37,7 @@ const plans = [
       "Priority Support",
     ],
     popular: true,
-    variantId: "462171",
+    variantId: "714799",
     purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/3295469d-2f93-4ebc-85d8-df07aebec36e",
   },
   {
@@ -52,7 +52,7 @@ const plans = [
       "24/7 Priority Support",
       "API Access",
     ],
-    variantId: "462172",
+    variantId: "714800",
     purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/68f27604-6772-4cec-941f-c1e83e9b6ebe",
     tiers: [
       { 
@@ -60,7 +60,7 @@ const plans = [
         minQuantity: 1, 
         maxQuantity: 2,
         pricePerAccount: 97,
-        variantId: "462172",
+        variantId: "714800",
         purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/68f27604-6772-4cec-941f-c1e83e9b6ebe"
       },
       { 
@@ -68,7 +68,7 @@ const plans = [
         minQuantity: 3, 
         maxQuantity: 4,
         pricePerAccount: 75,
-        variantId: "469279",
+        variantId: "726374",
         purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/194b3397-2038-492d-9184-5718800219d0"
       },
       { 
@@ -76,7 +76,7 @@ const plans = [
         minQuantity: 5, 
         maxQuantity: 9,
         pricePerAccount: 67,
-        variantId: "469280",
+        variantId: "726375",
         purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/fa5fdff6-31e0-49d7-8166-9d13e8e45205"
       },
       { 
@@ -84,7 +84,7 @@ const plans = [
         minQuantity: 10, 
         maxQuantity: 15,
         pricePerAccount: 49,
-        variantId: "469282",
+        variantId: "726377",
         purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/e8e0faaf-488d-4d9f-bb8e-c6a248917adb"
       }
     ]
