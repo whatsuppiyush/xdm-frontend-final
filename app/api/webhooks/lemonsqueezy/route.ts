@@ -136,8 +136,8 @@ async function handleOrderCreated(payload: any) {
   console.log(`Processing order with variantId: ${variantId}, quantity: ${quantity}`);
   
   // Get the lead credits for this plan
-  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS];
-  const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES];
+  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
+  const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
   
   // Calculate total lead credits based on the plan type and quantity
   const leadCredits = baseLeadCredits * quantity;
@@ -237,8 +237,8 @@ async function handleSubscriptionCreated(payload: any) {
   console.log(`Processing subscription with variantId: ${variantId}, quantity: ${quantity}`);
   
   // Get the lead credits for this plan
-  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS];
-  const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES];
+  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
+  const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
   
   // First try to find existing user credits
   const existingCredits = await prisma.userCredits.findUnique({
