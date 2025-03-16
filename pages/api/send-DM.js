@@ -224,13 +224,25 @@ class CampaignQueue {
       }
       this.isProcessing = false;
       await this.saveToRedis();
+      
+      // Delete the queue from Redis once processing is complete
+      // Only delete if the queue is empty or if we're stopping the campaign
+      if (this.queue.length === 0 || this.isStopped) {
+        const queueKey = `queue:${this.campaignId}`;
+        try {
+          await redis.del(queueKey);
+          console.log(`Cleaned up Redis queue for campaign ${this.campaignId}`);
+        } catch (redisError) {
+          console.error(`Failed to clean up Redis queue for campaign ${this.campaignId}:`, redisError);
+        }
+      }
     }
   }
 
   handleFailedAttempt(recipientId) {
     this.totalAttempts++;
     if (this.totalAttempts >= MAX_RETRIES) {
-    console.log("processedRecipients",this.totalAttempts,recipientId);
+    console.log("processedRecipients handleFailedAttempt",this.totalAttempts,recipientId);
       this.processedRecipients.add(recipientId);
       this.queue.shift();
       this.totalAttempts = 0;

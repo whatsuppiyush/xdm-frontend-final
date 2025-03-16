@@ -8,11 +8,17 @@ import { useUser } from "@/contexts/user-context";
 
 interface Campaign {
   id: string;
-  name: string;
-  progress: number;
-  sent: number;
-  total: number;
-  status: string;
+  name?: string;
+  status?: string;
+  progress?: any;
+  [key: string]: any;
+}
+
+interface MessageData {
+  id: string;
+  campaignName?: string;
+  messages?: any[];
+  [key: string]: any;
 }
 
 export default function ActiveCampaigns() {
@@ -37,10 +43,10 @@ export default function ActiveCampaigns() {
         
         if (data.campaigns && messagesData.messages) {
           // Map the campaign progress data with campaign details
-          const activeCampaigns = data.campaigns.map(campaign => {
+          const activeCampaigns = data.campaigns.map((campaign: Campaign) => {
             // Find the corresponding message in messagesData
             const messageDetails = messagesData.messages.find(
-              (msg) => msg.id === campaign.id
+              (msg: MessageData) => msg.id === campaign.id
             );
             
             if (messageDetails) {
