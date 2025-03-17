@@ -109,6 +109,12 @@ export default function Sidebar() {
                 {credits.leadCredits.toLocaleString()}
               </span>
             </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-zinc-400">Plan Type:</span>
+              <span className="font-medium text-blue-400">
+                {credits.planType}
+              </span>
+            </div>
           </div>
         </div>
       )}
