@@ -97,6 +97,9 @@ export default function SubscriptionSettings() {
     name: string;
     leadCredits: number;
     planType: string | null;
+    customerPortalUrl?: string | null;
+    updatePaymentMethodUrl?: string | null;
+    updateSubscriptionUrl?: string | null;
   }>({
     name: "No Plan",
     leadCredits: 0,
@@ -119,6 +122,9 @@ export default function SubscriptionSettings() {
             name: data.planType,
             leadCredits: data.leadCredits,
             planType: data.planType,
+            customerPortalUrl: data.customerPortalUrl,
+            updatePaymentMethodUrl: data.updatePaymentMethodUrl,
+            updateSubscriptionUrl: data.updateSubscriptionUrl,
           });
         }
       } catch (error) {
@@ -280,19 +286,38 @@ export default function SubscriptionSettings() {
                   <>
                     <Button 
                       variant="outline"
-                      onClick={() => window.open("https://app.lemonsqueezy.com/my-orders", "_blank")}
+                      onClick={() => {
+                        // Use the customer portal URL if available, otherwise fallback to the generic URL
+                        const portalUrl = currentPlan.customerPortalUrl || "https://app.lemonsqueezy.com/my-orders";
+                        window.open(portalUrl, "_blank");
+                      }}
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       Manage Subscription
                     </Button>
+                    {currentPlan.updatePaymentMethodUrl && (
+                      <Button 
+                        variant="outline"
+                        onClick={() => window.open(currentPlan.updatePaymentMethodUrl!, "_blank")}
+                      >
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Update Payment
+                      </Button>
+                    )}
                     <Button 
                       onClick={() => {
-                        const nextPlanBaseUrl = currentPlan.planType === "Mini" 
-                          ? plans[1].purchaseUrl 
-                          : currentPlan.planType === "Starter" 
-                            ? plans[2].purchaseUrl 
-                            : plans[2].purchaseUrl;
-                        window.open(getCheckoutUrl(nextPlanBaseUrl), "_blank");
+                        // If we have an update subscription URL, use it
+                        if (currentPlan.updateSubscriptionUrl) {
+                          window.open(currentPlan.updateSubscriptionUrl, "_blank");
+                        } else {
+                          // Otherwise use the original upgrade logic
+                          const nextPlanBaseUrl = currentPlan.planType === "Mini" 
+                            ? plans[1].purchaseUrl 
+                            : currentPlan.planType === "Starter" 
+                              ? plans[2].purchaseUrl 
+                              : plans[2].purchaseUrl;
+                          window.open(getCheckoutUrl(nextPlanBaseUrl), "_blank");
+                        }
                       }}
                     >
                       <Zap className="mr-2 h-4 w-4" />

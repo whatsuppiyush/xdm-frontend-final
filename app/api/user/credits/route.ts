@@ -23,7 +23,10 @@ export async function GET() {
       return NextResponse.json({ 
         leadCredits: 0,
         planType: null,
-        subscriptionId: null
+        subscriptionId: null,
+        customerPortalUrl: null,
+        updatePaymentMethodUrl: null,
+        updateSubscriptionUrl: null
       });
     }
     

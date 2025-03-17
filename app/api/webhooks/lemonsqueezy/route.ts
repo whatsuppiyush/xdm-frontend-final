@@ -240,6 +240,12 @@ async function handleSubscriptionCreated(payload: any) {
   const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
   
+  // Extract URLs from the subscription data if available
+  const urls = subscriptionData.urls || {};
+  const customerPortalUrl = urls.customer_portal || null;
+  const updatePaymentMethodUrl = urls.update_payment_method || null;
+  const updateSubscriptionUrl = urls.customer_portal_update_subscription || null;
+  
   // First try to find existing user credits
   const existingCredits = await prisma.userCredits.findUnique({
     where: { userId: user.id }
@@ -268,7 +274,11 @@ async function handleSubscriptionCreated(payload: any) {
           leadCredits: finalLeadCredits,
           planType,
           quantity: finalQuantity, // Use the preserved quantity
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          // Store the portal URLs
+          customerPortalUrl,
+          updatePaymentMethodUrl,
+          updateSubscriptionUrl
         }
       });
     } else {
@@ -281,7 +291,11 @@ async function handleSubscriptionCreated(payload: any) {
           planType,
           quantity, // Save the quantity from the subscription
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          // Store the portal URLs
+          customerPortalUrl,
+          updatePaymentMethodUrl,
+          updateSubscriptionUrl
         }
       });
     }
@@ -337,6 +351,12 @@ async function handleSubscriptionUpdated(payload: any) {
   const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
   
+  // Extract URLs from the subscription data if available
+  const urls = subscriptionData.urls || {};
+  const customerPortalUrl = urls.customer_portal || null;
+  const updatePaymentMethodUrl = urls.update_payment_method || null;
+  const updateSubscriptionUrl = urls.customer_portal_update_subscription || null;
+  
   // First try to find existing user credits
   const existingCredits = await prisma.userCredits.findUnique({
     where: { userId: user.id }
@@ -364,7 +384,11 @@ async function handleSubscriptionUpdated(payload: any) {
         planType,
         subscriptionId: subscriptionId.toString(),
         quantity: finalQuantity, // Use the preserved quantity
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        // Store the portal URLs
+        customerPortalUrl,
+        updatePaymentMethodUrl,
+        updateSubscriptionUrl
       },
       create: {
         userId: user.id,
@@ -373,7 +397,11 @@ async function handleSubscriptionUpdated(payload: any) {
         subscriptionId: subscriptionId.toString(),
         quantity, // Save the quantity from the subscription
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        // Store the portal URLs
+        customerPortalUrl,
+        updatePaymentMethodUrl,
+        updateSubscriptionUrl
       }
     });
     
