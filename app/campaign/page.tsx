@@ -467,7 +467,7 @@ export default function CampaignPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         {" "}
-        <div className="max-w-[90vw] mx-auto p-6">
+        <div className="max-w-[95vw] sm:max-w-[90vw] mx-auto p-3 sm:p-6">
           {" "}
           <Button
             variant="ghost"
@@ -480,17 +480,19 @@ export default function CampaignPage() {
             {" "}
             <ArrowLeft className="h-5 w-5" /> Back{" "}
           </Button>{" "}
-          <Card className="border-none shadow-lg">
+          <Card className="border-none shadow-lg overflow-hidden">
             {" "}
-            <StepsNavigation
-              steps={steps}
-              currentStep={step}
-              onStepClick={(newStep) => {
-                if (newStep <= step) {
-                  setStep(newStep);
-                }
-              }}
-            />{" "}
+            <div className="overflow-x-auto">
+              <StepsNavigation
+                steps={steps}
+                currentStep={step}
+                onStepClick={(newStep) => {
+                  if (newStep <= step) {
+                    setStep(newStep);
+                  }
+                }}
+              />{" "}
+            </div>
             <div className="p-8">
               {" "}
               {/* Step 1: Select Source */}{" "}
@@ -513,7 +515,7 @@ export default function CampaignPage() {
                       }
                     `}</style>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6">
                       {leadLists.map((list) => (
                         <Card
                           key={list.id}
@@ -532,10 +534,10 @@ export default function CampaignPage() {
                   </div>
                   
                   {/* Original button positioning */}
-                  <div className="flex justify-end gap-4 mt-6">
+                  <div className="flex justify-between sm:justify-end gap-2 sm:gap-4 mt-6">
                     <Button
                       variant="outline"
-                      className="px-6 py-2"
+                      className="px-3 sm:px-6 py-2 text-sm sm:text-base flex-1 sm:flex-initial"
                       onClick={() => {
                         if (step > 1) {
                           setStep(step - 1);
@@ -545,7 +547,7 @@ export default function CampaignPage() {
                       Back
                     </Button>
                     <Button
-                      className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-xl"
+                      className="bg-black hover:bg-gray-800 text-white px-4 sm:px-8 py-2 rounded-xl text-sm sm:text-base flex-1 sm:flex-initial"
                       onClick={() => {
                         if (selectedLeadList) {
                           setStep(step + 1);
@@ -560,7 +562,7 @@ export default function CampaignPage() {
               )}{" "}
               {/* Step 2: Write Message */}{" "}
               {step === 2 && (
-                <div className="max-w-[95%] mx-auto space-y-10">
+                <div className="w-full max-w-[98%] sm:max-w-[95%] mx-auto space-y-6 sm:space-y-10">
                   {" "}
                   {/* Header Section */}{" "}
                   <div className="text-center space-y-4">
@@ -577,10 +579,10 @@ export default function CampaignPage() {
                   </div>{" "}
                   <div className="max-w-4xl mx-auto">
                     {" "}
-                    <div className="grid grid-cols-5 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-8">
                       {" "}
                       {/* Left Column - Context and Variables */}{" "}
-                      <div className="col-span-2 space-y-6">
+                      <div className="col-span-1 md:col-span-2 space-y-4 md:space-y-6">
                         {" "}
                         {/* Context Section */}{" "}
                         <div className="space-y-4">
@@ -642,7 +644,7 @@ export default function CampaignPage() {
                           <Label className="text-lg font-semibold text-gray-900">
                             Available Variables
                           </Label>{" "}
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3">
                             {" "}
                             {[
                               { name: "{name}", desc: "Full Name" },
@@ -680,7 +682,7 @@ export default function CampaignPage() {
                         </div>{" "}
                       </div>{" "}
                       {/* Right Column - Message Editor and Preview */}{" "}
-                      <div className="col-span-3 space-y-6">
+                      <div className="col-span-1 md:col-span-3 space-y-4 md:space-y-6 mt-6 md:mt-0">
                         {" "}
                         {/* Message Template Section */}{" "}
                         <div className="space-y-4">
@@ -749,7 +751,7 @@ export default function CampaignPage() {
                       </div>{" "}
                     </div>{" "}
                     {/* Navigation Buttons */}{" "}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-end gap-4 z-10">
+                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-3 sm:p-4 flex justify-between sm:justify-end gap-2 sm:gap-4 z-10">
                       <Button
                         variant="outline"
                         className="px-6 py-2"
@@ -778,9 +780,9 @@ export default function CampaignPage() {
               )}{" "}
               {/* Step 3: Configure Variants */}{" "}
               {step === 3 && (
-                <div className="max-w-[95%] mx-auto space-y-8">
+                <div className="w-full max-w-[98%] sm:max-w-[95%] mx-auto space-y-4 sm:space-y-8">
                   {" "}
-                  <div className="grid grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
                     {" "}
                     {/* Left Column - Generate Ideas */}{" "}
                     <div className="space-y-6">
@@ -795,7 +797,7 @@ export default function CampaignPage() {
                           </h3>{" "}
                           <Button className="bg-[#1F2937] hover:bg-[#374151] text-white gap-2">
                             {" "}
-                            <span className="text-lg">⚡</span> Generate{" "}
+                            <span className="text-lg">⚡</span> Generate <span className="text-xs ml-1 opacity-70">(Coming Soon)</span>{" "}
                           </Button>{" "}
                         </div>{" "}
                         <div className="flex flex-col items-center justify-center py-20 text-center space-y-2">
@@ -811,7 +813,7 @@ export default function CampaignPage() {
                           <p className="text-gray-400 text-sm">
                             {" "}
                             Click the generate button <br /> create some variant
-                            ideas <br /> with AI{" "}
+                            ideas <br /> with AI <br /><span className="text-yellow-400 font-medium">(Coming Soon)</span>{" "}
                           </p>{" "}
                         </div>{" "}
                       </div>{" "}
@@ -910,18 +912,18 @@ export default function CampaignPage() {
                         </div>{" "}
                       </div>{" "}
                       {/* Navigation Buttons */}{" "}
-                      <div className="flex justify-end gap-4">
+                      <div className="flex justify-between sm:justify-end gap-2 sm:gap-4 mt-4">
                         {" "}
                         <Button
                           variant="outline"
-                          className="text-gray-300 border-gray-600 hover:bg-[#1F2937]"
+                          className="text-gray-300 border-gray-600 hover:bg-[#1F2937] flex-1 sm:flex-initial"
                           onClick={() => setStep(2)}
                         >
                           {" "}
                           Skip{" "}
                         </Button>{" "}
                         <Button
-                          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-8"
+                          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 sm:px-8 flex-1 sm:flex-initial"
                           onClick={() => setStep(4)}
                           disabled={
                             !messageTemplate &&
@@ -938,7 +940,7 @@ export default function CampaignPage() {
               )}{" "}
               {/* Step 4: Start Automation */}{" "}
               {step === 4 && (
-                <div className="max-w-[95%] mx-auto space-y-8">
+                <div className="w-full max-w-[98%] sm:max-w-[95%] mx-auto space-y-4 sm:space-y-8">
                   {" "}
                   <h2 className="text-3xl font-medium text-center mb-8">
                     {" "}
@@ -1025,18 +1027,18 @@ export default function CampaignPage() {
                         </div>{" "}
                       </div>{" "}
                     </Card>{" "}
-                    <div className="flex justify-end gap-4">
+                    <div className="flex justify-between sm:justify-end gap-2 sm:gap-4">
                       {" "}
                       <Button
                         variant="outline"
-                        className="px-8 py-6 text-lg"
+                        className="px-4 sm:px-8 py-3 sm:py-6 text-base sm:text-lg flex-1 sm:flex-initial"
                         onClick={() => setStep(3)}
                       >
                         {" "}
                         Back{" "}
                       </Button>{" "}
                       <Button
-                        className="bg-black hover:bg-gray-800 text-white px-12 py-6 text-lg rounded-xl"
+                        className="bg-black hover:bg-gray-800 text-white px-6 sm:px-12 py-3 sm:py-6 text-base sm:text-lg rounded-xl flex-1 sm:flex-initial"
                         onClick={async () => {
                           setSendingDM(true);
                           try {
@@ -1067,16 +1069,16 @@ export default function CampaignPage() {
     );
   }
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-8 space-y-4 sm:space-y-8">
       {" "}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
         {" "}
         <Heading
           title="Campaign"
           description="View and manage your message campaigns"
         />{" "}
         <Button
-          className="border-2"
+          className="border-2 w-full sm:w-auto"
           variant="outline"
           onClick={() => setIsCreating(true)}
         >
@@ -1106,7 +1108,7 @@ export default function CampaignPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {dmqueueList.map((queue) => (
               <Card key={queue.id} className="p-6 border-2">
                 <div className="space-y-6">
