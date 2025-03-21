@@ -70,9 +70,9 @@ export default function Sidebar() {
   }, [userId]);
 
   return (
-    <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
+    <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white overflow-y-auto">
       <div className="px-3 py-2 flex-1">
-        <Link href="/" className="flex items-center pl-3 mb-14">
+        <Link href="/" className="flex items-center pl-3 mb-8 md:mb-14">
           <h1 className="text-2xl font-bold">XDM</h1>
         </Link>
         <div className="space-y-1">
@@ -101,7 +101,7 @@ export default function Sidebar() {
         <div className="px-3 py-2 border-t border-gray-700">
           <div className="space-y-3 px-3 py-2">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-zinc-400">Lead Credits Remaining:</span>
+              <span className="text-zinc-400">Lead Credits:</span>
               <span className={cn(
                 "font-medium",
                 credits.leadCredits <= 0 && "text-red-500"
@@ -110,7 +110,7 @@ export default function Sidebar() {
               </span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-zinc-400">Plan Type:</span>
+              <span className="text-zinc-400">Plan:</span>
               <span className="font-medium text-blue-400">
                 {credits.planType}
               </span>

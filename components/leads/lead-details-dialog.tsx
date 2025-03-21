@@ -82,15 +82,15 @@ export default function LeadDetailsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-auto p-4 sm:p-6">
         <DialogHeader>
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-xl">{leadName} Details</DialogTitle>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+            <DialogTitle className="text-lg sm:text-xl break-words">{leadName} Details</DialogTitle>
             {!loading && leads.length > 0 && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex items-center gap-2 mr-8"
+                className="flex items-center gap-2 w-full sm:w-auto sm:mr-8 mt-2 sm:mt-0"
                 onClick={handleDownloadCSV}
               >
                 <Download className="h-4 w-4" />
@@ -98,7 +98,7 @@ export default function LeadDetailsDialog({
               </Button>
             )}
           </div>
-          <DialogDescription>
+          <DialogDescription className="mt-1">
             Showing {leads.length} leads from this list
           </DialogDescription>
         </DialogHeader>

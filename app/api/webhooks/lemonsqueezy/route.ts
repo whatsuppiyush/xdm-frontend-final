@@ -244,7 +244,6 @@ async function handleSubscriptionCreated(payload: any) {
   const urls = subscriptionData.urls || {};
   const customerPortalUrl = urls.customer_portal || null;
   const updatePaymentMethodUrl = urls.update_payment_method || null;
-  const updateSubscriptionUrl = urls.customer_portal_update_subscription || null;
   
   // First try to find existing user credits
   const existingCredits = await prisma.userCredits.findUnique({
@@ -277,8 +276,7 @@ async function handleSubscriptionCreated(payload: any) {
           updatedAt: new Date(),
           // Store the portal URLs
           customerPortalUrl,
-          updatePaymentMethodUrl,
-          updateSubscriptionUrl
+          updatePaymentMethodUrl
         }
       });
     } else {
@@ -294,8 +292,7 @@ async function handleSubscriptionCreated(payload: any) {
           updatedAt: new Date(),
           // Store the portal URLs
           customerPortalUrl,
-          updatePaymentMethodUrl,
-          updateSubscriptionUrl
+          updatePaymentMethodUrl
         }
       });
     }
@@ -355,7 +352,6 @@ async function handleSubscriptionUpdated(payload: any) {
   const urls = subscriptionData.urls || {};
   const customerPortalUrl = urls.customer_portal || null;
   const updatePaymentMethodUrl = urls.update_payment_method || null;
-  const updateSubscriptionUrl = urls.customer_portal_update_subscription || null;
   
   // First try to find existing user credits
   const existingCredits = await prisma.userCredits.findUnique({
@@ -387,8 +383,7 @@ async function handleSubscriptionUpdated(payload: any) {
         updatedAt: new Date(),
         // Store the portal URLs
         customerPortalUrl,
-        updatePaymentMethodUrl,
-        updateSubscriptionUrl
+        updatePaymentMethodUrl
       },
       create: {
         userId: user.id,
@@ -400,8 +395,7 @@ async function handleSubscriptionUpdated(payload: any) {
         updatedAt: new Date(),
         // Store the portal URLs
         customerPortalUrl,
-        updatePaymentMethodUrl,
-        updateSubscriptionUrl
+        updatePaymentMethodUrl
       }
     });
     

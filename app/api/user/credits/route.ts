@@ -25,8 +25,7 @@ export async function GET() {
         planType: null,
         subscriptionId: null,
         customerPortalUrl: null,
-        updatePaymentMethodUrl: null,
-        updateSubscriptionUrl: null
+        updatePaymentMethodUrl: null
       });
     }
     
