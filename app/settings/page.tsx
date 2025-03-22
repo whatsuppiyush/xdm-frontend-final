@@ -55,12 +55,14 @@ function SettingsContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
-          <TabsTrigger value="twitter">Twitter Accounts</TabsTrigger>
-          <TabsTrigger value="dnc">Do Not Contact</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="subscription">Subscription</TabsTrigger>
+            <TabsTrigger value="twitter">Twitter Accounts</TabsTrigger>
+            <TabsTrigger value="dnc">Do Not Contact</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="profile">
           <ProfileSettings />

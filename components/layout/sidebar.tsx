@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/ui/logout-button";
@@ -37,8 +38,13 @@ const routes = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export default function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { userId } = useUser();
   const { data: session } = useSession();
   const [credits, setCredits] = useState({
@@ -69,17 +75,32 @@ export default function Sidebar() {
     fetchUserCredits();
   }, [userId]);
 
+  const handleNavigation = (href: string) => {
+    if (onNavigate) {
+      onNavigate();
+    }
+    router.push(href);
+  };
+
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white overflow-y-auto">
       <div className="px-3 py-2 flex-1">
-        <Link href="/" className="flex items-center pl-3 mb-8 md:mb-14">
-          <h1 className="text-2xl font-bold">XDM</h1>
+        <Link href="/" onClick={() => onNavigate?.()} className="flex items-center pl-3 mb-8 md:mb-14">
+          <div className="h-8 w-auto">
+            <Image 
+              src="https://xautodm.com/logo.svg" 
+              alt="XDM Logo" 
+              width={120}
+              height={32}
+              className="h-full w-auto"
+            />
+          </div>
         </Link>
         <div className="space-y-1">
           {routes.map((route) => (
-            <Link
+            <div
               key={route.href}
-              href={route.href}
+              onClick={() => handleNavigation(route.href)}
               className={cn(
                 "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition",
                 pathname === route.href
@@ -91,7 +112,7 @@ export default function Sidebar() {
                 <route.icon className={cn("h-5 w-5 mr-3", route.color)} />
                 {route.label}
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
