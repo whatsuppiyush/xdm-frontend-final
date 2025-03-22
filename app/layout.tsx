@@ -46,8 +46,8 @@ export default function RootLayout({
               
               {/* Mobile Sidebar Sheet */}
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                <SheetContent side="left" className="p-0 w-[85%] max-w-[300px]">
-                  <Sidebar />
+                <SheetContent side="left" className="p-0 w-[85%] max-w-[300px]" closeButton={false}>
+                  <Sidebar onNavigate={() => setSidebarOpen(false)} />
                 </SheetContent>
               </Sheet>
               
@@ -61,7 +61,7 @@ export default function RootLayout({
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
-                <div className="font-semibold flex-1 text-center">Twitter Outreach</div>
+                <div className="font-semibold flex-1 text-center">XAutoDM</div>
               </div>
               
               {/* Add padding to main content on mobile to account for the header */}

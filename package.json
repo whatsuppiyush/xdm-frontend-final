@@ -63,6 +63,8 @@
     "eslint": "8.49.0",
     "eslint-config-next": "13.5.1",
     "framer-motion": "^12.4.3",
+    "google-auth-library": "^9.15.1",
+    "google-spreadsheet": "^4.1.4",
     "input-otp": "^1.2.4",
     "ioredis": "^5.5.0",
     "lucide-react": "^0.446.0",

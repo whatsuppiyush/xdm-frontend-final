@@ -34,7 +34,7 @@ export default function Navbar() {
       {/* Removed mobile sheet since it's now in the layout */}
 
       <div className="md:hidden font-semibold flex-1 text-center" data-oid="iip4_zj">
-        Twitter Outreach
+        XAutoDM
       </div>
 
       <DropdownMenu data-oid="egwheqm">

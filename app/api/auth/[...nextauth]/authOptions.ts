@@ -5,6 +5,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { ObjectId } from 'mongodb';
+import { pushUserToGoogleSheet } from '@/lib/googleSheets';
 
 declare module "next-auth" {
   interface Session {
@@ -17,7 +18,6 @@ declare module "next-auth" {
     }
   }
 }
-
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -81,6 +81,21 @@ export const authOptions: NextAuthOptions = {
                 updatedAt: new Date(),
               },
             });
+            
+            // If this is the first time the user is logging in with Google (previously used credentials)
+            if (existingUser.provider !== 'google') {
+              try {
+                await pushUserToGoogleSheet({
+                  email: user.email,
+                  name: user.name,
+                  provider: 'google (converted from credentials)'
+                });
+              } catch (sheetError) {
+                console.error('Error pushing converted user data to Google Sheet:', sheetError);
+                // Continue with sign-in even if Google Sheet push fails
+              }
+            }
+            
             return true;
           }
 
@@ -112,6 +127,18 @@ export const authOptions: NextAuthOptions = {
           } catch (emailError) {
             console.error('Error sending welcome email:', emailError);
             // Continue with sign-in even if email fails
+          }
+          
+          // Push new Google user data to Google Sheet
+          try {
+            await pushUserToGoogleSheet({
+              email: user.email,
+              name: user.name,
+              provider: 'google'
+            });
+          } catch (sheetError) {
+            console.error('Error pushing Google user data to Google Sheet:', sheetError);
+            // Continue with sign-in even if Google Sheet push fails
           }
 
           return true;
@@ -156,7 +183,6 @@ export const authOptions: NextAuthOptions = {
     signIn: '/',
     error: '/?error=AuthError',
   },
-
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt',

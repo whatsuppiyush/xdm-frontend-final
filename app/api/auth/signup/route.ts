@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { pushUserToGoogleSheet } from '@/lib/googleSheets';
 
 export async function POST(request: Request) {
   try {
@@ -55,6 +56,18 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error('Error sending welcome email:', emailError);
       // Continue with signup even if email fails
+    }
+    
+    // Push user data to Google Sheet
+    try {
+      await pushUserToGoogleSheet({
+        email: user.email,
+        name: user.name,
+        provider: 'credentials'
+      });
+    } catch (sheetError) {
+      console.error('Error pushing user data to Google Sheet:', sheetError);
+      // Continue with signup even if Google Sheet push fails
     }
 
     return NextResponse.json({

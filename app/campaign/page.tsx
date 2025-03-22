@@ -491,9 +491,10 @@ export default function CampaignPage() {
                     setStep(newStep);
                   }
                 }}
+                className="hidden sm:block"
               />{" "}
             </div>
-            <div className="p-8">
+            <div className="p-8 pb-20 sm:pb-8">
               {" "}
               {/* Step 1: Select Source */}{" "}
               {step === 1 && (
@@ -534,7 +535,7 @@ export default function CampaignPage() {
                   </div>
                   
                   {/* Original button positioning */}
-                  <div className="flex justify-between sm:justify-end gap-2 sm:gap-4 mt-6">
+                  <div className="flex justify-between sm:justify-end gap-2 sm:gap-4 mt-6 mb-10 sm:mb-0">
                     <Button
                       variant="outline"
                       className="px-3 sm:px-6 py-2 text-sm sm:text-base flex-1 sm:flex-initial"
@@ -751,10 +752,10 @@ export default function CampaignPage() {
                       </div>{" "}
                     </div>{" "}
                     {/* Navigation Buttons */}{" "}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-3 sm:p-4 flex justify-between sm:justify-end gap-2 sm:gap-4 z-10">
+                    <div className="sm:fixed sm:bottom-0 sm:left-0 sm:right-0 sm:bg-white sm:border-t p-3 sm:p-4 flex justify-between gap-2 sm:gap-4 sm:z-10 mb-10 sm:mb-0">
                       <Button
                         variant="outline"
-                        className="px-6 py-2"
+                        className="px-6 py-2 flex-1 sm:flex-initial"
                         onClick={() => {
                           if (step > 1) {
                             setStep(step - 1);
@@ -764,7 +765,7 @@ export default function CampaignPage() {
                         Back
                       </Button>
                       <Button
-                        className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-xl"
+                        className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-xl flex-1 sm:flex-initial"
                         onClick={() => {
                           if (selectedLeadList) {
                             setStep(step + 1);
@@ -912,7 +913,7 @@ export default function CampaignPage() {
                         </div>{" "}
                       </div>{" "}
                       {/* Navigation Buttons */}{" "}
-                      <div className="flex justify-between sm:justify-end gap-2 sm:gap-4 mt-4">
+                      <div className="flex justify-between sm:justify-end gap-2 sm:gap-4 mt-4 mb-10 sm:mb-0">
                         {" "}
                         <Button
                           variant="outline"
@@ -920,7 +921,7 @@ export default function CampaignPage() {
                           onClick={() => setStep(2)}
                         >
                           {" "}
-                          Skip{" "}
+                          Back{" "}
                         </Button>{" "}
                         <Button
                           className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 sm:px-8 flex-1 sm:flex-initial"
@@ -1027,7 +1028,7 @@ export default function CampaignPage() {
                         </div>{" "}
                       </div>{" "}
                     </Card>{" "}
-                    <div className="flex justify-between sm:justify-end gap-2 sm:gap-4">
+                    <div className="flex justify-between sm:justify-end gap-2 sm:gap-4 mb-10 sm:mb-0">
                       {" "}
                       <Button
                         variant="outline"
@@ -1064,6 +1065,46 @@ export default function CampaignPage() {
               )}{" "}
             </div>{" "}
           </Card>{" "}
+          
+          {/* Mobile Steps Navigation - Fixed at bottom */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 sm:hidden z-10">
+            <div className="flex justify-between items-center">
+              {steps.map((stepItem, index) => {
+                const stepNumber = index + 1;
+                const isActive = step === stepNumber;
+                const isPast = step > stepNumber;
+                const isFuture = step < stepNumber;
+
+                return (
+                  <button
+                    key={stepItem.title}
+                    onClick={() => isPast && setStep(stepNumber)}
+                    disabled={isFuture}
+                    className={cn(
+                      "flex flex-col items-center p-2 flex-1 transition-all duration-300",
+                      isActive ? "text-black" : "text-gray-400",
+                      isPast && "text-gray-600",
+                      isFuture && "opacity-50"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all mb-1",
+                        isActive && "bg-black text-white",
+                        isPast && "bg-gray-200 text-gray-700",
+                        isFuture && "bg-gray-100 text-gray-400"
+                      )}
+                    >
+                      {stepNumber}
+                    </div>
+                    <div className="text-xs font-medium truncate max-w-[80px] text-center">
+                      {stepItem.title}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>{" "}
       </div>
     );

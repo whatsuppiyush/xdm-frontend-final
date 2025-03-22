@@ -289,7 +289,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
 
         <Card className="border border-gray-200 shadow-lg rounded-xl overflow-hidden">
           {/* Steps Navigation */}
-          <div className="bg-white border-b border-gray-200">
+          <div className="bg-white border-b border-gray-200 hidden sm:block">
             <div className="grid grid-cols-1 sm:grid-cols-2 divide-x-0 sm:divide-x divide-y sm:divide-y-0 divide-gray-200">
               {steps.map((stepItem, index) => {
                 const stepNumber = index + 1;
@@ -353,7 +353,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
           </div>
 
           {/* Content Area */}
-          <div className="p-8">
+          <div className="p-8 pb-20 sm:pb-8">
             {step === 1 && (
               <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
                 <div className="text-center space-y-6">
@@ -433,7 +433,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end mb-10 sm:mb-0">
                   <Button
                     className="bg-black hover:bg-gray-800 text-white px-8 py-6 text-lg rounded-xl"
                     onClick={() => handleNext()}
@@ -539,7 +539,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                 </div>
                 
                 {/* Bottom buttons */}
-                <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 mb-10 sm:mb-0">
                   <Button
                     variant="outline"
                     className="px-6 sm:px-12 py-4 sm:py-6 text-base sm:text-lg hover:bg-gray-50 w-full sm:w-auto"
@@ -568,7 +568,45 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
         </Card>
       </div>
 
-     
+      {/* Mobile Steps Navigation - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 sm:hidden z-10">
+        <div className="flex justify-between items-center">
+          {steps.map((stepItem, index) => {
+            const stepNumber = index + 1;
+            const isActive = step === stepNumber;
+            const isPast = step > stepNumber;
+            const isFuture = step < stepNumber;
+
+            return (
+              <button
+                key={stepItem.title}
+                onClick={() => isPast && setStep(stepNumber)}
+                disabled={isFuture}
+                className={cn(
+                  "flex flex-col items-center p-2 flex-1 transition-all duration-300",
+                  isActive ? "text-black" : "text-gray-400",
+                  isPast && "text-gray-600",
+                  isFuture && "opacity-50"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all mb-1",
+                    isActive && "bg-black text-white",
+                    isPast && "bg-gray-200 text-gray-700",
+                    isFuture && "bg-gray-100 text-gray-400"
+                  )}
+                >
+                  {stepNumber}
+                </div>
+                <div className="text-xs font-medium truncate max-w-[80px] text-center">
+                  {stepItem.title}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
