@@ -78,4 +78,8 @@ model userCredits {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id])
+
+  // Lemon Squeezy customer portal URLs
+  customerPortalUrl      String? // URL to the customer portal
+  updatePaymentMethodUrl String? // URL to update payment method
 }

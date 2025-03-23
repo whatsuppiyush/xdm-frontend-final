@@ -205,8 +205,8 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
         <h1 className="text-3xl font-bold">Manage your Leads</h1>
         <Button
           onClick={() => setIsImporting(true)}
@@ -217,11 +217,11 @@ export default function LeadsPage() {
         </Button>
       </div>
 
-      <div className="border-2 rounded-lg p-6" key={`leads-container-${Date.now()}`}>
+      <div className="border-2 rounded-lg p-4 md:p-6" key={`leads-container-${Date.now()}`}>
         {loading ? (
           <div className="text-center py-4 text-gray-500">Loading lead lists...</div>
         ) : leadLists.length > 0 ? (
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {leadLists.map((list) => (
               <LeadListCard
                 key={list.id}

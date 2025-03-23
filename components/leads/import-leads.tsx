@@ -277,7 +277,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-3 md:p-6">
         <Button
           variant="ghost"
           className="mb-6 gap-2 hover:bg-gray-100 transition-colors"
@@ -289,8 +289,8 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
 
         <Card className="border border-gray-200 shadow-lg rounded-xl overflow-hidden">
           {/* Steps Navigation */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="grid grid-cols-2 divide-x divide-gray-200">
+          <div className="bg-white border-b border-gray-200 hidden sm:block">
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-x-0 sm:divide-x divide-y sm:divide-y-0 divide-gray-200">
               {steps.map((stepItem, index) => {
                 const stepNumber = index + 1;
                 const isActive = step === stepNumber;
@@ -353,9 +353,9 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
           </div>
 
           {/* Content Area */}
-          <div className="p-8">
+          <div className="p-8 pb-20 sm:pb-8">
             {step === 1 && (
-              <div className="max-w-3xl mx-auto space-y-12">
+              <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
                 <div className="text-center space-y-6">
                   <div className="inline-block">
                     <h2 className="text-4xl font-bold text-black animate-fade-in">
@@ -374,10 +374,10 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-2xl p-8 space-y-6">
+                <div className="bg-gray-50 rounded-2xl p-4 md:p-8 space-y-6">
                   {twitterProfiles.map((profile, index) => (
                     <div key={index} className="space-y-4">
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                         <div className="flex-1">
                           <Input
                             className="border-2 rounded-xl text-lg py-6 px-6 shadow-sm hover:border-gray-400 focus:border-black transition-colors"
@@ -386,7 +386,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                             onChange={(e) => updateProfile(index, "handle", validateTwitterHandle(e.target.value))}
                           />
                         </div>
-                        <div className="w-48">
+                        <div className="w-full md:w-48">
                           <Label className="text-sm text-gray-500 mb-1 block">Followers to scrape</Label>
                           <Input
                             type="number"
@@ -419,23 +419,21 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                     </div>
                   ))}
 
-                  <div className="flex justify-between items-center pt-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 pt-4">
                     <Button
                       variant="outline"
-                      className="gap-2 border-2 border-gray-200 hover:bg-gray-100"
+                      className="gap-2 border-2 border-gray-200 hover:bg-gray-100 w-full sm:w-auto"
                       onClick={addNewProfile}
                     >
                       <Plus className="h-4 w-4" />
                       Add Another Profile
                     </Button>
 
-                    <div className="text-sm text-gray-500">
-                      Remaining Credits: {remainingCredits.toLocaleString()}
-                    </div>
+                 
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end mb-10 sm:mb-0">
                   <Button
                     className="bg-black hover:bg-gray-800 text-white px-8 py-6 text-lg rounded-xl"
                     onClick={() => handleNext()}
@@ -454,8 +452,8 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
               </div>
             )}
             {step === 2 && (
-              <div className="max-w-[95%] mx-auto space-y-8">
-                <div className="flex justify-between items-center">
+              <div className="w-full max-w-[95%] mx-auto space-y-6 md:space-y-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
                   <div>
                     <h2 className="text-3xl font-semibold text-gray-900">
                       Filter Your Leads & Save
@@ -467,15 +465,15 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                   <Button
                     variant="outline"
                     size="lg"
-                    className="text-gray-700 hover:bg-purple-50"
+                    className="text-gray-700 hover:bg-purple-50 text-sm md:text-base w-full md:w-auto mt-2 md:mt-0"
                   >
                     <Plus className="h-4 w-4 mr-2" /> Watch Tutorial
                   </Button>
                 </div>
                 
                 {/* Move Leads Name Input to the top */}
-                <div className="border-2 rounded-xl p-8 bg-white shadow-sm space-y-6">
-                  <div className="flex items-center gap-4">
+                <div className="border-2 rounded-xl p-4 md:p-8 bg-white shadow-sm space-y-6">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                     <div className="flex-1">
                       <Label className="text-sm text-gray-500 mb-2 block">Leads Name</Label>
                       <Input
@@ -485,7 +483,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                         onChange={(e) => setLeadsName(e.target.value)}
                       />
                     </div>
-                    <div className="w-48 self-end">
+                    <div className="w-full md:w-48 self-start md:self-end mt-4 md:mt-0">
                       <Button
                         variant="outline"
                         className="w-full py-6 text-gray-600 border-2"
@@ -512,27 +510,27 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                 </div>
                 
                 {/* Filter options grid moved below */}
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                   {filterOptions.map((option) => (
                     <Card
                       key={option.key}
-                      className={`border-2 p-8 cursor-pointer transition-all hover:shadow-lg ${expandedFilter === option.key ? "ring-2 ring-purple-600 border-purple-600 bg-purple-50" : "hover:border-purple-300"}`}
+                      className={`border-2 p-4 md:p-6 cursor-pointer transition-all hover:shadow-lg ${expandedFilter === option.key ? "ring-2 ring-purple-600 border-purple-600 bg-purple-50" : "hover:border-purple-300"}`}
                       onClick={() => handleFilterSelect(option.key)}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start gap-2">
                         <div>
-                          <h3 className="font-semibold text-xl mb-2 text-gray-900">
+                          <h3 className="font-semibold text-base md:text-xl mb-2 text-gray-900">
                             {option.title}
                           </h3>
-                          <p className="text-gray-600">
+                          <p className="text-gray-600 text-sm md:text-base">
                             {option.description}
                           </p>
                         </div>
                         <div
-                          className={`p-2 rounded-full ${expandedFilter === option.key ? "bg-purple-100" : "bg-gray-100"}`}
+                          className={`p-2 rounded-full flex-shrink-0 ${expandedFilter === option.key ? "bg-purple-100" : "bg-gray-100"}`}
                         >
                           <Plus
-                            className={`h-5 w-5 transition-transform ${expandedFilter === option.key ? "rotate-45 text-purple-600" : "text-gray-600"}`}
+                            className={`h-4 w-4 md:h-5 md:w-5 transition-transform ${expandedFilter === option.key ? "rotate-45 text-purple-600" : "text-gray-600"}`}
                           />
                         </div>
                       </div>
@@ -541,16 +539,16 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                 </div>
                 
                 {/* Bottom buttons */}
-                <div className="flex justify-end gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 mb-10 sm:mb-0">
                   <Button
                     variant="outline"
-                    className="px-12 py-6 text-lg hover:bg-gray-50"
+                    className="px-6 sm:px-12 py-4 sm:py-6 text-base sm:text-lg hover:bg-gray-50 w-full sm:w-auto"
                     onClick={() => setStep(1)}
                   >
                     Back
                   </Button>
                   <Button
-                    className="bg-black hover:bg-gray-800 text-white px-16 py-6 text-xl rounded-xl shadow-lg hover:shadow-xl transition-all"
+                    className="bg-black hover:bg-gray-800 text-white px-8 sm:px-16 py-4 sm:py-6 text-lg sm:text-xl rounded-xl shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
                     onClick={handleSaveLeads}
                     disabled={!leadsName.trim() || loading}
                   >
@@ -570,9 +568,44 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
         </Card>
       </div>
 
-      {/* Credits Display */}
-      <div className="fixed bottom-4 left-4 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">
-        {remainingCredits.toLocaleString()} credits remaining
+      {/* Mobile Steps Navigation - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 sm:hidden z-10">
+        <div className="flex justify-between items-center">
+          {steps.map((stepItem, index) => {
+            const stepNumber = index + 1;
+            const isActive = step === stepNumber;
+            const isPast = step > stepNumber;
+            const isFuture = step < stepNumber;
+
+            return (
+              <button
+                key={stepItem.title}
+                onClick={() => isPast && setStep(stepNumber)}
+                disabled={isFuture}
+                className={cn(
+                  "flex flex-col items-center p-2 flex-1 transition-all duration-300",
+                  isActive ? "text-black" : "text-gray-400",
+                  isPast && "text-gray-600",
+                  isFuture && "opacity-50"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all mb-1",
+                    isActive && "bg-black text-white",
+                    isPast && "bg-gray-200 text-gray-700",
+                    isFuture && "bg-gray-100 text-gray-400"
+                  )}
+                >
+                  {stepNumber}
+                </div>
+                <div className="text-xs font-medium truncate max-w-[80px] text-center">
+                  {stepItem.title}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

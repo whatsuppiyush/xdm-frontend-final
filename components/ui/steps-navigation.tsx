@@ -26,7 +26,7 @@ export function StepsNavigation({
       data-oid=":780bk-"
     >
       <div
-        className="grid grid-cols-4 divide-x divide-gray-100"
+        className="grid grid-cols-4 divide-x divide-gray-100 overflow-x-auto"
         data-oid="0m3kq:1"
       >
         {steps.map((step, index) => {
@@ -41,7 +41,7 @@ export function StepsNavigation({
               onClick={() => onStepClick?.(stepNumber)}
               disabled={isFuture}
               className={cn(
-                "relative group p-6 transition-all duration-300",
+                "relative group p-2 sm:p-4 md:p-6 transition-all duration-300",
                 "hover:bg-gray-50/80",
                 isActive && "bg-gray-50",
                 isPast && "cursor-pointer",
@@ -64,7 +64,7 @@ export function StepsNavigation({
                 {/* Step Number or Status */}
                 <div
                   className={cn(
-                    "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                    "flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium",
                     isActive && "bg-primary text-white",
                     isPast && "bg-primary/10 text-primary",
                     isFuture && "bg-gray-100 text-gray-400",
@@ -78,7 +78,7 @@ export function StepsNavigation({
                 <div className="flex-grow text-left" data-oid="jyw4.eg">
                   <div
                     className={cn(
-                      "text-sm font-semibold mb-1",
+                      "text-xs sm:text-sm font-semibold mb-0 sm:mb-1",
                       isActive && "text-primary",
                       isFuture && "text-gray-400",
                     )}
@@ -88,7 +88,7 @@ export function StepsNavigation({
                   </div>
                   {step.subtitle && (
                     <div
-                      className="text-xs text-gray-500 line-clamp-2"
+                      className="text-[10px] sm:text-xs text-gray-500 line-clamp-1 sm:line-clamp-2 hidden xs:block"
                       data-oid="q4fb07u"
                     >
                       {step.subtitle}
@@ -99,7 +99,7 @@ export function StepsNavigation({
                 {/* Arrow Indicator */}
                 <ChevronRight
                   className={cn(
-                    "w-5 h-5 flex-shrink-0 transition-transform",
+                    "w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-transform hidden sm:block",
                     isActive && "text-primary",
                     "group-hover:translate-x-1",
                     isFuture && "text-gray-300",

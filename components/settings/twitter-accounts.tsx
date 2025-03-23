@@ -289,7 +289,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
       <div className="space-y-6" data-oid="_02-ux-">
         <Card data-oid="24fbyad">
           <CardHeader
-            className="flex flex-row items-center justify-between"
+            className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4"
             data-oid="4a57k.p"
           >
             <CardTitle data-oid="8:8ogs0">Connected Accounts</CardTitle>
@@ -302,6 +302,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
               )}
               <Button
                 onClick={() => setConnectDialogOpen(true)}
+                className="w-full sm:w-auto"
                 data-oid="ntyu4b9"
               >
                 <PlusCircle className="mr-2 h-4 w-4" data-oid="gzg3qo." />
@@ -440,7 +441,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
 
               {/* Current step */}
               <div className="relative w-full max-w-3xl">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
                       {currentStep + 1}
@@ -453,7 +454,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
                       href="https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-primary hover:underline"
+                      className="inline-flex items-center text-primary hover:underline mt-2 sm:mt-0"
                     >
                       Get Extension <ExternalLink className="ml-1 h-3 w-3" />
                     </a>
@@ -487,7 +488,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
                   </button>
                 </div>
 
-                <p className="text-center text-muted-foreground mb-6">
+                <p className="text-center text-muted-foreground mb-6 px-2">
                   {steps[currentStep].description}
                 </p>
               </div>

@@ -11,43 +11,30 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Twitter, HelpCircle, Menu } from "lucide-react";
+import { Twitter, HelpCircle, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Sidebar from "./sidebar";
 import { LogoutButton } from "@/components/ui/logout-button";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
 
 export default function Navbar() {
   const { data: session } = useSession();
   const userEmail = session?.user?.email;
   const userName = session?.user?.name || userEmail?.split("@")[0] || "User";
   const userImage = session?.user?.image;
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   return (
     <div
-      className="h-16 border-b px-4 md:px-6 flex items-center justify-end"
+      className="h-16 border-b px-4 md:px-6 flex items-center justify-between md:justify-end"
       data-oid="2snud40"
     >
-      <Sheet data-oid=":xi_cca">
-        <SheetTrigger asChild data-oid="k5c6ybh">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            data-oid="f0cl_1u"
-          >
-            <Menu className="h-5 w-5" data-oid="-sscjh0" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="p-0" data-oid="2yuemet">
-          kkkk
-          <Sidebar data-oid="po-pfo_" />
-        </SheetContent>
-      </Sheet>
+      {/* Removed mobile sheet since it's now in the layout */}
 
-      <div className="md:hidden font-semibold" data-oid="iip4_zj">
-        Twitter Outreach
+      <div className="md:hidden font-semibold flex-1 text-center" data-oid="iip4_zj">
+        XAutoDM
       </div>
 
       <DropdownMenu data-oid="egwheqm">
@@ -131,6 +118,8 @@ export default function Navbar() {
           <LogoutButton data-oid="wizq4-t" />
         </DropdownMenuContent>
       </DropdownMenu>
+      
+      {/* Removed floating button since it's now in the layout */}
     </div>
   );
 }

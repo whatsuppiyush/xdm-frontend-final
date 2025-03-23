@@ -70,7 +70,7 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border">
+      <div className="rounded-lg border overflow-x-auto -mx-4 sm:mx-0">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
@@ -78,9 +78,9 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
                 <Checkbox />
               </TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Bio</TableHead>
+              <TableHead className="hidden sm:table-cell">Bio</TableHead>
               <TableHead className="text-right">Followers</TableHead>
-              <TableHead className="text-right">Following</TableHead>
+              <TableHead className="text-right hidden sm:table-cell">Following</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -100,13 +100,13 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[300px] truncate">
+                <TableCell className="max-w-[150px] md:max-w-[300px] truncate hidden sm:table-cell">
                   {lead.bio}
                 </TableCell>
                 <TableCell className="text-right">
                   {lead.followers.toLocaleString()}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right hidden sm:table-cell">
                   {lead.following.toLocaleString()}
                 </TableCell>
                 <TableCell>
@@ -134,8 +134,8 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-gray-500">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 px-0 sm:px-2">
+        <div className="text-xs sm:text-sm text-gray-500">
           Showing {indexOfFirstLead + 1} to {Math.min(indexOfLastLead, leads.length)} of {leads.length} leads
         </div>
         <div className="flex items-center gap-2">
@@ -147,7 +147,7 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="text-sm">
+          <div className="text-xs sm:text-sm">
             Page {currentPage} of {totalPages}
           </div>
           <Button

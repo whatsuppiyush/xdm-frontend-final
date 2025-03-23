@@ -97,6 +97,8 @@ export default function SubscriptionSettings() {
     name: string;
     leadCredits: number;
     planType: string | null;
+    customerPortalUrl?: string | null;
+    updatePaymentMethodUrl?: string | null;
   }>({
     name: "No Plan",
     leadCredits: 0,
@@ -119,6 +121,8 @@ export default function SubscriptionSettings() {
             name: data.planType,
             leadCredits: data.leadCredits,
             planType: data.planType,
+            customerPortalUrl: data.customerPortalUrl,
+            updatePaymentMethodUrl: data.updatePaymentMethodUrl,
           });
         }
       } catch (error) {
@@ -260,7 +264,7 @@ export default function SubscriptionSettings() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           ) : (
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col justify-between items-start gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xl font-semibold">
@@ -275,18 +279,38 @@ export default function SubscriptionSettings() {
                   <p>Available Lead Credits: {currentPlan.leadCredits}</p>
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap w-full gap-2">
                 {currentPlan.planType ? (
                   <>
                     <Button 
                       variant="outline"
-                      onClick={() => window.open("https://app.lemonsqueezy.com/my-orders", "_blank")}
+                      size="sm"
+                      className="text-xs sm:text-sm"
+                      onClick={() => {
+                        // Use the customer portal URL if available, otherwise fallback to the generic URL
+                        const portalUrl = currentPlan.customerPortalUrl || "https://app.lemonsqueezy.com/my-orders";
+                        window.open(portalUrl, "_blank");
+                      }}
                     >
-                      <CreditCard className="mr-2 h-4 w-4" />
+                      <CreditCard className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
                       Manage Subscription
                     </Button>
+                    {currentPlan.updatePaymentMethodUrl && (
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="text-xs sm:text-sm"
+                        onClick={() => window.open(currentPlan.updatePaymentMethodUrl!, "_blank")}
+                      >
+                        <CreditCard className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
+                        Update Payment
+                      </Button>
+                    )}
                     <Button 
+                      size="sm"
+                      className="text-xs sm:text-sm"
                       onClick={() => {
+                        // Use the original upgrade logic
                         const nextPlanBaseUrl = currentPlan.planType === "Mini" 
                           ? plans[1].purchaseUrl 
                           : currentPlan.planType === "Starter" 
@@ -295,15 +319,17 @@ export default function SubscriptionSettings() {
                         window.open(getCheckoutUrl(nextPlanBaseUrl), "_blank");
                       }}
                     >
-                      <Zap className="mr-2 h-4 w-4" />
+                      <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
                       Upgrade Plan
                     </Button>
                   </>
                 ) : (
                   <Button 
+                    size="sm"
+                    className="text-xs sm:text-sm"
                     onClick={() => window.open(getCheckoutUrl(plans[0].purchaseUrl), "_blank")}
                   >
-                    <Zap className="mr-2 h-4 w-4" />
+                    <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
                     Get Started
                   </Button>
                 )}
@@ -319,7 +345,7 @@ export default function SubscriptionSettings() {
           <CardTitle>Available Plans</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {plans.map((plan) => (
               <Card
                 key={plan.name}
@@ -339,13 +365,13 @@ export default function SubscriptionSettings() {
                     Current Plan
                   </Badge>
                 )}
-                <CardContent className="flex flex-col h-full pt-6">
+                <CardContent className="flex flex-col h-full pt-6 px-3 sm:px-6">
                   <div className="space-y-6 flex-grow">
                     <div className="space-y-2">
                       <h3 className="font-medium text-lg">
                         {plan.name}
                       </h3>
-                      <div className="flex items-baseline gap-1">
+                      <div className="flex flex-wrap items-baseline gap-1">
                         {plan.name === "Pro" ? (
                           <>
                             <span className="text-3xl font-bold">
@@ -371,15 +397,15 @@ export default function SubscriptionSettings() {
                       </div>
                       {plan.name === "Pro" && (
                         <div className="mt-4 space-y-4">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-wrap items-center justify-between gap-1">
                             <span className="text-sm">Number of accounts:</span>
                             <span className="font-semibold">{proQuantity}</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 sm:gap-2 w-full">
                             <Button 
                               variant="outline" 
                               size="icon" 
-                              className="h-8 w-8 rounded-full"
+                              className="h-8 w-8 rounded-full flex-shrink-0"
                               onClick={() => setProQuantity(Math.max(1, proQuantity - 1))}
                               disabled={proQuantity <= 1}
                             >
@@ -390,38 +416,48 @@ export default function SubscriptionSettings() {
                               min={1}
                               max={15}
                               step={1}
-                              className="flex-1"
+                              className="flex-1 min-w-[100px]"
                               onValueChange={(value) => setProQuantity(value[0])}
                             />
                             <Button 
                               variant="outline" 
                               size="icon" 
-                              className="h-8 w-8 rounded-full"
+                              className="h-8 w-8 rounded-full flex-shrink-0"
                               onClick={() => setProQuantity(Math.min(15, proQuantity + 1))}
                               disabled={proQuantity >= 15}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
                           </div>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>1-2</span>
-                            <span>3-4</span>
-                            <span>5-9</span>
-                            <span>10-15</span>
-                          </div>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>$97/acct</span>
-                            <span>$75/acct</span>
-                            <span>$67/acct</span>
-                            <span>$49/acct</span>
+                          <div className="grid grid-cols-4 text-xs text-muted-foreground mt-1">
+                            <div className="text-center">
+                              <div>1-2</div>
+                              <div>$97/acct</div>
+                            </div>
+                            <div className="text-center">
+                              <div>3-4</div>
+                              <div>$75/acct</div>
+                            </div>
+                            <div className="text-center">
+                              <div>5-9</div>
+                              <div>$67/acct</div>
+                            </div>
+                            <div className="text-center">
+                              <div>10-15</div>
+                              <div>$49/acct</div>
+                            </div>
                           </div>
                           <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-md text-sm">
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 w-2 bg-green-500 rounded-full" />
-                              <span>
-                                <strong>Total: ${proDetails.totalPrice.toFixed(2)}</strong> 
-                                {proDetails.savings > 0 && ` (Save $${proDetails.savings.toFixed(2)} with volume discount)`}
-                              </span>
+                            <div className="flex items-start gap-2">
+                              <div className="h-2 w-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0" />
+                              <div>
+                                <strong>Total: ${proDetails.totalPrice.toFixed(2)}</strong>
+                                {proDetails.savings > 0 && (
+                                  <div className="text-xs mt-0.5">
+                                    Save ${proDetails.savings.toFixed(2)} with volume discount
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -497,7 +533,7 @@ export default function SubscriptionSettings() {
                   
                   <div className="mt-6">
                     <Button
-                      className="w-full"
+                      className="w-full mt-auto"
                       variant={currentPlan.planType === plan.name ? "outline" : "default"}
                       onClick={() => {
                         if (plan.name === "Pro") {
