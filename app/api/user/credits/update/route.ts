@@ -25,6 +25,19 @@ export async function POST(request: Request) {
       }, { status: 404 });
     }
 
+    // Check if user is on a free trial
+    if (userCredits.isTrialActive) {
+      // Check if trial has ended
+      if (userCredits.trialEndDate && new Date() > new Date(userCredits.trialEndDate)) {
+        return NextResponse.json({ 
+          error: "Your free trial has ended. Please upgrade to continue using the service.",
+          success: false,
+          trialEnded: true,
+          remainingCredits: userCredits.leadCredits
+        }, { status: 403 });
+      }
+    }
+    
     // Check if user has enough credits
     if (userCredits.leadCredits < leadsCount) {
       return NextResponse.json({ 
@@ -47,7 +60,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true,
-      remainingCredits: updatedCredits.leadCredits
+      remainingCredits: updatedCredits.leadCredits,
+      isTrialActive: updatedCredits.isTrialActive,
+      isMonthly: updatedCredits.isMonthly
     });
   } catch (error) {
     console.error("Error updating user credits:", error);

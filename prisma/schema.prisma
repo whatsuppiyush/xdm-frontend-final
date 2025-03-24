@@ -67,17 +67,23 @@ model Follower {
 
 // New model for user credits
 model userCredits {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId         String   @unique @db.ObjectId
-  leadCredits    Int      @default(0)
-  planType       String? // "Mini", "Starter", or "Pro"
-  planId         String? // Lemon Squeezy plan ID
-  orderId        String? // Lemon Squeezy order ID
-  subscriptionId String? // Lemon Squeezy subscription ID
-  quantity       Int      @default(1) // Number of accounts purchased (for Pro plan)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id])
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String    @unique @db.ObjectId
+  leadCredits      Int       @default(0)
+  planType         String? // "Mini", "Starter", or "Pro"
+  planId           String? // Lemon Squeezy plan ID
+  orderId          String? // Lemon Squeezy order ID
+  subscriptionId   String? // Lemon Squeezy subscription ID
+  isMonthly        Boolean   @default(false) // Tracks if subscription is active
+  quantity         Int       @default(1) // Number of accounts purchased (for Pro plan)
+  isTrialActive    Boolean   @default(false) // Track if user is on active free trial
+  trialStartDate   DateTime? // When the trial started
+  trialEndDate     DateTime? // When the trial will end
+  hadPreviousTrial Boolean   @default(false) // Track if user has already had a free trial
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  cancelledAt      DateTime? // Track when subscription was cancelled
+  user             User      @relation(fields: [userId], references: [id])
 
   // Lemon Squeezy customer portal URLs
   customerPortalUrl      String? // URL to the customer portal
