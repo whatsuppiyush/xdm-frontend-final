@@ -18,10 +18,10 @@ class CampaignQueue {
     this.queue = [];
     this.processedRecipients = new Set();
     this.totalAttempts = 0;
-    this.isProcessing = false;
-    this.isStopped = false;
-    this.browser = null; // Add browser instance tracking
-    this.browserWSEndpoint = null; // Add this line
+    // Use a single status field instead of multiple flags
+    this.status = 'Ready'; // Ready, Running, Paused, Stopped
+    this.browser = null;
+    this.browserWSEndpoint = null;
   }
 
   async saveToRedis() {
@@ -29,9 +29,7 @@ class CampaignQueue {
       campaignId: this.campaignId,
       queue: this.queue,
       processedRecipients: Array.from(this.processedRecipients),
-      isProcessing: this.isProcessing,
-      isStopped: this.isStopped,
-      status: this.isStopped ? 'Stopped' : 'Running'
+      status: this.status
     };
     await redis.set(`queue:${this.campaignId}`, JSON.stringify(queueState));
   }
@@ -42,9 +40,8 @@ class CampaignQueue {
       const state = typeof queueState === 'string' ? JSON.parse(queueState) : queueState;
       this.queue = state.queue || [];
       this.processedRecipients = new Set(state.processedRecipients || []);
-      this.isProcessing = state.isProcessing || false;
-      this.isStopped = state.isStopped || false;
-      console.log(`Loaded queue state for ${this.campaignId}:`);
+      this.status = state.status || 'Ready';
+      console.log(`Loaded queue state for ${this.campaignId}: status=${this.status}`);
     }
   }
 
@@ -93,9 +90,12 @@ class CampaignQueue {
 
   async process() {
     await this.loadFromRedis();
-    if (this.isProcessing || this.isStopped) return;
+    console.log("process started",this.status);
+    // Only proceed if status is Ready or Running
+    if (this.status === 'Stopped' || this.status === 'Paused') return;
     
-    this.isProcessing = true;
+    // Set status to Running
+    this.status = 'Running';
     await this.saveToRedis();
     
     let browserRestartCount = 0;
@@ -127,9 +127,9 @@ class CampaignQueue {
 
       console.log(`Browser launched for campaign ${this.campaignId}`);
 
-      while (this.queue.length > 0) {
+      while (this.queue.length > 0 && this.status === 'Running') {
         await this.loadFromRedis();
-        if (this.isStopped) break;
+        if (this.status !== 'Running') break;
 
         const { recipientId, message, cookies } = this.queue[0];
         
@@ -144,7 +144,7 @@ class CampaignQueue {
         await new Promise(resolve => setTimeout(resolve, delay));
         
         await this.loadFromRedis();
-        if (this.isStopped) break;
+        if (this.status !== 'Running') break;
 
         try {
           const success = await sendDM(recipientId, message, cookies, this.browser);
@@ -214,41 +214,42 @@ class CampaignQueue {
         
         await this.saveToRedis();
       }
+      
+      // Handle completion based on status
+      if (this.status === 'Paused') {
+        console.log(`Campaign ${this.campaignId} paused - keeping queue intact`);
+      } else if (this.status === 'Stopped') {
+        console.log(`Campaign ${this.campaignId} stopped`);
+        this.queue = [];
+      } else {
+        console.log(`Campaign ${this.campaignId} completed successfully`);
+        this.status = 'Completed';
+        
+        // Update message status to Completed in the database
+        try {
+          await prisma.message.update({
+            where: { id: this.campaignId },
+            data: { status: 'Completed' }
+          });
+          console.log(`Campaign ${this.campaignId} marked as Completed in database`);
+        } catch (updateError) {
+          console.error(`Failed to update campaign ${this.campaignId} status:`, updateError);
+        }
+      }
+      
+      await this.saveToRedis();
+      
     } catch (error) {
-      console.error(`Error in campaign ${this.campaignId}:`, error);
+      console.error(`Error processing campaign ${this.campaignId}:`, error);
     } finally {
       if (this.browser) {
         console.log("Closing browser");
         await this.browser.close().catch(console.error);
         this.browser = null;
       }
-      this.isProcessing = false;
-      await this.saveToRedis();
-      
-      // Check if queue is empty to mark as completed
-      if (this.queue.length === 0 && !this.isStopped) {
-        try {
-          // Update message status to Completed in MongoDB
-          const updateResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/messages/update-status`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              messageId: this.campaignId,
-              status: 'Completed'
-            }),
-          });
-          
-          const updateResult = await updateResponse.json();
-          console.log(`Campaign ${this.campaignId} marked as Completed:`, updateResult);
-        } catch (updateError) {
-          console.error(`Failed to update campaign ${this.campaignId} status:`, updateError);
-        }
-      }
       
       // Delete the queue from Redis if empty or stopped
-      if (this.queue.length === 0 || this.isStopped) {
+      if (this.queue.length === 0 || this.status === 'Stopped') {
         const queueKey = `queue:${this.campaignId}`;
         try {
           await redis.del(queueKey);
@@ -271,25 +272,27 @@ class CampaignQueue {
   }
 
   async stop() {
-    try {
-      // Force update Redis state
-      await redis.set(`queue:${this.campaignId}`, JSON.stringify({
-        campaignId: this.campaignId,
-        queue: [],
-        processedRecipients: Array.from(this.processedRecipients),
-        isProcessing: false,
-        isStopped: true,
-        status: 'Stopped'
-      }));
-      
-      this.isStopped = true;
-      this.isProcessing = false;
-      this.queue = [];
-      
-      console.log(`Campaign ${this.campaignId} stopped and Redis state updated`);
-    } catch (error) {
-      console.error('Error stopping campaign:', error);
+    this.status = 'Stopped';
+    this.queue = []; // Clear the queue
+    await this.saveToRedis();
+    console.log(`Campaign ${this.campaignId} stopped and Redis state updated`);
+  }
+
+  async pause() {
+    this.status = 'Paused';
+    await this.saveToRedis();
+    console.log(`Campaign ${this.campaignId} paused`);
+  }
+
+  async resume() {
+    this.status = 'Running';
+    await this.saveToRedis();
+    
+    // Restart processing only if we have items in the queue
+    if (this.queue.length > 0) {
+      this.process().catch(console.error);
     }
+    console.log(`Campaign ${this.campaignId} resumed`);
   }
 }
 
@@ -435,7 +438,7 @@ export default async function handler(req, res) {
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
             
-            if (!campaignQueue.isStopped) {
+            if (campaignQueue.status !== 'Stopped') {
                 await campaignQueue.stop();
                 console.log(`Stopped existing queue for campaign ${campaignId}`);
             }
@@ -453,6 +456,57 @@ export default async function handler(req, res) {
             return res.status(200).json({ 
                 success: true, 
                 message: 'Campaign stopped',
+                campaignId 
+            });
+        }
+        if (action === 'pause') {
+            console.log(`Received pause request for campaign ${campaignId}`);
+            
+            const campaignQueue = new CampaignQueue(campaignId);
+            await campaignQueue.loadFromRedis();
+            
+            await campaignQueue.pause();
+            
+            // Update the message status in database
+            try {
+                await prisma.message.update({
+                    where: { id: campaignId },
+                    data: { status: 'Paused' }
+                });
+            } catch (error) {
+                console.error('Failed to update message status:', error);
+            }
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Campaign paused',
+                campaignId 
+            });
+        }
+        if (action === 'resume') {
+            console.log(`Received resume request for campaign ${campaignId}`);
+            
+            const campaignQueue = new CampaignQueue(campaignId);
+            await campaignQueue.loadFromRedis();
+            console.log("campaignQueue.status",campaignQueue.status);
+            if (campaignQueue.status === 'Paused') {
+                await campaignQueue.resume();
+                console.log(`Resumed paused queue for campaign ${campaignId}`);
+            }
+
+            // Update the message status in database
+            try {
+                await prisma.message.update({
+                    where: { id: campaignId },
+                    data: { status: 'In Progress' }
+                });
+            } catch (error) {
+                console.error('Failed to update message status:', error);
+            }
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Campaign resumed',
                 campaignId 
             });
         }
@@ -489,10 +543,10 @@ export default async function handler(req, res) {
         await campaignQueue.loadFromRedis();
         
         res.json({
-            isActive: !campaignQueue.isStopped,
+            isActive: campaignQueue.status !== 'Stopped',
             remainingTasks: campaignQueue.queue.length,
             processedCount: campaignQueue.processedRecipients.size,
-            status: campaignQueue.isProcessing ? 'processing' : 'waiting'
+            status: campaignQueue.status === 'Running' ? 'processing' : 'waiting'
         });
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' });
