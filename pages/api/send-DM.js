@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import redis from '@/lib/redis';
+import { DAILY_MESSAGE_LIMIT } from '@/lib/constants';
 const prisma = new PrismaClient();
 const MAX_RETRIES = 2;
 
@@ -45,14 +46,15 @@ class CampaignQueue {
     }
   }
 
-  async addRecipients(recipients, message, cookies) {
+  async addRecipients(recipients, message, cookies, userId) {
     await this.loadFromRedis();
     recipients.forEach(recipient => {
       let transformedMessage = messageTransformFunction(message, recipient);
       this.queue.push({ 
         recipientId: recipient.id, 
         message: transformedMessage, 
-        cookies 
+        cookies,
+        userId  // Add userId to each queue item
       });
     });
     await this.saveToRedis();
@@ -100,6 +102,7 @@ class CampaignQueue {
     
     let browserRestartCount = 0;
     let consecutiveMemoryErrors = 0;
+    let limitCheckCounter = 0;
 
     try {
       // Launch browser with memory optimization arguments
@@ -131,16 +134,79 @@ class CampaignQueue {
         await this.loadFromRedis();
         if (this.status !== 'Running') break;
 
-        const { recipientId, message, cookies } = this.queue[0];
-        
+        const { recipientId, message, cookies, userId } = this.queue[0];
+        console.log("userId and recipientId",userId,recipientId);
         if (this.processedRecipients.has(recipientId)) {
           this.queue.shift();
           await this.saveToRedis();
           continue;
         }
 
+        // Check daily limit every 5 messages or on the first message
+        if (limitCheckCounter % 5 === 0) {
+          // Ensure userId is defined before checking limit
+          if (!userId) {
+            console.error("userId is undefined for campaign:", this.campaignId);
+            
+            // Try to get userId from database as fallback
+            try {
+              const campaign = await prisma.message.findUnique({
+                where: { id: this.campaignId },
+                select: { userId: true }
+              });
+              
+              if (campaign?.userId) {
+                console.log(`Found userId ${campaign.userId} from database for campaign ${this.campaignId}`);
+                // Update the current queue item
+                this.queue[0].userId = campaign.userId;
+                await this.saveToRedis();
+                // Continue with the updated userId
+                const limitCheck = await checkAndIncrementDailyLimit(campaign.userId);
+                // Rest of your limit check code...
+                continue;
+              }
+            } catch (error) {
+              console.error("Error fetching userId from database:", error);
+            }
+            
+            // Skip this message if no userId found
+            this.queue.shift();
+            await this.saveToRedis();
+            continue;
+          }
+          
+          const limitCheck = await checkAndIncrementDailyLimit(userId);
+          
+          if (!limitCheck.canSend) {
+            console.log(`Daily limit reached for user ${userId}: ${limitCheck.currentCount}/450 messages`);
+            
+            // Update campaign status to rate limited
+            this.status = 'Rate Limited';
+            await this.saveToRedis();
+            
+            // Update database status
+            try {
+              await prisma.message.update({
+                where: { id: this.campaignId },
+                data: { status: 'Rate Limited' }
+              });
+            } catch (error) {
+              console.error('Failed to update message status:', error);
+            }
+            
+            break; // Exit the processing loop
+          }
+        } else {
+          // Ensure userId is defined before incrementing counter
+          if (userId) {
+            // Still increment counter for each message, just don't check limit
+            await redis.incr(`user:${userId}:daily_messages:${new Date().toISOString().split('T')[0]}`);
+          }
+        }
+        limitCheckCounter++;
+
         // Apply delay between messages
-        const delay = 2 * 60000;
+        const delay = 1 * 60000;
         await new Promise(resolve => setTimeout(resolve, delay));
         
         await this.loadFromRedis();
@@ -294,6 +360,21 @@ class CampaignQueue {
     }
     console.log(`Campaign ${this.campaignId} resumed`);
   }
+
+  async updateQueueWithUserId(userId) {
+    await this.loadFromRedis();
+    
+    // Add userId to all queue items that don't have it
+    this.queue = this.queue.map(item => {
+      if (!item.userId) {
+        return { ...item, userId };
+      }
+      return item;
+    });
+    
+    await this.saveToRedis();
+    console.log(`Updated queue items with userId: ${userId} for campaign: ${this.campaignId}`);
+  }
 }
 
 // Update sendDM to accept browser instance
@@ -425,6 +506,53 @@ const messageTransformFunction = (message,recipient) => {
     return transformedMessage;
 }
 
+// Add this function to your send-DM.js file
+async function checkAndIncrementDailyLimit(userId) {
+  // Check if userId is valid
+  if (!userId) {
+    console.error("Attempting to check daily limit with undefined userId");
+    return {
+      canSend: false,
+      currentCount: 0,
+      error: "Invalid user ID"
+    };
+  }
+
+  // Use the current date as part of the key (YYYY-MM-DD format)
+  const today = new Date().toISOString().split('T')[0];
+  const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
+  
+  // Get current count
+  const currentCount = await redis.get(dailyLimitKey) || 0;
+  
+  // Check if limit reached
+  if (parseInt(currentCount) >= DAILY_MESSAGE_LIMIT) {
+    return {
+      canSend: false,
+      currentCount: parseInt(currentCount)
+    };
+  }
+  
+  // Increment the counter
+  const newCount = await redis.incr(dailyLimitKey);
+  
+  // Set expiration to end of day if not already set
+  // This ensures the counter resets at midnight
+  const ttl = await redis.ttl(dailyLimitKey);
+  if (ttl === -1) {
+    // Calculate seconds until midnight
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const secondsUntilMidnight = Math.ceil((tomorrow - new Date()) / 1000);
+    await redis.expire(dailyLimitKey, secondsUntilMidnight);
+  }
+  
+  return {
+    canSend: true,
+    currentCount: newCount
+  };
+}
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
@@ -521,12 +649,23 @@ export default async function handler(req, res) {
         //console.log('updatedCookies',updatedCookies);
         
         if (action === 'start') {
+            const { userId } = req.body; // Get the user ID from the request
+            
+            if (!userId) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'userId is required'
+                });
+            }
+            
+            console.log("Starting campaign with userId:", userId);
+            
             // Create or get existing campaign queue
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
 
             // Add recipients to queue and start processing
-            await campaignQueue.addRecipients(recipients, message, updatedCookies);
+            await campaignQueue.addRecipients(recipients, message, updatedCookies, userId);
             console.log("Active campaign queues in start action:", Array.from(redis.keys('queue:*')));
             campaignQueue.process().catch(console.error);
 
@@ -538,9 +677,34 @@ export default async function handler(req, res) {
             });
         }
     } else if (req.method === 'GET') {
-        const { campaignId } = req.query;
+        const { campaignId, userId } = req.query;
         const campaignQueue = new CampaignQueue(campaignId);
         await campaignQueue.loadFromRedis();
+        
+        // If userId is provided and campaign exists, update queue items
+        if (userId && campaignQueue.queue.length > 0) {
+            await campaignQueue.updateQueueWithUserId(userId);
+        }
+        
+        // Check if the campaign is rate limited and potentially resumable
+        if (campaignQueue.status === 'Rate Limited') {
+            // Get the userId from the first item in the queue
+            const userId = campaignQueue.queue.length > 0 ? campaignQueue.queue[0].userId : null;
+            
+            if (userId) {
+                const dailyLimitKey = `user:${userId}:daily_messages:${new Date().toISOString().split('T')[0]}`;
+                
+                // Check if we're in a new day by checking if the daily counter exists
+                const dailyUsage = await redis.get(dailyLimitKey);
+                
+                // If we're in a new day and the counter is reset/gone, we can auto-resume
+                if (!dailyUsage && campaignQueue.queue.length > 0) {
+                    campaignQueue.status = 'Running';
+                    await campaignQueue.saveToRedis();
+                    campaignQueue.process().catch(console.error);
+                }
+            }
+        }
         
         res.json({
             isActive: campaignQueue.status !== 'Stopped',

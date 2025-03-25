@@ -1,12 +1,25 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+ import { Input } from "@/components/ui/input";
+ import { Label } from "@/components/ui/label";
+ import { Textarea } from "@/components/ui/textarea";
+ import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+ } from "@/components/ui/select";
+ import { StepsNavigation } from "@/components/ui/steps-navigation";
 import { Trash2, ArrowLeft, Check, Loader2, Square, Pause, Play } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { toast } from "@/components/ui/use-toast";
+import { DAILY_MESSAGE_LIMIT } from "@/lib/constants";
 
 interface AutomatedLead {
   id: string;
@@ -74,6 +87,11 @@ export default function CampaignPage() {
   const [activeTab, setActiveTab] = useState("In Progress");
   const [pausingCampaigns, setPausingCampaigns] = useState<Set<string>>(new Set());
   const [resumingCampaigns, setResumingCampaigns] = useState<Set<string>>(new Set());
+  const [dailyLimit, setDailyLimit] = useState({ 
+    used: 0, 
+    total: DAILY_MESSAGE_LIMIT,
+    remaining: DAILY_MESSAGE_LIMIT 
+  });
   
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
@@ -174,6 +192,29 @@ export default function CampaignPage() {
     fetchTwitterAccounts();
   }, [userId]);
 
+  const fetchDailyUsage = async () => {
+    if (!userId) return;
+    
+    try {
+      const response = await fetch(`/api/messages/daily-limit?userId=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDailyLimit({ 
+          used: data.used, 
+          total: data.total,
+          remaining: data.remaining 
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching daily limit:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDailyUsage();
+    const interval = setInterval(fetchDailyUsage, 60000);
+    return () => clearInterval(interval);
+  }, [userId]);
 
   const handleDeleteCampaign = (campaignId: string) => {
     setCampaignToDelete(campaignId);
@@ -463,8 +504,107 @@ export default function CampaignPage() {
     }
   }, []);
 
+  const sendDM = async () => {
+    if (!selectedAccount?.cookies) {
+      console.error("No cookies available");
+      return;
+    }
+
+    try {
+      setSendingDM(true);
+      setError(null);
+      const recipientIds = selectedLeadList?.followers.map((follower) => follower.id);
+      
+      // Check if remaining daily limit is sufficient
+      if (dailyLimit.remaining < recipientIds.length) {
+        toast({
+          variant: "destructive",
+          title: "Daily limit exceeded",
+          description: `You have ${dailyLimit.remaining} messages left today, but this campaign requires ${recipientIds.length}. Please try a smaller campaign or wait until tomorrow.`
+        });
+        setSendingDM(false);
+        return;
+      }
+
+      const messageResponse = await fetch("/api/messages/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageSent: messageTemplate,
+          recipients: recipientIds,
+          campaignName: campaignName,
+          userId: userId
+        }),
+      });
+
+      const response = await fetch("/api/send-DM", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "start",
+          campaignId,
+          recipients: selectedLeadList?.followers,
+          message: messageTemplate,
+          cookies: selectedAccount?.cookies,
+          userId: userId
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to start campaign');
+
+      // ... rest of the code ...
+    } catch (error) {
+      console.error("Error sending DM:", error);
+      setError("An error occurred while sending DM. Please try again later.");
+    } finally {
+      setSendingDM(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="container space-y-4 py-6">
+      {/* Campaign header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Campaigns</h1>
+        {!isCreating && (
+          <Button 
+            onClick={() => setIsCreating(true)}
+            className="hidden sm:flex"
+          >
+            Create Campaign
+          </Button>
+        )}
+      </div>
+
+      {/* Daily Message Limit Indicator - Moved to top */}
+      {!isCreating && (
+        <div className="mb-6 mt-4 p-4 bg-white rounded-lg shadow-sm border">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="text-sm text-gray-600 font-medium">Daily Message Limit:</div>
+            <div className="flex items-center flex-1 max-w-md">
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
+                <div
+                  className={cn(
+                    "h-2.5 rounded-full transition-all duration-500", 
+                    dailyLimit.remaining < 50 ? "bg-red-500" : 
+                    dailyLimit.remaining < 150 ? "bg-amber-500" : "bg-blue-600"
+                  )}
+                  style={{ width: `${Math.min(100, (dailyLimit.remaining / dailyLimit.total) * 100)}%` }}
+                />
+              </div>
+              <div className="flex w-24 justify-between text-sm font-medium">
+                <span className="text-blue-700">{dailyLimit.remaining}</span>
+                <span className="text-gray-500">/ {dailyLimit.total}</span>
+              </div>
+            </div>
+            <div className="text-xs text-gray-500 hidden sm:block">
+              Messages reset at midnight UTC
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Campaign content */}
       {isCreating ? (
         <div className="max-w-[95vw] sm:max-w-[90vw] mx-auto p-3 sm:p-6">
           <Button
@@ -529,56 +669,45 @@ export default function CampaignPage() {
           </div>
         </div>
       ) : (
-        <div className="max-w-[95vw] sm:max-w-[90vw] mx-auto p-3 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreating(true)}
-              className="ml-auto"
+        <div className="space-y-6">
+          {/* Tab navigation */}
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveTab("In Progress")}
+              className={cn(
+                "py-2 px-4 text-center border-b-2 font-medium text-sm focus:outline-none",
+                activeTab === "In Progress"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              )}
             >
-              Create Campaign
-            </Button>
+              In Progress
+            </button>
+            <button
+              onClick={() => setActiveTab("Stopped")}
+              className={cn(
+                "py-2 px-4 text-center border-b-2 font-medium text-sm focus:outline-none",
+                activeTab === "Stopped"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              )}
+            >
+              Stopped
+            </button>
+            <button
+              onClick={() => setActiveTab("Completed")}
+              className={cn(
+                "py-2 px-4 text-center border-b-2 font-medium text-sm focus:outline-none",
+                activeTab === "Completed"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              )}
+            >
+              Completed
+            </button>
           </div>
 
-          <div className="mb-6 border-b border-gray-200">
-            <div className="flex -mb-px">
-              <button
-                onClick={() => setActiveTab("In Progress")}
-                className={cn(
-                  "py-2 px-4 text-center border-b-2 font-medium text-sm focus:outline-none",
-                  activeTab === "In Progress"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                )}
-              >
-                In Progress
-              </button>
-              <button
-                onClick={() => setActiveTab("Stopped")}
-                className={cn(
-                  "py-2 px-4 text-center border-b-2 font-medium text-sm focus:outline-none",
-                  activeTab === "Stopped"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                )}
-              >
-                Stopped
-              </button>
-              <button
-                onClick={() => setActiveTab("Completed")}
-                className={cn(
-                  "py-2 px-4 text-center border-b-2 font-medium text-sm focus:outline-none",
-                  activeTab === "Completed"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                )}
-              >
-                Completed
-              </button>
-            </div>
-          </div>
-
+          {/* Campaigns listing */}
           {loading ? (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin mx-auto" />
@@ -628,6 +757,7 @@ export default function CampaignPage() {
                           queue.status === "In Progress" && "bg-blue-100 text-blue-700",
                           queue.status === "Paused" && "bg-amber-100 text-amber-700",
                           queue.status === "Stopped" && "bg-yellow-100 text-yellow-700",
+                          queue.status === "Rate Limited" && "bg-red-100 text-red-700",
                           queue.status === "Completed" && "bg-emerald-100 text-emerald-700 font-medium"
                         )}>
                           {queue.status}
@@ -714,6 +844,11 @@ export default function CampaignPage() {
                         </Button>
                       )}
                     </div>
+                    {queue.status === "Rate Limited" && (
+                      <div className="mt-2 text-xs bg-red-50 text-red-600 p-2 rounded">
+                        Daily limit reached. Campaign will resume automatically tomorrow.
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))}
