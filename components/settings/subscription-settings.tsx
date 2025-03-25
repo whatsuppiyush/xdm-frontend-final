@@ -375,6 +375,30 @@ export default function SubscriptionSettings() {
                           // Set loading state
                           setButtonLoadingState(prev => ({ ...prev, upgrade: true }));
                           
+                          // First cancel the existing subscription if there is one
+                          if (currentPlan.subscriptionId) {
+                            console.log(`Cancelling existing subscription ${currentPlan.subscriptionId} before upgrade`);
+                            
+                            const cancelResponse = await fetch('/api/subscription/cancel', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                subscriptionId: currentPlan.subscriptionId,
+                                isUpgrade: true // Flag to indicate this is part of an upgrade
+                              }),
+                            });
+                            
+                            if (!cancelResponse.ok) {
+                              const errorData = await cancelResponse.json();
+                              console.error('Error cancelling subscription before upgrade:', errorData);
+                              throw new Error(`Failed to cancel subscription: ${errorData.error || 'Unknown error'}`);
+                            }
+                            
+                            console.log('Successfully cancelled existing subscription before upgrade');
+                          }
+                          
                           // Get current plan details
                           const currentPlanIndex = plans.findIndex(p => p.name === currentPlan.planType);
                           
@@ -386,7 +410,8 @@ export default function SubscriptionSettings() {
                           const checkoutUrl = await getDirectLemonSqueezyUrl(nextPlan);
                           window.open(checkoutUrl, "_blank");
                         } catch (error) {
-                          console.error("Error getting checkout URL:", error);
+                          console.error("Error during upgrade process:", error);
+                          alert("There was an error during the upgrade process. Please try again or contact support.");
                         } finally {
                           // Reset loading state
                           setButtonLoadingState(prev => ({ ...prev, upgrade: false }));
