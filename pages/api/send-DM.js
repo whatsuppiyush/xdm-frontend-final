@@ -92,7 +92,7 @@ class CampaignQueue {
 
   async process() {
     await this.loadFromRedis();
-    console.log("process started",this.status);
+    console.log("process started", this.status);
     // Only proceed if status is Ready or Running
     if (this.status === 'Stopped' || this.status === 'Paused') return;
     
@@ -135,7 +135,8 @@ class CampaignQueue {
         if (this.status !== 'Running') break;
 
         const { recipientId, message, cookies, userId } = this.queue[0];
-        console.log("userId and recipientId",userId,recipientId);
+        console.log("userId and recipientId", userId, recipientId);
+        
         if (this.processedRecipients.has(recipientId)) {
           this.queue.shift();
           await this.saveToRedis();
@@ -162,8 +163,28 @@ class CampaignQueue {
                 await this.saveToRedis();
                 // Continue with the updated userId
                 const limitCheck = await checkAndIncrementDailyLimit(campaign.userId);
-                // Rest of your limit check code...
-                continue;
+                if (!limitCheck.canSend) {
+                  console.log(`Daily limit reached for user ${campaign.userId}. Setting campaign to Rate Limited.`);
+                  
+                  // Set campaign status to Rate Limited
+                  this.status = 'Rate Limited';
+                  await this.saveToRedis();
+                  
+                  // Update the message status in database
+                  try {
+                    await prisma.message.update({
+                      where: { id: this.campaignId },
+                      data: { status: 'Rate Limited' }
+                    });
+                  } catch (error) {
+                    console.error('Failed to update message status:', error);
+                  }
+                  
+                  // Exit the processing loop
+                  return;
+                }
+                
+                console.log(`Daily limit check passed. Current count: ${limitCheck.currentCount}`);
               }
             } catch (error) {
               console.error("Error fetching userId from database:", error);
@@ -178,13 +199,13 @@ class CampaignQueue {
           const limitCheck = await checkAndIncrementDailyLimit(userId);
           
           if (!limitCheck.canSend) {
-            console.log(`Daily limit reached for user ${userId}: ${limitCheck.currentCount}/450 messages`);
+            console.log(`Daily limit reached for user ${userId}. Setting campaign to Rate Limited.`);
             
-            // Update campaign status to rate limited
+            // Set campaign status to Rate Limited
             this.status = 'Rate Limited';
             await this.saveToRedis();
             
-            // Update database status
+            // Update the message status in database
             try {
               await prisma.message.update({
                 where: { id: this.campaignId },
@@ -196,6 +217,8 @@ class CampaignQueue {
             
             break; // Exit the processing loop
           }
+          
+          console.log(`Daily limit check passed. Current count: ${limitCheck.currentCount}`);
         } else {
           // Ensure userId is defined before incrementing counter
           if (userId) {
@@ -281,29 +304,21 @@ class CampaignQueue {
         await this.saveToRedis();
       }
       
-      // Handle completion based on status
-      if (this.status === 'Paused') {
-        console.log(`Campaign ${this.campaignId} paused - keeping queue intact`);
-      } else if (this.status === 'Stopped') {
-        console.log(`Campaign ${this.campaignId} stopped`);
-        this.queue = [];
-      } else {
-        console.log(`Campaign ${this.campaignId} completed successfully`);
+      // If we've processed all messages, mark as Completed
+      if (this.queue.length === 0) {
         this.status = 'Completed';
+        await this.saveToRedis();
         
-        // Update message status to Completed in the database
+        // Update the message status in database
         try {
           await prisma.message.update({
             where: { id: this.campaignId },
             data: { status: 'Completed' }
           });
-          console.log(`Campaign ${this.campaignId} marked as Completed in database`);
-        } catch (updateError) {
-          console.error(`Failed to update campaign ${this.campaignId} status:`, updateError);
+        } catch (error) {
+          console.error('Failed to update message status:', error);
         }
       }
-      
-      await this.saveToRedis();
       
     } catch (error) {
       console.error(`Error processing campaign ${this.campaignId}:`, error);
@@ -506,47 +521,55 @@ const messageTransformFunction = (message,recipient) => {
     return transformedMessage;
 }
 
-// Add this function to your send-DM.js file
+// Optimize the checkAndIncrementDailyLimit function
 async function checkAndIncrementDailyLimit(userId) {
-  // Check if userId is valid
   if (!userId) {
-    console.error("Attempting to check daily limit with undefined userId");
-    return {
-      canSend: false,
-      currentCount: 0,
-      error: "Invalid user ID"
-    };
+    console.error("userId is undefined in checkAndIncrementDailyLimit");
+    return { canSend: false };
   }
-
-  // Use the current date as part of the key (YYYY-MM-DD format)
+  
   const today = new Date().toISOString().split('T')[0];
   const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
   
-  // Get current count
-  const currentCount = await redis.get(dailyLimitKey) || 0;
+  // First check if we're already at the limit before incrementing
+  const currentCount = await redis.get(dailyLimitKey);
+  const parsedCount = currentCount ? parseInt(currentCount) : 0;
   
-  // Check if limit reached
-  if (parseInt(currentCount) >= DAILY_MESSAGE_LIMIT) {
+  // For testing: use a very low limit in development
+  const effectiveLimit = process.env.NODE_ENV === 'development' ? 10 : DAILY_MESSAGE_LIMIT;
+  console.log(`Current count: ${parsedCount}, Limit: ${effectiveLimit}`);
+  
+  // If already at limit, don't increment
+  if (parsedCount >= effectiveLimit) {
+    console.log(`Daily limit of ${effectiveLimit} reached for user ${userId}`);
     return {
       canSend: false,
-      currentCount: parseInt(currentCount)
+      currentCount: parsedCount
     };
   }
   
   // Increment the counter
   const newCount = await redis.incr(dailyLimitKey);
   
-  // Set expiration to end of day if not already set
-  // This ensures the counter resets at midnight
-  const ttl = await redis.ttl(dailyLimitKey);
-  if (ttl === -1) {
-    // Calculate seconds until midnight
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    const secondsUntilMidnight = Math.ceil((tomorrow - new Date()) / 1000);
-    await redis.expire(dailyLimitKey, secondsUntilMidnight);
+  // If this is the first increment, set expiration
+  if (newCount === 1) {
+    // For testing in development: use a very short expiration time
+    const isDev = process.env.NODE_ENV === 'development';
+    
+    if (isDev) {
+      // For testing: expire in 2 minutes
+      console.log('TESTING MODE: Setting rate limit key to expire in 2 minutes');
+      await redis.expire(dailyLimitKey, 120); // 120 seconds
+    } else {
+      // Production: Calculate seconds until midnight of the next day
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const secondsUntilMidnight = Math.floor((tomorrow.getTime() - Date.now()) / 1000);
+      await redis.expire(dailyLimitKey, secondsUntilMidnight);
+    }
   }
+  
+  console.log(`Daily message count for user ${userId}: ${newCount}/${effectiveLimit}`);
   
   return {
     canSend: true,
@@ -650,7 +673,7 @@ export default async function handler(req, res) {
         
         if (action === 'start') {
             const { userId } = req.body; // Get the user ID from the request
-            
+            console.log('req.body',req.body);
             if (!userId) {
                 return res.status(400).json({ 
                     success: false, 
@@ -676,6 +699,20 @@ export default async function handler(req, res) {
                 totalRecipients: recipients.length
             });
         }
+
+        // Add a testing action to reset rate limits
+        if (action === 'reset_rate_limit' && process.env.NODE_ENV === 'development') {
+            const { userId } = req.body;
+            if (userId) {
+                const today = new Date().toISOString().split('T')[0];
+                const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
+                await redis.del(dailyLimitKey);
+                return res.status(200).json({ 
+                    success: true, 
+                    message: 'Rate limit reset for testing'
+                });
+            }
+        }
     } else if (req.method === 'GET') {
         const { campaignId, userId } = req.query;
         const campaignQueue = new CampaignQueue(campaignId);
@@ -692,16 +729,33 @@ export default async function handler(req, res) {
             const userId = campaignQueue.queue.length > 0 ? campaignQueue.queue[0].userId : null;
             
             if (userId) {
-                const dailyLimitKey = `user:${userId}:daily_messages:${new Date().toISOString().split('T')[0]}`;
+                const today = new Date().toISOString().split('T')[0];
+                const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
                 
-                // Check if we're in a new day by checking if the daily counter exists
+                // Check if we're in a new day by checking if the daily counter exists or is reset
                 const dailyUsage = await redis.get(dailyLimitKey);
+                console.log(`Checking rate limit for auto-resume: key=${dailyLimitKey}, value=${dailyUsage}`);
                 
-                // If we're in a new day and the counter is reset/gone, we can auto-resume
-                if (!dailyUsage && campaignQueue.queue.length > 0) {
+                // If the key doesn't exist or the value is below the limit, we can resume
+                if (!dailyUsage || parseInt(dailyUsage) < DAILY_MESSAGE_LIMIT) {
+                    console.log(`Auto-resuming rate-limited campaign ${campaignId} - limit reset detected`);
                     campaignQueue.status = 'Running';
                     await campaignQueue.saveToRedis();
-                    campaignQueue.process().catch(console.error);
+                    
+                    // Update database status
+                    try {
+                        await prisma.message.update({
+                            where: { id: campaignId },
+                            data: { status: 'In Progress' }
+                        });
+                    } catch (error) {
+                        console.error('Failed to update message status:', error);
+                    }
+                    
+                    // Start processing again
+                    setTimeout(() => {
+                        campaignQueue.process().catch(console.error);
+                    }, 100);
                 }
             }
         }
