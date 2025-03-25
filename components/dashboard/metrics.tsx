@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, Target, BarChart, Twitter } from "lucide-react";
-import LeadCredits from "@/components/dashboard/lead-credits";
+import { Card, CardContent } from "@/components/ui/card";
+import { MessageSquare, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/user-context";
 import Link from "next/link";
@@ -15,26 +14,79 @@ interface MessageData {
   [key: string]: any;
 }
 
+interface MetricCardProps {
+  title: string;
+  value: string;
+  icon: React.ElementType;
+  button?: {
+    label: string;
+    href: string;
+  };
+}
+
+// X logo as component
+const XLogo = () => {
+  return (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+};
+
+const MetricCard = ({ title, value, icon: Icon, button }: MetricCardProps) => (
+  <Card className="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-md">
+    <CardContent className="p-6">
+      <div className="flex items-start gap-4">
+        <div className="bg-purple-100 dark:bg-purple-900/50 p-3 rounded-lg">
+          <Icon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</h3>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{value}</p>
+          
+          {button && (
+            <div className="mt-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                asChild 
+                className="rounded-full text-xs text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-700 dark:hover:text-purple-300"
+              >
+                <Link href={button.href}>
+                  <span className="flex items-center">
+                    <span className="mr-1">+</span> {button.label}
+                  </span>
+                </Link>
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
 export default function DashboardMetrics() {
   const { userId } = useUser();
   const [metrics, setMetrics] = useState([
     {
       title: "Total Messages Sent",
-      value: "N/A",
+      value: "0",
       icon: MessageSquare,
-      change: "Subscribe to get started",
     },
     {
-      title: "Connected Accounts",
+      title: "X Accounts Connected",
       value: "0",
-      icon: Twitter,
-      change: "No accounts connected",
+      icon: XLogo,
+      button: {
+        label: "Add More",
+        href: "/settings?tab=twitter"
+      }
     },
     {
       title: "Campaigns Created",
-      value: "N/A",
-      icon: Target,
-      change: "Subscribe to get started",
+      value: "0",
+      icon: BarChart3,
     },
   ]);
   
@@ -77,40 +129,42 @@ export default function DashboardMetrics() {
               title: "Total Messages Sent",
               value: totalMessageItems > 0 ? totalMessageItems.toString() : "0",
               icon: MessageSquare,
-              change: "Active",
             },
             {
-              title: "Connected Accounts",
+              title: "X Accounts Connected",
               value: accountsCount.toString(),
-              icon: Twitter,
-              change: accountsCount > 0 ? "Active" : "No accounts connected",
+              icon: XLogo,
+              button: {
+                label: "Add More",
+                href: "/settings?tab=twitter"
+              }
             },
             {
               title: "Campaigns Created",
               value: totalMessages > 0 ? totalMessages.toString() : "0",
-              icon: Target,
-              change: "Active",
+              icon: BarChart3,
             },
           ]);
         } else {
           setMetrics([
             {
               title: "Total Messages Sent",
-              value: "N/A",
+              value: "0",
               icon: MessageSquare,
-              change: "Subscribe to get started",
             },
             {
-              title: "Connected Accounts",
+              title: "X Accounts Connected",
               value: accountsCount.toString(),
-              icon: Twitter,
-              change: accountsCount > 0 ? "Active" : "No accounts connected",
+              icon: XLogo,
+              button: {
+                label: "Add More",
+                href: "/settings?tab=twitter"
+              }
             },
             {
               title: "Campaigns Created",
-              value: "N/A",
-              icon: Target,
-              change: "Subscribe to get started",
+              value: "0",
+              icon: BarChart3,
             },
           ]);
         }
@@ -125,25 +179,16 @@ export default function DashboardMetrics() {
   }, [userId]);
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-3">
       {metrics.map((metric, index) => (
-        <Card key={index} className="w-full">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {metric.title}
-            </CardTitle>
-            <metric.icon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metric.value}</div>
-            <p className="text-xs text-muted-foreground">
-              {metric.change}
-            </p>
-          </CardContent>
-        </Card>
+        <MetricCard
+          key={index}
+          title={metric.title}
+          value={metric.value}
+          icon={metric.icon}
+          button={metric.button}
+        />
       ))}
-      
-      <LeadCredits />
     </div>
   );
 }

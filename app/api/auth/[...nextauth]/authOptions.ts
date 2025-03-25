@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { ObjectId } from 'mongodb';
 import { pushUserToGoogleSheet } from '@/lib/googleSheets';
+import { pushUserToInstantly } from '@/lib/instantlyApi';
 
 declare module "next-auth" {
   interface Session {
@@ -94,6 +95,17 @@ export const authOptions: NextAuthOptions = {
                 console.error('Error pushing converted user data to Google Sheet:', sheetError);
                 // Continue with sign-in even if Google Sheet push fails
               }
+              
+              // Also push to Instantly.ai when user converts from credentials to Google
+              try {
+                await pushUserToInstantly({
+                  email: user.email,
+                  name: user.name
+                });
+              } catch (instantlyError) {
+                console.error('Error pushing converted user data to Instantly.ai:', instantlyError);
+                // Continue with sign-in even if Instantly.ai push fails
+              }
             }
             
             return true;
@@ -139,6 +151,17 @@ export const authOptions: NextAuthOptions = {
           } catch (sheetError) {
             console.error('Error pushing Google user data to Google Sheet:', sheetError);
             // Continue with sign-in even if Google Sheet push fails
+          }
+          
+          // Push new Google user data to Instantly.ai
+          try {
+            await pushUserToInstantly({
+              email: user.email,
+              name: user.name
+            });
+          } catch (instantlyError) {
+            console.error('Error pushing Google user data to Instantly.ai:', instantlyError);
+            // Continue with sign-in even if Instantly.ai push fails
           }
 
           return true;

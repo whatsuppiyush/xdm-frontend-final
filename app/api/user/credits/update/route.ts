@@ -38,13 +38,14 @@ export async function POST(request: Request) {
       }
     }
     
-    // Check if user has enough credits
+    // Determine how many credits to deduct
+    let creditsToDeduct = leadsCount;
+    let wasLimited = false;
+    
+    // If user doesn't have enough credits, just reduce to zero
     if (userCredits.leadCredits < leadsCount) {
-      return NextResponse.json({ 
-        error: "Insufficient lead credits",
-        success: false,
-        remainingCredits: userCredits.leadCredits
-      }, { status: 400 });
+      creditsToDeduct = userCredits.leadCredits;
+      wasLimited = true;
     }
 
     // Update the user's credits by reducing the lead credits
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
       where: { userId },
       data: {
         leadCredits: {
-          decrement: leadsCount
+          decrement: creditsToDeduct
         },
         updatedAt: new Date()
       }
@@ -62,7 +63,8 @@ export async function POST(request: Request) {
       success: true,
       remainingCredits: updatedCredits.leadCredits,
       isTrialActive: updatedCredits.isTrialActive,
-      isMonthly: updatedCredits.isMonthly
+      isMonthly: updatedCredits.isMonthly,
+      wasLimited
     });
   } catch (error) {
     console.error("Error updating user credits:", error);

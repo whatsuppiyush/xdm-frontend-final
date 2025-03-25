@@ -12,22 +12,22 @@ export default function LeadFilters() {
   const [followingRange, setFollowingRange] = useState([0, 100000]);
 
   return (
-    <Card className="border-0 shadow-none" data-oid="ub.pe48">
+    <Card className="border-0 shadow-none dark:bg-transparent" data-oid="ub.pe48">
       <CardHeader className="px-0" data-oid="xmnhs5p">
-        <CardTitle data-oid="18le96w">Filter Leads</CardTitle>
+        <CardTitle data-oid="18le96w" className="text-gray-900 dark:text-gray-100">Filter Leads</CardTitle>
       </CardHeader>
       <CardContent className="px-0 space-y-6" data-oid="2d0gy68">
         <div className="space-y-2" data-oid=":7yfa8s">
-          <Label data-oid="vmjl74u">Bio Keywords</Label>
+          <Label data-oid="vmjl74u" className="text-gray-700 dark:text-gray-300">Bio Keywords</Label>
           <Input
             placeholder="Enter keywords..."
-            className="border-gray-200"
+            className="border-gray-200 dark:border-gray-700 dark:bg-slate-800"
             data-oid="lja-1b1"
           />
         </div>
 
         <div className="space-y-4" data-oid="eoj.c24">
-          <Label data-oid="m5shr_z">Follower Count Range</Label>
+          <Label data-oid="m5shr_z" className="text-gray-700 dark:text-gray-300">Follower Count Range</Label>
           <Slider
             defaultValue={followerRange}
             max={100000}
@@ -47,7 +47,7 @@ export default function LeadFilters() {
         </div>
 
         <div className="space-y-4" data-oid="epk-voa">
-          <Label data-oid="9iya11o">Following Count Range</Label>
+          <Label data-oid="9iya11o" className="text-gray-700 dark:text-gray-300">Following Count Range</Label>
           <Slider
             defaultValue={followingRange}
             max={100000}
@@ -67,7 +67,7 @@ export default function LeadFilters() {
         </div>
 
         <Button
-          className="w-full bg-[#0F172A] text-white hover:bg-[#1E293B]"
+          className="w-full bg-[#0F172A] text-white hover:bg-[#1E293B] dark:bg-slate-700 dark:hover:bg-slate-600"
           data-oid="g1g6bab"
         >
           Apply Filters

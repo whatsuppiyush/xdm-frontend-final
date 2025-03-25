@@ -88,54 +88,45 @@ export default function ActiveCampaigns() {
   }, [userId]);
 
   return (
-    <Card data-oid="oj463uj">
-      <CardHeader data-oid="mycwl:m">
-        <CardTitle data-oid="pkwpczm">Active Campaigns</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="px-4 sm:px-6 py-4 sm:py-5 bg-slate-50 dark:bg-slate-900/50">
+        <CardTitle className="text-base sm:text-lg">Active Campaigns</CardTitle>
       </CardHeader>
-      <CardContent data-oid="b6iqhya">
+      <CardContent className="p-0">
         {loading ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
         ) : (
-          <div className="space-y-6" data-oid="df07xyn">
+          <div className="divide-y">
             {campaigns.length > 0 ? (
               campaigns.map((campaign) => (
-                <div key={campaign.id} className="space-y-2" data-oid="2qv4p_-">
-                  <div
-                    className="flex items-center justify-between"
-                    data-oid="qkrhx3x"
-                  >
-                    <div data-oid="r-r5k43">
-                      <p className="font-medium" data-oid="40d.q.q">
+                <div key={campaign.id} className="p-4 sm:p-6 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-sm sm:text-base">
                         {campaign.name}
                       </p>
-                      <p
-                        className="text-sm text-muted-foreground"
-                        data-oid="ao293y7"
-                      >
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                         {campaign.sent} / {campaign.total} messages sent
                       </p>
                     </div>
-                    <span
-                      className={`text-sm ${
-                        campaign.status === "Active"
-                          ? "text-green-500"
-                          : "text-yellow-500"
-                      }`}
-                      data-oid="8yr9x40"
-                    >
+                    <span className={`text-xs sm:text-sm px-2 py-1 rounded-full ${
+                      campaign.status === "Active"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                    }`}>
                       {campaign.status}
                     </span>
                   </div>
-                  <CustomProgress value={campaign.progress} data-oid="w7esbu6" />
+                  <CustomProgress value={campaign.progress} />
                 </div>
               ))
             ) : (
-              <div className="text-center py-12 flex flex-col items-center gap-3 text-gray-500">
-                <AlertCircle className="h-10 w-10 text-gray-400" />
-                <p className="text-lg font-medium">Your campaigns have not started yet</p>
-                <p className="text-sm">Active campaigns will appear here once they start sending messages</p>
+              <div className="text-center py-10 sm:py-12 px-4 flex flex-col items-center gap-3 text-gray-500">
+                <AlertCircle className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
+                <p className="text-base sm:text-lg font-medium">Your campaigns have not started yet</p>
+                <p className="text-xs sm:text-sm">Active campaigns will appear here once they start sending messages</p>
               </div>
             )}
           </div>

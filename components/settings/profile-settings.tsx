@@ -45,72 +45,70 @@ export default function ProfileSettings() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <p>Loading profile...</p>
+      <div className="flex items-center justify-center h-40">
+        <p className="dark:text-gray-300">Loading profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6" data-oid="o0abbsy">
-      <Card data-oid="qw0o6d3">
-        <CardHeader data-oid="xw9j1ib">
-          <CardTitle data-oid="529lcb8">Profile Information</CardTitle>
+    <div className="w-full">
+      <Card className="w-full border rounded-lg shadow-sm dark:border-[#1a2436] dark:bg-[#0c1221]">
+        <CardHeader className="p-4 sm:p-6 border-b dark:border-[#1a2436]">
+          <CardTitle className="text-xl dark:text-white">Profile Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6" data-oid="n.-pygg">
-          <div className="flex items-center gap-6" data-oid="co7.jeg">
-            <div className="relative" data-oid="4f0-lby">
-              <Avatar className="h-24 w-24" data-oid="_z.4j0x">
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="relative">
+              <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border dark:border-[#242f44]">
                 <AvatarImage
                   src={profile.image || ""}
                   alt={profile.name}
-                  data-oid="z0gdbg9"
                 />
-                <AvatarFallback data-oid="2sg8m-_">
+                <AvatarFallback className="dark:bg-[#131c2e] dark:text-gray-200">
                   {getInitials(profile.name)}
                 </AvatarFallback>
               </Avatar>
               <Button
                 size="icon"
                 variant="secondary"
-                className="absolute bottom-0 right-0 rounded-full"
-                data-oid="._31-yq"
+                className="absolute bottom-0 right-0 rounded-full h-6 w-6 dark:bg-[#242f44] dark:hover:bg-[#30394d]"
                 disabled={session?.user?.provider === "google"}
                 title={session?.user?.provider === "google" ? "Profile image is managed by Google" : "Change profile image"}
               >
-                <Camera className="h-4 w-4" data-oid="ory0ksc" />
+                <Camera className="h-3 w-3 dark:text-gray-300" />
               </Button>
             </div>
-            <div className="space-y-1" data-oid="i8042_g">
-              <h3 className="font-medium" data-oid="c.6_93q">
+            <div className="space-y-1">
+              <h3 className="font-medium text-base sm:text-lg dark:text-white">
                 {profile.name || "User"}
               </h3>
-              <p className="text-sm text-muted-foreground" data-oid="gel9x_5">
+              <p className="text-sm text-muted-foreground dark:text-gray-400">
                 {profile.email}
               </p>
               {session?.user?.provider && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground dark:text-gray-500">
                   Signed in with {session.user.provider === "google" ? "Google" : "Email"}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2" data-oid="w0m-84r">
-            <div className="space-y-2" data-oid="dgb-9fz">
-              <Label htmlFor="name" data-oid="t2l9_zj">
+          <div className="grid gap-4 sm:grid-cols-2 mt-6">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium dark:text-gray-300">
                 Full Name
               </Label>
               <Input
                 id="name"
                 value={profile.name}
                 disabled={true}
+                className="h-10 dark:border-[#242f44] dark:bg-[#0c1221] dark:text-gray-400"
                 title="Name cannot be changed"
-                data-oid="z5g7lyf"
               />
             </div>
-            <div className="space-y-2" data-oid="vcuup_:">
-              <Label htmlFor="email" data-oid="m.yq0pt">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">
                 Email
               </Label>
               <Input
@@ -118,8 +116,8 @@ export default function ProfileSettings() {
                 type="email"
                 value={profile.email}
                 disabled={true}
+                className="h-10 dark:border-[#242f44] dark:bg-[#0c1221] dark:text-gray-400"
                 title="Email cannot be changed"
-                data-oid="d.m5vx9"
               />
             </div>
           </div>

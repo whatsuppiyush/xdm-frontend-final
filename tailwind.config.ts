@@ -85,6 +85,22 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    // Custom plugin for scrollbar hiding
+    function({ addUtilities }: { addUtilities: (utilities: Record<string, any>) => void }) {
+      const newUtilities = {
+        '.scrollbar-hide': {
+          /* Firefox */
+          'scrollbar-width': 'none',
+          /* Safari and Chrome */
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          }
+        }
+      };
+      addUtilities(newUtilities);
+    }
+  ],
 };
 export default config;

@@ -32,6 +32,13 @@ export async function POST(request: Request) {
         success: false
       }, { status: 403 });
     }
+
+    // Limit the count to the user's available credits
+    // This ensures we don't scrape more than they can afford
+    if (updatedCount > userCredits.leadCredits * 2) {
+      updatedCount = userCredits.leadCredits * 2;
+      console.log(`Limited scrape count to ${updatedCount} based on ${userCredits.leadCredits} available credits`);
+    }
     
     // Check if user has available leads
     const hasAvailableLeads = userCredits && userCredits.leadCredits > 0;
@@ -74,7 +81,7 @@ export async function POST(request: Request) {
         } = {
           profileUrl,
           friendshipType,
-          count: updatedCount,
+          count: updatedCount, // Using the potentially limited count
           minDelay: 1,
           maxDelay: 15,
           cookie: cookies,

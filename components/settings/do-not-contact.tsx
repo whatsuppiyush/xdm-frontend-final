@@ -61,76 +61,81 @@ export default function DoNotContact() {
 
   return (
     <>
-      <div className="space-y-6" data-oid="5rvjul8">
-        <Card data-oid="lmc1h26">
-          <CardHeader
-            className="flex flex-row items-center justify-between"
-            data-oid="a22x.7k"
-          >
-            <CardTitle data-oid="5s2ovuy">Do Not Contact List</CardTitle>
-            <div className="flex gap-2" data-oid="5im56b4">
-              <Button
-                variant="outline"
-                onClick={() => setImportDialogOpen(true)}
-                data-oid="62lcurq"
-              >
-                <Upload className="mr-2 h-4 w-4" data-oid="5o_go9g" />
-                Import CSV
-              </Button>
-              <Button onClick={() => setAddDialogOpen(true)} data-oid="qgt5p3f">
-                <PlusCircle className="mr-2 h-4 w-4" data-oid="kus4wzk" />
-                Add Account
-              </Button>
-            </div>
+      <div className="w-full">
+        <Card className="w-full border rounded-lg shadow-sm dark:border-[#1a2436] dark:bg-[#0c1221]">
+          <CardHeader className="p-4 sm:p-6 border-b dark:border-[#1a2436]">
+            <CardTitle className="text-xl flex justify-between items-center dark:text-white">
+              <span>Do Not Contact List</span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs sm:text-sm dark:border-[#242f44] dark:text-gray-300 dark:bg-[#0c1221] dark:hover:bg-[#131c2e]"
+                  onClick={() => setImportDialogOpen(true)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Import CSV
+                </Button>
+                <Button 
+                  size="sm"
+                  className="h-9 text-xs sm:text-sm dark:bg-purple-700 dark:hover:bg-purple-800"
+                  onClick={() => setAddDialogOpen(true)} 
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Account
+                </Button>
+              </div>
+            </CardTitle>
           </CardHeader>
-          <CardContent data-oid="jpys1wm">
-            <div className="space-y-4" data-oid="w3mqjib">
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-3">
               {blockedAccounts.map((account) => (
                 <div
                   key={account.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                  data-oid="7q-y7dn"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3 dark:border-[#1a2436] dark:bg-[#131c2e]/40"
                 >
-                  <div className="flex items-center gap-4" data-oid="p-gmqjl">
-                    <div
-                      className="p-2 bg-destructive/10 rounded-lg"
-                      data-oid="sbfwbxf"
-                    >
-                      <Twitter
-                        className="h-5 w-5 text-destructive"
-                        data-oid="b:0n0ip"
-                      />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-destructive/10 rounded-lg shrink-0 dark:bg-red-950/30">
+                      <Twitter className="h-5 w-5 text-destructive dark:text-red-400" />
                     </div>
-                    <div data-oid="oa-3k1o">
-                      <div
-                        className="flex items-center gap-2"
-                        data-oid="a6fjh75"
-                      >
-                        <h3 className="font-medium" data-oid="4hdzgtr">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium text-sm dark:text-white">
                           {account.name}
                         </h3>
-                        <Badge variant="outline" data-oid=".dx98.6">
+                        <Badge variant="outline" className="text-xs dark:border-[#242f44] dark:bg-[#131c2e] dark:text-gray-300">
                           {account.reason}
                         </Badge>
                       </div>
-                      <p
-                        className="text-sm text-muted-foreground"
-                        data-oid="tsjhoaw"
-                      >
+                      <p className="text-xs text-muted-foreground truncate dark:text-gray-400">
                         {account.username} • Added on {account.dateAdded}
                       </p>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="text-destructive"
-                    data-oid="x5nvmuz"
+                    size="sm"
+                    className="text-destructive h-8 w-8 p-0 self-end sm:self-center ml-auto dark:text-red-400 dark:hover:bg-red-950/30"
                   >
-                    <Trash2 className="h-4 w-4" data-oid="2.6o5td" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
+              
+              {blockedAccounts.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground dark:text-gray-400">
+                  <p>No accounts in your Do Not Contact list</p>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 h-9 dark:border-[#242f44] dark:text-gray-300 dark:bg-[#0c1221] dark:hover:bg-[#131c2e]"
+                    onClick={() => setAddDialogOpen(true)}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Account
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -139,47 +144,44 @@ export default function DoNotContact() {
       <Dialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
-        data-oid="m7k.8b_"
       >
-        <DialogContent data-oid="hq7j036">
-          <DialogHeader data-oid="rjs6rry">
-            <DialogTitle data-oid="7.cyd46">
+        <DialogContent className="max-w-[90vw] sm:max-w-md p-4 sm:p-6 dark:bg-[#0c1221] dark:border-[#1a2436]">
+          <DialogHeader>
+            <DialogTitle className="text-lg dark:text-white">
               Add to Do Not Contact List
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4" data-oid="riqvo38">
-            <div className="space-y-2" data-oid="z--91pg">
-              <Label data-oid="jre42r0">Twitter Profile URL</Label>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label className="text-sm dark:text-gray-300">Twitter Profile URL</Label>
               <Input
                 placeholder="https://twitter.com/username"
                 value={newAccount.url}
                 onChange={(e) =>
                   setNewAccount({ ...newAccount, url: e.target.value })
                 }
-                data-oid="fufjq.9"
+                className="text-sm h-10 dark:border-[#242f44] dark:bg-[#0c1221] dark:text-gray-200"
               />
             </div>
-            <div className="space-y-2" data-oid="zui1_tk">
-              <Label data-oid="zvtk_5e">Reason (Optional)</Label>
+            <div className="space-y-2">
+              <Label className="text-sm dark:text-gray-300">Reason (Optional)</Label>
               <Input
                 placeholder="e.g., Competitor, Spam, etc."
                 value={newAccount.reason}
                 onChange={(e) =>
                   setNewAccount({ ...newAccount, reason: e.target.value })
                 }
-                data-oid="p67buqc"
+                className="text-sm h-10 dark:border-[#242f44] dark:bg-[#0c1221] dark:text-gray-200"
               />
             </div>
             <Button
-              className="w-full"
+              className="w-full text-sm h-10 dark:bg-purple-700 dark:hover:bg-purple-800"
               onClick={handleAddAccount}
               disabled={!newAccount.url || loading}
-              data-oid="zo5-_qz"
             >
               {loading && (
                 <Loader2
                   className="mr-2 h-4 w-4 animate-spin"
-                  data-oid="ycm6_r6"
                 />
               )}
               {loading ? "Adding Account..." : "Add Account"}
@@ -191,35 +193,31 @@ export default function DoNotContact() {
       <Dialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        data-oid="fc82ipq"
       >
-        <DialogContent data-oid="6u.esg3">
-          <DialogHeader data-oid="ys56umj">
-            <DialogTitle data-oid="cfz9d8m">
+        <DialogContent className="max-w-[90vw] sm:max-w-md p-4 sm:p-6 dark:bg-[#0c1221] dark:border-[#1a2436]">
+          <DialogHeader>
+            <DialogTitle className="text-lg dark:text-white">
               Import Do Not Contact List
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4" data-oid="78pi_ks">
-            <div className="space-y-2" data-oid="rn4.khy">
-              <Label data-oid="vpto36t">Upload CSV File</Label>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label className="text-sm dark:text-gray-300">Upload CSV File</Label>
               <Input
                 type="file"
                 accept=".csv"
                 onChange={handleImportCsv}
                 disabled={loading}
-                data-oid="gliouhd"
+                className="text-sm h-10 dark:border-[#242f44] dark:bg-[#0c1221] dark:text-gray-200"
               />
 
-              <p className="text-sm text-muted-foreground" data-oid="g3tljr.">
+              <p className="text-xs text-muted-foreground dark:text-gray-400">
                 CSV should contain columns: twitter_url, reason (optional)
               </p>
             </div>
             {loading && (
-              <div
-                className="flex items-center justify-center"
-                data-oid="f.wjb9u"
-              >
-                <Loader2 className="h-6 w-6 animate-spin" data-oid="hv8tg-s" />
+              <div className="flex items-center justify-center py-2">
+                <Loader2 className="h-5 w-5 animate-spin dark:text-gray-300" />
               </div>
             )}
           </div>

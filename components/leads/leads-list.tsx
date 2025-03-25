@@ -70,10 +70,10 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border overflow-x-auto -mx-4 sm:mx-0">
+      <div className="rounded-lg border dark:border-slate-700 overflow-x-auto -mx-4 sm:mx-0">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50">
+            <TableRow className="bg-gray-50 dark:bg-slate-800">
               <TableHead className="w-[30px]">
                 <Checkbox />
               </TableHead>
@@ -86,13 +86,13 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
           </TableHeader>
           <TableBody>
             {currentLeads.map((lead) => (
-              <TableRow key={lead.id}>
+              <TableRow key={lead.id} className="border-t dark:border-slate-700">
                 <TableCell>
                   <Checkbox />
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
                       {lead.name}
                     </div>
                     <div className="text-sm text-muted-foreground">
@@ -100,13 +100,13 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[150px] md:max-w-[300px] truncate hidden sm:table-cell">
+                <TableCell className="max-w-[150px] md:max-w-[300px] truncate hidden sm:table-cell text-gray-700 dark:text-gray-300">
                   {lead.bio}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right text-gray-700 dark:text-gray-300">
                   {lead.followers.toLocaleString()}
                 </TableCell>
-                <TableCell className="text-right hidden sm:table-cell">
+                <TableCell className="text-right hidden sm:table-cell text-gray-700 dark:text-gray-300">
                   {lead.following.toLocaleString()}
                 </TableCell>
                 <TableCell>
@@ -120,8 +120,8 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
                     }
                     className={
                       lead.status === "Qualified"
-                        ? "bg-[#0F172A] hover:bg-[#1E293B]"
-                        : ""
+                        ? "bg-[#0F172A] hover:bg-[#1E293B] dark:bg-slate-700 dark:hover:bg-slate-600"
+                        : "dark:border-gray-600"
                     }
                   >
                     {lead.status}
@@ -135,7 +135,7 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
 
       {/* Pagination Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 px-0 sm:px-2">
-        <div className="text-xs sm:text-sm text-gray-500">
+        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
           Showing {indexOfFirstLead + 1} to {Math.min(indexOfLastLead, leads.length)} of {leads.length} leads
         </div>
         <div className="flex items-center gap-2">
@@ -144,10 +144,11 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
             size="sm"
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
+            className="dark:border-slate-700"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="text-xs sm:text-sm">
+          <div className="text-xs sm:text-sm dark:text-gray-300">
             Page {currentPage} of {totalPages}
           </div>
           <Button
@@ -155,6 +156,7 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
             size="sm"
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
+            className="dark:border-slate-700"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

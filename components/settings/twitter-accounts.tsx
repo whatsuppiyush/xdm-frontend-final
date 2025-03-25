@@ -286,95 +286,89 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
 
   return (
     <>
-      <div className="space-y-6" data-oid="_02-ux-">
-        <Card data-oid="24fbyad">
-          <CardHeader
-            className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4"
-            data-oid="4a57k.p"
-          >
-            <CardTitle data-oid="8:8ogs0">Connected Accounts</CardTitle>
-            <div className="flex items-center gap-2">
-              {validatingCookies && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Validating cookies...
-                </div>
-              )}
+      <div className="w-full">
+        <Card className="w-full border rounded-lg shadow-sm dark:border-[#1a2436] dark:bg-[#0c1221]">
+          <CardHeader className="p-4 sm:p-6 border-b dark:border-[#1a2436]">
+            <CardTitle className="text-xl flex justify-between items-center dark:text-white">
+              <span>Connected Accounts</span>
               <Button
-                onClick={() => setConnectDialogOpen(true)}
-                className="w-full sm:w-auto"
-                data-oid="ntyu4b9"
+                size="sm"
+                className="h-9 text-xs sm:text-sm dark:bg-purple-700 dark:hover:bg-purple-800"
+                onClick={() => {
+                  setTwitterAccountName("");
+                  setCookiesInput("");
+                  setError("");
+                  setCurrentStep(0);
+                  setConnectDialogOpen(true);
+                }}
               >
-                <PlusCircle className="mr-2 h-4 w-4" data-oid="gzg3qo." />
+                <PlusCircle className="mr-2 h-4 w-4" />
                 Connect Account
               </Button>
-            </div>
+            </CardTitle>
+            {validatingCookies && (
+              <div className="flex items-center text-sm text-muted-foreground dark:text-gray-400 mt-2">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin dark:text-gray-300" />
+                Validating cookies...
+              </div>
+            )}
           </CardHeader>
-          <CardContent data-oid="obx:x5m">
+          <CardContent className="p-4 sm:p-6">
             {loading ? (
-              <div
-                className="flex items-center justify-center p-4"
-                data-oid="fhdnqpy"
-              >
-                <Loader2 className="h-6 w-6 animate-spin" data-oid=":gey5du" />
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin dark:text-gray-400" />
               </div>
             ) : accounts.length === 0 ? (
-              <div
-                className="text-center p-4 text-muted-foreground"
-                data-oid="n6s.lox"
-              >
+              <div className="text-center py-6 text-muted-foreground dark:text-gray-400">
                 No accounts connected. Click Connect Account to add one.
               </div>
             ) : (
-              <div className="space-y-4" data-oid="p2w0bwp">
+              <div className="space-y-3">
                 {(accounts || []).map((account) => (
                   <div
                     key={account.id}
                     className={cn(
-                      "flex items-center justify-between p-4 border rounded-lg transition-colors",
-                      account.isExpired && "border-red-300 bg-red-50"
+                      "flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3 transition-colors dark:border-[#1a2436]",
+                      account.isExpired 
+                        ? "border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-900/40" 
+                        : "hover:border-gray-300 dark:hover:border-[#242f44] dark:bg-[#131c2e]/40"
                     )}
-                    data-oid="448mdlf"
                   >
-                    <div className="flex items-center gap-4" data-oid="h9wodn6">
+                    <div className="flex items-center gap-3">
                       <div
                         className={cn(
                           "p-2 rounded-lg",
-                          account.isExpired ? "bg-red-100" : "bg-primary/10"
+                          account.isExpired 
+                            ? "bg-red-100 dark:bg-red-950/40" 
+                            : "bg-primary/10 dark:bg-blue-950/30"
                         )}
-                        data-oid="h5_v6fk"
                       >
                         {account.isExpired ? (
-                          <ShieldAlert className="h-5 w-5 text-red-600" />
+                          <ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400" />
                         ) : (
-                          <Twitter
-                            className="h-5 w-5 text-primary"
-                            data-oid=".8tp6n-"
-                          />
+                          <Twitter className="h-5 w-5 text-primary dark:text-blue-400" />
                         )}
                       </div>
-                      <div data-oid="s0o6fsp">
-                        <div
-                          className="flex items-center gap-2"
-                          data-oid="8j.fjhq"
-                        >
-                          <h3 className="font-medium" data-oid="m-5av4w">
-                            Account @{account.twitterAccountName}
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-medium text-sm dark:text-white">
+                            @{account.twitterAccountName}
                           </h3>
                           {account.isExpired ? (
-                            <Badge variant="destructive">Expired</Badge>
+                            <Badge variant="destructive" className="text-xs dark:bg-red-900/40 dark:text-red-300">Expired</Badge>
                           ) : (
-                            <Badge variant="outline" data-oid="9jty2ym">
+                            <Badge variant="outline" className="text-xs dark:border-[#242f44] dark:bg-[#131c2e] dark:text-gray-300">
                               {account.status || "Active"}
                             </Badge>
                           )}
                         </div>
                         <p
                           className={cn(
-                            "text-sm",
-                            account.isExpired ? "text-red-600" : "text-muted-foreground"
+                            "text-xs",
+                            account.isExpired 
+                              ? "text-red-600 dark:text-red-400" 
+                              : "text-muted-foreground dark:text-gray-400"
                           )}
-                          data-oid="tg42.fz"
                         >
                           {account.isExpired ? (
                             <>
@@ -386,26 +380,25 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-end sm:self-center ml-auto">
                       {account.isExpired && (
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="text-red-600 border-red-300 hover:bg-red-50"
+                          className="text-xs text-red-600 border-red-300 hover:bg-red-50 h-8 dark:text-red-400 dark:border-red-900/60 dark:bg-[#131c2e]/40 dark:hover:bg-red-950/30"
                           onClick={() => handleRefreshCookies(account.id)}
                         >
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Refresh Cookies
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Refresh
                         </Button>
                       )}
                       <Button
                         variant="ghost"
-                        size="icon"
-                        className="text-destructive"
+                        size="sm"
+                        className="text-destructive h-8 w-8 p-0 dark:text-red-400 dark:hover:bg-red-950/30"
                         onClick={() => handleDelete(account.id)}
-                        data-oid="tnrxk2j"
                       >
-                        <Trash2 className="h-4 w-4" data-oid="pocwvyf" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -415,14 +408,14 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Twitter className="h-5 w-5" />
-              How to Connect Your Twitter Account
+        <Card className="w-full border rounded-lg shadow-sm mt-6 dark:border-[#1a2436] dark:bg-[#0c1221]">
+          <CardHeader className="p-4 sm:p-6 border-b dark:border-[#1a2436]">
+            <CardTitle className="text-xl flex items-center gap-2 dark:text-white">
+              <Twitter className="h-5 w-5 dark:text-blue-400" />
+              How to Connect Your Account
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col items-center">
               {/* Step indicator */}
               <div className="flex items-center justify-center mb-4 gap-2">
@@ -430,8 +423,10 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
                   <div 
                     key={index}
                     className={cn(
-                      "w-3 h-3 rounded-full transition-colors",
-                      currentStep === index ? "bg-primary" : "bg-muted"
+                      "w-2.5 h-2.5 rounded-full transition-colors",
+                      currentStep === index 
+                        ? "bg-primary dark:bg-purple-600" 
+                        : "bg-muted dark:bg-[#131c2e]"
                     )}
                     onClick={() => setCurrentStep(index)}
                     style={{ cursor: 'pointer' }}
@@ -440,13 +435,13 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
               </div>
 
               {/* Current step */}
-              <div className="relative w-full max-w-3xl">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+              <div className="w-full max-w-2xl mx-auto">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary dark:bg-purple-700 text-primary-foreground font-bold text-sm">
                       {currentStep + 1}
                     </div>
-                    <h3 className="text-xl font-medium">{steps[currentStep].title}</h3>
+                    <h3 className="text-base sm:text-lg font-medium dark:text-white">{steps[currentStep].title}</h3>
                   </div>
                   
                   {currentStep === 0 && (
@@ -454,14 +449,14 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
                       href="https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-primary hover:underline mt-2 sm:mt-0"
+                      className="inline-flex items-center text-primary dark:text-purple-400 hover:underline text-sm"
                     >
                       Get Extension <ExternalLink className="ml-1 h-3 w-3" />
                     </a>
                   )}
                 </div>
 
-                <div className="relative aspect-video w-full rounded-md overflow-hidden border mb-4">
+                <div className="relative aspect-video w-full rounded-md overflow-hidden border mb-3 dark:border-[#1a2436] dark:bg-[#0c1221]">
                   <Image 
                     src={steps[currentStep].image} 
                     alt={steps[currentStep].title} 
@@ -476,7 +471,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
                     onClick={prevStep}
                     aria-label="Previous step"
                   >
-                    <ChevronLeft className="h-6 w-6" />
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   
                   <button 
@@ -484,11 +479,11 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
                     onClick={nextStep}
                     aria-label="Next step"
                   >
-                    <ChevronRight className="h-6 w-6" />
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                 </div>
 
-                <p className="text-center text-muted-foreground mb-6 px-2">
+                <p className="text-center text-sm text-muted-foreground dark:text-gray-400 mb-4">
                   {steps[currentStep].description}
                 </p>
               </div>
@@ -500,83 +495,77 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
       <Dialog
         open={connectDialogOpen}
         onOpenChange={setConnectDialogOpen}
-        data-oid="hhwvbtm"
       >
-        <DialogContent className="sm:max-w-[600px]" data-oid="teqqsrm">
-          <DialogHeader data-oid="0q2g35_">
-            <DialogTitle data-oid="6:jddqx">
+        <DialogContent className="sm:max-w-[600px] p-4 sm:p-6 dark:bg-[#0c1221] dark:border-[#1a2436]">
+          <DialogHeader>
+            <DialogTitle className="dark:text-white">
               {refreshingAccount ? "Refresh Twitter Cookies" : "Connect Twitter Account"}
             </DialogTitle>
-            <DialogDescription data-oid="3mdpj74">
+            <DialogDescription className="dark:text-gray-400">
               Enter your Twitter account name and paste your cookies to connect
-              your account. You can use the <a href="https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" rel="noopener noreferrer" className="text-primary underline">Cookie Editor Extension</a> to extract your cookies.
+              your account. You can use the <a href="https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" rel="noopener noreferrer" className="text-primary dark:text-purple-400 underline">Cookie Editor Extension</a> to extract your cookies.
               {refreshingAccount
                 ? "Twitter authentication has expired. Please provide fresh cookies to continue using this account."
                 : "Enter your Twitter account name and paste your cookies to connect your account."}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4" data-oid="lfm_f4_">
-            <div className="space-y-2" data-oid="a5:1wyk">
-              <Label data-oid="7lerj3j">Twitter Account Name</Label>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="dark:text-gray-300">Twitter Account Name</Label>
               <Input
                 placeholder="@username"
                 value={twitterAccountName}
                 onChange={(e) => setTwitterAccountName(e.target.value)}
                 required
-                data-oid="_h.u7y7"
+                className="dark:border-[#242f44] dark:bg-[#0c1221] dark:text-gray-200"
               />
             </div>
-            <div className="space-y-2" data-oid="g95x6li">
-              <Label data-oid=".mlxcw_">Cookies (JSON format)</Label>
-              <div className="relative" data-oid="lwmo0pf">
+            <div className="space-y-2">
+              <Label className="dark:text-gray-300">Cookies (JSON format)</Label>
+              <div className="relative">
                 <Textarea
                   placeholder="[{&#34;name&#34;: &#34;auth_token&#34;, &#34;value&#34;: &#34;...&#34;}, ...]"
                   value={cookiesInput}
                   onChange={(e) => setCookiesInput(e.target.value)}
                   className={cn(
-                    "min-h-[200px] font-mono text-sm",
-                    error && "border-red-500 focus-visible:ring-red-500",
+                    "min-h-[200px] font-mono text-sm dark:border-[#242f44] dark:bg-[#0c1221] dark:text-gray-200",
+                    error && "border-red-500 focus-visible:ring-red-500 dark:border-red-800 dark:focus-visible:ring-red-800",
                   )}
-                  data-oid="jmkv.:."
                 />
 
                 <Button
                   variant="outline"
                   size="sm"
-                  className="absolute top-2 right-2"
+                  className="absolute top-2 right-2 dark:border-[#242f44] dark:text-gray-300 dark:bg-[#131c2e] dark:hover:bg-[#1a2436]"
                   onClick={handlePaste}
-                  data-oid="g2lb8rs"
                 >
                   Paste
                 </Button>
               </div>
               {error ? (
                 <p
-                  className="text-sm text-red-500 flex items-center gap-2"
-                  data-oid="x8jfq8f"
+                  className="text-sm text-red-500 dark:text-red-400 flex items-center gap-2"
                 >
-                  <AlertCircle className="h-4 w-4" data-oid="b29ifl:" />
+                  <AlertCircle className="h-4 w-4" />
                   {error}
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground" data-oid="1ny3fsn">
+                <p className="text-sm text-muted-foreground dark:text-gray-400">
                   Enter your Twitter cookies in JSON array format. Make sure to
                   include all required cookies. Use the 
                 </p>
               )}
             </div>
             <Button
-              className="w-full"
+              className="w-full dark:bg-purple-700 dark:hover:bg-purple-800"
               onClick={handleConnect}
               disabled={
                 !isValidJson || !twitterAccountName.trim() || connecting
               }
-              data-oid="y2:fdwf"
             >
               {connecting && (
                 <Loader2
                   className="mr-2 h-4 w-4 animate-spin"
-                  data-oid="odrjrcp"
                 />
               )}
               {connecting ? "Connecting..." : refreshingAccount ? "Update Cookies" : "Connect Account"}
