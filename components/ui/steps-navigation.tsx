@@ -36,7 +36,7 @@ export function StepsNavigation({
     <div
       className={cn(
         "w-full rounded-lg",
-        isDark ? "bg-gray-800 shadow-md" : "bg-white shadow-sm",
+        isDark ? "bg-slate-800/80 shadow-md backdrop-blur-sm" : "bg-white shadow-sm",
         className
       )}
       data-oid=":780bk-"
@@ -44,7 +44,7 @@ export function StepsNavigation({
       <div
         className={cn(
           "grid grid-cols-4 overflow-x-auto",
-          isDark ? "divide-x divide-gray-700" : "divide-x divide-gray-100"
+          isDark ? "divide-x divide-gray-700/50" : "divide-x divide-gray-100"
         )}
         data-oid="0m3kq:1"
       >
@@ -62,9 +62,9 @@ export function StepsNavigation({
               className={cn(
                 "relative group p-2 sm:p-4 md:p-6 transition-all duration-300",
                 isDark 
-                  ? "hover:bg-gray-700" 
+                  ? "hover:bg-slate-700/70" 
                   : "hover:bg-gray-50/80",
-                isActive && (isDark ? "bg-gray-700" : "bg-gray-50"),
+                isActive && (isDark ? "bg-slate-700/70" : "bg-gray-50"),
                 isPast && "cursor-pointer",
                 isFuture && "cursor-not-allowed opacity-50",
               )}
@@ -90,10 +90,10 @@ export function StepsNavigation({
                   className={cn(
                     "flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-colors",
                     isActive && (isDark 
-                      ? "bg-purple-600 text-white shadow-sm shadow-purple-900/50" 
-                      : "bg-primary text-white"),
+                      ? "bg-purple-600 text-white shadow-lg ring-2 ring-purple-400/30" 
+                      : "bg-primary text-white shadow-md"),
                     isPast && (isDark 
-                      ? "bg-purple-900/40 text-purple-300" 
+                      ? "bg-purple-800/50 text-purple-300 shadow-sm" 
                       : "bg-primary/10 text-primary"),
                     isFuture && (isDark 
                       ? "bg-gray-700 text-gray-400 border border-gray-600" 
@@ -101,7 +101,17 @@ export function StepsNavigation({
                   )}
                   data-oid="-ow3y6."
                 >
-                  {stepNumber}
+                  {isPast ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </motion.div>
+                  ) : (
+                    stepNumber
+                  )}
                 </div>
 
                 {/* Step Content */}
@@ -109,6 +119,7 @@ export function StepsNavigation({
                   <div
                     className={cn(
                       "text-xs sm:text-sm font-semibold mb-0 sm:mb-1",
+                      "hidden sm:block",
                       isActive && (isDark ? "text-purple-400" : "text-primary"),
                       isPast && (isDark ? "text-gray-300" : "text-gray-700"),
                       isFuture && (isDark ? "text-gray-500" : "text-gray-400"),
@@ -120,7 +131,7 @@ export function StepsNavigation({
                   {step.subtitle && (
                     <div
                       className={cn(
-                        "text-[10px] sm:text-xs line-clamp-1 sm:line-clamp-2 hidden xs:block",
+                        "text-[10px] sm:text-xs line-clamp-1 sm:line-clamp-2 hidden sm:block",
                         isDark ? "text-gray-400" : "text-gray-500"
                       )}
                       data-oid="q4fb07u"

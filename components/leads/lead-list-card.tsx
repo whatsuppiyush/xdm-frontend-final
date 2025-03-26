@@ -82,7 +82,7 @@ export default function LeadListCard({
               Delete
             </Button>
             <Button 
-              className="bg-blue-500 hover:bg-blue-600 text-white flex-1 min-w-[80px] h-9 transition-colors duration-200" 
+              className="bg-purple-500 hover:bg-purple-600 text-white flex-1 min-w-[80px] h-9 transition-colors duration-200" 
               size="sm"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click
