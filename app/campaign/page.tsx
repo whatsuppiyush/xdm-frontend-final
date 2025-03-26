@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StepsNavigation } from "@/components/ui/steps-navigation";
-import { Trash2, ArrowLeft, Check, Loader2, Square, Pause, Play } from "lucide-react";
+import { Trash2, ArrowLeft, Check, Loader2, Square, Pause, Play, ArrowRight } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -681,7 +681,7 @@ export default function CampaignPage() {
 
   return (
     <div className={cn(
-      "container space-y-4 py-6 pb-28 sm:pb-6",
+      "container space-y-4 py-6 pb-28 sm:pb-6 px-4 md:px-8",
       isDark ? "text-gray-100" : ""
     )}>
       {/* Campaign header */}
@@ -770,12 +770,12 @@ export default function CampaignPage() {
           
           {/* Mobile Steps Navigation - Moved to the top */}
           <div className={cn(
-            "mb-4 rounded-lg border p-1 sm:hidden",
+            "mb-6 rounded-xl border-0 p-2 sm:hidden",
             isDark 
-              ? "bg-gray-900/90 border-gray-700 shadow-lg" 
-              : "bg-white border-gray-200"
+              ? "bg-slate-900/50 backdrop-blur-sm shadow-xl" 
+              : "bg-white/90 backdrop-blur-sm shadow-md"
           )}>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-1">
               {steps.map((stepItem, index) => {
                 const stepNumber = index + 1;
                 const isActive = step === stepNumber;
@@ -788,8 +788,8 @@ export default function CampaignPage() {
                     onClick={() => isPast && setStep(stepNumber)}
                     disabled={isFuture}
                     className={cn(
-                      "flex flex-col items-center p-2 flex-1 transition-all duration-300 rounded-md",
-                      isActive && (isDark ? "bg-gray-800" : "bg-gray-50"),
+                      "flex-1 transition-all duration-300 rounded-lg py-3 relative overflow-hidden",
+                      isActive && (isDark ? "bg-slate-800/70" : "bg-gray-50"),
                       isActive 
                         ? (isDark ? "text-purple-400" : "text-black")
                         : (isDark ? "text-gray-500" : "text-gray-400"),
@@ -799,24 +799,30 @@ export default function CampaignPage() {
                       isFuture && "opacity-50"
                     )}
                   >
+                    {isActive && (
+                      <>
+                        <div className="absolute top-0 left-0 right-0 h-0.5 bg-purple-500 rounded-t-lg"></div>
+                        <div className="absolute inset-0 bg-purple-500/5 dark:bg-purple-500/10"></div>
+                      </>
+                    )}
                     <div
                       className={cn(
-                        "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium transition-all mb-1",
+                        "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all mx-auto",
                         isActive && (isDark 
-                          ? "bg-purple-600 text-white shadow-md shadow-purple-900/50" 
-                          : "bg-black text-white"),
+                          ? "bg-purple-600 text-white shadow-lg ring-2 ring-purple-400/30" 
+                          : "bg-black text-white shadow-md"),
                         isPast && (isDark 
-                          ? "bg-purple-800/70 text-purple-200" 
+                          ? "bg-purple-800/70 text-purple-200 shadow-md" 
                           : "bg-gray-200 text-gray-700"),
                         isFuture && (isDark 
                           ? "bg-gray-800 text-gray-400 border border-gray-700" 
                           : "bg-gray-100 text-gray-400")
                       )}
                     >
-                      {isPast ? <Check className="w-3.5 h-3.5" /> : stepNumber}
+                      {isPast ? <Check className="w-4 h-4" /> : stepNumber}
                     </div>
-                    <div className="text-xs font-medium truncate max-w-[60px] text-center">
-                      {stepItem.title}
+                    <div className="text-[10px] text-center mt-1 opacity-70">
+                      {isPast ? "Done" : isActive ? "Current" : `Step ${stepNumber}`}
                     </div>
                   </button>
                 );
@@ -885,12 +891,12 @@ export default function CampaignPage() {
                   
                   {/* Navigation buttons */}
                   <div className={cn(
-                    "flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg sm:shadow-none"
+                    "flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900/90 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg backdrop-blur-sm sm:shadow-none"
                   )}>
                     <Button
                       variant="outline"
                       className={cn(
-                        "px-5 sm:px-6 py-4 text-base sm:text-base flex-1 sm:flex-initial text-lg font-medium shadow-md",
+                        "px-5 sm:px-6 py-4 text-base sm:text-base flex-1 sm:flex-initial text-lg font-medium shadow-md rounded-xl",
                         isDark && "border-gray-700 text-gray-200 hover:bg-gray-700"
                       )}
                       onClick={() => {
@@ -899,6 +905,7 @@ export default function CampaignPage() {
                         }
                       }}
                     >
+                      <ArrowLeft className="w-5 h-5 mr-2 sm:hidden" />
                       Back
                     </Button>
                     <Button
@@ -916,6 +923,7 @@ export default function CampaignPage() {
                       disabled={!selectedLeadList}
                     >
                       Next
+                      <ArrowRight className="w-5 h-5 ml-2 sm:hidden" />
                     </Button>
                   </div>
                 </div>
@@ -1149,13 +1157,12 @@ export default function CampaignPage() {
                     </div>
                     {/* Navigation Buttons */}
                     <div className={cn(
-                      "w-full p-5 sm:p-4 flex justify-between gap-4 sm:gap-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 sm:static z-[100] shadow-lg sm:shadow-none",
-                      isDark ? "bg-gray-900 border-t border-gray-800" : "bg-white border-t"
+                      "flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900/90 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg backdrop-blur-sm sm:shadow-none"
                     )}>
                       <Button
                         variant="outline"
                         className={cn(
-                          "px-5 sm:px-6 py-4 text-base sm:text-base flex-1 sm:flex-initial text-lg font-medium shadow-md",
+                          "px-5 sm:px-6 py-4 text-base sm:text-base flex-1 sm:flex-initial text-lg font-medium shadow-md rounded-xl",
                           isDark && "border-gray-700 text-gray-200 hover:bg-gray-700"
                         )}
                         onClick={() => {
@@ -1164,6 +1171,7 @@ export default function CampaignPage() {
                           }
                         }}
                       >
+                        <ArrowLeft className="w-5 h-5 mr-2 sm:hidden" />
                         Back
                       </Button>
                       <Button
@@ -1181,6 +1189,7 @@ export default function CampaignPage() {
                         disabled={!selectedLeadList}
                       >
                         Next
+                        <ArrowRight className="w-5 h-5 ml-2 sm:hidden" />
                       </Button>
                     </div>
                   </div>
@@ -1313,18 +1322,24 @@ export default function CampaignPage() {
                         </div>
                       </div>
                       {/* Navigation Buttons */}
-                      <div className="flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg sm:shadow-none">
+                      <div className="flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900/90 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg backdrop-blur-sm sm:shadow-none">
                         <Button
                           variant="outline"
-                          className="text-gray-300 border-gray-600 hover:bg-gray-800 flex-1 sm:flex-initial px-5 sm:px-6 py-3 text-sm sm:text-base text-lg font-medium"
+                          className={cn(
+                            "px-5 sm:px-6 py-4 text-base sm:text-base flex-1 sm:flex-initial text-lg font-medium shadow-md rounded-xl",
+                            isDark && "border-gray-700 text-gray-200 hover:bg-gray-700"
+                          )}
                           onClick={() => setStep(2)}
                         >
+                          <ArrowLeft className="w-5 h-5 mr-2 sm:hidden" />
                           Back
                         </Button>
                         <Button
                           className={cn(
-                            "text-white px-5 sm:px-8 py-3 text-sm sm:text-base flex-1 sm:flex-initial rounded-xl text-lg font-medium",
-                            isDark ? "bg-purple-600 hover:bg-purple-700" : "bg-[#7C3AED] hover:bg-[#6D28D9]"
+                            "px-5 sm:px-8 py-4 rounded-xl text-base sm:text-base flex-1 sm:flex-initial text-white text-lg font-medium shadow-md",
+                            isDark
+                              ? "bg-purple-600 hover:bg-purple-700"
+                              : "bg-black hover:bg-gray-800"
                           )}
                           onClick={() => setStep(4)}
                           disabled={
@@ -1333,6 +1348,7 @@ export default function CampaignPage() {
                           }
                         >
                           Next
+                          <ArrowRight className="w-5 h-5 ml-2 sm:hidden" />
                         </Button>
                       </div>
                     </div>
@@ -1460,7 +1476,7 @@ export default function CampaignPage() {
                         </div>
                       </div>
                     </Card>
-                    <div className="flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg sm:shadow-none">
+                    <div className="flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900/90 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg backdrop-blur-sm sm:shadow-none">
                       <Button
                         variant="outline"
                         className={cn(
@@ -1567,7 +1583,7 @@ export default function CampaignPage() {
                     onClick={() => setIsCreating(true)}
                     className={cn(
                       "mt-2",
-                      isDark && "border-gray-700 text-gray-200 hover:bg-gray-800"
+                      isDark && "bg-purple-600 hover:bg-purple-700"
                     )}
                   >
                     Create Campaign
@@ -1690,8 +1706,8 @@ export default function CampaignPage() {
                           className={cn(
                             "border-2",
                             isDark 
-                              ? "bg-blue-900/30 border-blue-800 text-blue-300 hover:bg-blue-900/50" 
-                              : "bg-blue-50"
+                              ? "bg-purple-900/30 border-purple-800 text-purple-300 hover:bg-purple-900/50" 
+                              : "bg-purple-50"
                           )}
                           onClick={() => handleResumeCampaign(queue.id)}
                           disabled={resumingCampaigns.has(queue.id)}
@@ -1715,8 +1731,8 @@ export default function CampaignPage() {
                           className={cn(
                             "border-2",
                             isDark 
-                              ? "bg-blue-900/30 border-blue-800 text-blue-300 hover:bg-blue-900/50" 
-                              : "bg-blue-50"
+                              ? "bg-purple-900/30 border-purple-800 text-purple-300 hover:bg-purple-900/50" 
+                              : "bg-purple-50"
                           )}
                           onClick={() => handleResumeRateLimited(queue.id)}
                         >

@@ -319,8 +319,8 @@ export default function SubscriptionSettings() {
   return (
     <div className="space-y-8">
       {/* Current Plan Card */}
-      <Card>
-        <CardHeader>
+      <Card className="border-slate-700 dark:bg-slate-800/60 shadow-md">
+        <CardHeader className="dark:border-slate-700">
           <CardTitle>Current Plan</CardTitle>
         </CardHeader>
         <CardContent>
@@ -336,39 +336,39 @@ export default function SubscriptionSettings() {
                     {currentPlan.planType || "No Active Plan"}
                   </h3>
                   {currentPlan.planType && (
-                    <Badge variant="secondary">Current Plan</Badge>
+                    <Badge variant="secondary" className="dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">Current Plan</Badge>
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground space-y-1">
                   {currentPlan.isTrialActive ? (
                     <div className="mb-2">
-                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300">
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800 dark:hover:bg-yellow-900/50">
                         Free Trial
                       </Badge>
                       {currentPlan.trialStatus?.startsWith('active-') && (
-                        <span className="ml-2 text-xs font-medium text-yellow-700">
+                        <span className="ml-2 text-xs font-medium text-yellow-700 dark:text-yellow-400">
                           {currentPlan.trialStatus.replace('active-', '')} days remaining
                         </span>
                       )}
                       {currentPlan.trialStatus === 'ended' && (
-                        <span className="ml-2 text-xs font-medium text-red-600">
+                        <span className="ml-2 text-xs font-medium text-red-600 dark:text-red-400">
                           Trial ended - Please upgrade
                         </span>
                       )}
                     </div>
                   ) : currentPlan.isMonthly ? (
                     <div className="mb-2">
-                      <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300">
+                      <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 dark:hover:bg-green-900/50">
                         Active Subscription
                       </Badge>
                     </div>
                   ) : currentPlan.planType ? (
                     <div className="mb-2">
-                      <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300">
+                      <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 dark:hover:bg-red-900/50">
                         Cancelled
                       </Badge>
                       {getGracePeriodStatus() && (
-                        <span className="ml-2 text-xs font-medium text-orange-600">
+                        <span className="ml-2 text-xs font-medium text-orange-600 dark:text-orange-400">
                           {getGracePeriodStatus()}
                         </span>
                       )}
@@ -376,12 +376,12 @@ export default function SubscriptionSettings() {
                   ) : null}
                   <p>Available Lead Credits: {currentPlan.leadCredits}</p>
                   {currentPlan.isTrialActive && (
-                    <p className="text-xs text-yellow-700">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400">
                        During trial, you have 1,500 lead credits. After trial ends, you&apos;ll get 25,000 credits.
                     </p>
                   )}
                   {!currentPlan.isMonthly && !currentPlan.isTrialActive && currentPlan.planType && (
-                    <p className="text-xs text-red-700">
+                    <p className="text-xs text-red-700 dark:text-red-400">
                       Your subscription has been cancelled. {getGracePeriodStatus() ? 
                         "You can continue using your remaining credits during the grace period." : 
                         "Subscribe again to get more lead credits."}
@@ -395,7 +395,7 @@ export default function SubscriptionSettings() {
                     <Button 
                       variant="outline"
                       size="sm"
-                      className="text-xs sm:text-sm"
+                      className="text-xs sm:text-sm dark:border-slate-600 dark:bg-slate-700/50 dark:hover:bg-slate-700"
                       onClick={() => {
                         // Use the customer portal URL if available, otherwise fallback to the generic URL
                         const portalUrl = currentPlan.customerPortalUrl || "https://app.lemonsqueezy.com/my-orders";
@@ -409,7 +409,7 @@ export default function SubscriptionSettings() {
                       <Button 
                         variant="outline"
                         size="sm"
-                        className="text-xs sm:text-sm"
+                        className="text-xs sm:text-sm dark:border-slate-600 dark:bg-slate-700/50 dark:hover:bg-slate-700"
                         onClick={() => window.open(currentPlan.updatePaymentMethodUrl!, "_blank")}
                       >
                         <CreditCard className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
@@ -418,7 +418,7 @@ export default function SubscriptionSettings() {
                     )}
                     <Button 
                       size="sm"
-                      className="text-xs sm:text-sm"
+                      className="text-xs sm:text-sm dark:bg-purple-600 dark:hover:bg-purple-700"
                       variant={!currentPlan.isMonthly && !currentPlan.isTrialActive ? "destructive" : "default"}
                       onClick={async () => {
                         try {
@@ -487,7 +487,7 @@ export default function SubscriptionSettings() {
                 ) : (
                   <Button 
                     size="sm"
-                    className="text-xs sm:text-sm"
+                    className="text-xs sm:text-sm dark:bg-purple-600 dark:hover:bg-purple-700"
                     onClick={async () => {
                       try {
                         // Set loading state
@@ -524,8 +524,8 @@ export default function SubscriptionSettings() {
       </Card>
 
       {/* Plans Comparison */}
-      <Card>
-        <CardHeader>
+      <Card className="border-slate-700 dark:bg-slate-800/60 shadow-md">
+        <CardHeader className="dark:border-slate-700">
           <CardTitle>Available Plans</CardTitle>
         </CardHeader>
         <CardContent>
@@ -534,23 +534,23 @@ export default function SubscriptionSettings() {
               <Card
                 key={plan.name}
                 className={cn(
-                  "relative",
-                  plan.popular && "border-primary",
-                  currentPlan.planType === plan.name && currentPlan.isMonthly && "bg-muted"
+                  "relative border-slate-600 dark:bg-slate-900/80 shadow-md backdrop-blur-sm",
+                  plan.popular && "border-primary dark:border-purple-500",
+                  currentPlan.planType === plan.name && currentPlan.isMonthly && "bg-muted dark:bg-slate-700/50"
                 )}
               >
                 {plan.popular && (
-                  <Badge className="absolute -top-2 right-4">
+                  <Badge className="absolute -top-2 right-4 dark:bg-purple-600 dark:border dark:border-purple-400 dark:text-white">
                     Most Popular
                   </Badge>
                 )}
                 {currentPlan.planType === plan.name && currentPlan.isMonthly && (
-                  <Badge className="absolute -top-2 left-4 bg-green-500">
+                  <Badge className="absolute -top-2 left-4 bg-green-500 dark:bg-green-600 dark:border dark:border-green-500 text-white">
                     Current Plan
                   </Badge>
                 )}
                 {currentPlan.planType === plan.name && !currentPlan.isMonthly && !currentPlan.isTrialActive && (
-                  <Badge className="absolute -top-2 left-4 bg-red-500">
+                  <Badge className="absolute -top-2 left-4 bg-red-500 dark:bg-red-600 dark:border dark:border-red-500 text-white">
                     Cancelled
                   </Badge>
                 )}
@@ -561,7 +561,7 @@ export default function SubscriptionSettings() {
                         {plan.name}
                       </h3>
                       <div className="flex flex-wrap items-baseline gap-1">
-                        <span className="text-3xl font-bold">
+                        <span className="text-3xl font-bold text-foreground">
                           {plan.price}
                         </span>
                         <span className="text-sm text-muted-foreground">
@@ -569,28 +569,27 @@ export default function SubscriptionSettings() {
                         </span>
                         {plan.fixedQuantity && (
                           <span className="text-md ml-1 block w-full mt-1">
-                            <span className="font-semibold text-blue-600">
+                            <span className="font-semibold text-blue-600 dark:text-blue-400">
                               {plan.name === "Growth" ? "$67 × 3 = $201/mo total" : "$57 × 5 = $285/mo total"}
                             </span>
                           </span>
                         )}
                         {plan.freeTrial && !plan.hasHadTrial && (
-                          <span className="ml-2 text-xs px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full font-bold">
+                          <span className="ml-2 text-xs px-2 py-1 bg-yellow-200 text-yellow-800 dark:bg-yellow-800/60 dark:text-yellow-200 dark:border dark:border-yellow-700 rounded-full font-bold">
                             {plan.freeTrialDays}-DAY FREE TRIAL
                           </span>
                         )}
                         {plan.freeTrial && plan.hasHadTrial && (
-                          <span className="ml-2 text-xs px-2 py-1 bg-gray-200 text-gray-800 rounded-full font-medium line-through">
+                          <span className="ml-2 text-xs px-2 py-1 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300 dark:border dark:border-gray-600 rounded-full font-medium line-through">
                             No free trial available
                           </span>
                         )}
                       </div>
                       {plan.fixedQuantity && (
-                        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md text-sm">
+                        <div className="mt-4 p-3 bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-md text-sm">
                           <div className="flex items-start gap-2">
-                            <div className="h-2 w-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
+                            <div className="h-2 w-2 bg-blue-500 dark:bg-blue-400 rounded-full mt-1.5 flex-shrink-0" />
                             <div>
-                              
                               <div className="text-xs mt-0.5">
                                 {plan.name === "Growth" ? "Perfect for small teams" : "Ideal for larger teams"}
                               </div>
@@ -618,8 +617,8 @@ export default function SubscriptionSettings() {
                               key={feature}
                               className={`flex items-center gap-2 text-sm ${isFreeTrial ? 'py-1 my-1' : ''}`}
                             >
-                              <Check className={`h-4 w-4 shrink-0 ${isFreeTrial ? 'text-yellow-500' : 'text-primary'}`} />
-                              <span className={isFreeTrial ? 'font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-md' : ''}>{feature}</span>
+                              <Check className={`h-4 w-4 shrink-0 ${isFreeTrial ? 'text-yellow-500 dark:text-yellow-400' : 'text-primary dark:text-purple-400'}`} />
+                              <span className={isFreeTrial ? 'font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-md dark:bg-yellow-900/30 dark:text-yellow-300' : ''}>{feature}</span>
                             </li>
                           );
                         })}
@@ -628,7 +627,12 @@ export default function SubscriptionSettings() {
                   
                   <div className="mt-6">
                     <Button
-                      className="w-full mt-auto"
+                      className={cn(
+                        "w-full mt-auto",
+                        currentPlan.planType === plan.name && currentPlan.isMonthly 
+                          ? "dark:border-slate-600 dark:bg-slate-700/50 dark:text-white dark:hover:bg-slate-700" 
+                          : "dark:bg-purple-600 dark:hover:bg-purple-700 dark:text-white"
+                      )}
                       variant={currentPlan.planType === plan.name && currentPlan.isMonthly ? "outline" : "default"}
                       onClick={async () => {
                         try {
