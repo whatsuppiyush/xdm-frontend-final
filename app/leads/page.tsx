@@ -10,6 +10,9 @@ import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { CookieRefreshDialog } from "@/components/ui/cookie-refresh-dialog";
 import LeadDetailsDialog from "@/components/leads/lead-details-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Database, PlusCircle, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface LeadList {
   id: string;
@@ -41,6 +44,12 @@ export default function LeadsPage() {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [selectedLead, setSelectedLead] = useState<{ id: string; name: string } | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [leadCredits, setLeadCredits] = useState({
+    credits: 0,
+    planType: null as string | null,
+    loading: true,
+  });
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
@@ -111,6 +120,28 @@ export default function LeadsPage() {
       if (intervalId) clearInterval(intervalId);
     };
   }, [userId, refreshCounter]);
+
+  useEffect(() => {
+    const fetchUserCredits = async () => {
+      if (!userId) return;
+      
+      try {
+        const creditsResponse = await fetch("/api/user/credits");
+        const creditsData = await creditsResponse.json();
+        
+        setLeadCredits({
+          credits: creditsData.leadCredits || 0,
+          planType: creditsData.planType,
+          loading: false,
+        });
+      } catch (error) {
+        console.error("Error fetching lead credits:", error);
+        setLeadCredits(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchUserCredits();
+  }, [userId]);
 
   const handleDeleteLead = async (leadId: string) => {
     try {
@@ -200,6 +231,11 @@ export default function LeadsPage() {
     setDetailsDialogOpen(true);
   };
 
+  // Filter leads based on search query
+  const filteredLeads = leadLists.filter(lead => 
+    lead.leadName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (isImporting) {
     return <ImportLeads onBack={() => setIsImporting(false)} refreshLeads={refreshLeads} />;
   }
@@ -207,71 +243,151 @@ export default function LeadsPage() {
   return (
     <div className="p-4 md:p-8 space-y-6 md:space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
-        <h1 className="text-3xl font-bold">Manage your Leads</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Manage your Leads</h1>
         <Button
           onClick={() => setIsImporting(true)}
-          variant="outline"
-          className="border-2"
+          className="bg-purple-400 hover:bg-purple-500 text-white"
         >
+          <PlusCircle className="h-4 w-4 mr-2" />
           Add new leads
         </Button>
       </div>
 
-      <div className="border-2 rounded-lg p-4 md:p-6" key={`leads-container-${Date.now()}`}>
+      <Card className="border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800">
+          <div>
+            <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Remaining Lead Credits</CardTitle>
+          </div>
+          <Database className="h-5 w-5 text-purple-300" />
+        </CardHeader>
+        <CardContent className="px-4 py-3">
+          <div className="flex flex-col">
+            <div className="flex items-end gap-1">
+              <span className="text-3xl font-bold text-purple-400">{leadCredits.loading ? '—' : leadCredits.credits.toLocaleString()}</span>
+              {leadCredits.planType && <span className="text-sm text-gray-500 dark:text-gray-400 mb-1">{leadCredits.planType} Plan</span>}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Search Input */}
+      <div className="relative w-full">
+        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
+        </div>
+        <Input
+          type="text"
+          placeholder="Search leads by name..."
+          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 focus-visible:ring-purple-400 focus-visible:border-purple-400 dark:bg-slate-800"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
-          <div className="text-center py-4 text-gray-500">Loading lead lists...</div>
-        ) : leadLists.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {leadLists.map((list) => (
-              <LeadListCard
-                key={list.id}
-                id={list.id}
-                name={list.leadName}
-                leadCount={list.totalLeads}
-                createdAt={list.createdAt}
-                status={list.status}
-                onCreateAutomation={() => handleCreateAutomation(list.id, list.leadName)}
-                onDelete={handleDeleteLead}
-                onViewDetails={handleViewDetails}
-              />
-            ))}
+          // Loading state
+          Array.from({ length: 3 }).map((_, index) => (
+            <Card key={`skeleton-${index}`} className="border border-gray-100 dark:border-gray-700 h-[150px] animate-pulse bg-gray-50 dark:bg-gray-800">
+              <CardContent className="p-6 flex flex-col">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-4"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-5"></div>
+                <div className="mt-auto flex gap-2">
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : filteredLeads.length === 0 && searchQuery ? (
+          // No search results
+          <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
+            <Search className="h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">No matching leads found</h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
+              Try a different search term or clear your search
+            </p>
+            <Button 
+              onClick={() => setSearchQuery("")}
+              variant="outline"
+              className="dark:border-gray-600"
+            >
+              Clear search
+            </Button>
+          </div>
+        ) : leadLists.length === 0 ? (
+          // Empty state
+          <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
+            <Database className="h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">No lead lists yet</h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
+              Import your first list of leads to get started with your campaign
+            </p>
+            <Button 
+              onClick={() => setIsImporting(true)}
+              className="bg-purple-400 hover:bg-purple-500 text-white"
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add new leads
+            </Button>
           </div>
         ) : (
-          <div className="text-center py-4 text-gray-500">
-            No lead lists found. Click Add new leads to create one.
-          </div>
+          // Lead list cards
+          filteredLeads.map((lead) => (
+            <LeadListCard
+              key={lead.id}
+              id={lead.id}
+              name={lead.leadName}
+              leadCount={lead.totalLeads}
+              createdAt={lead.createdAt}
+              status={lead.status}
+              onDelete={(id) => {
+                setLeadToDelete(id);
+                setDeleteDialogOpen(true);
+              }}
+              onCreateAutomation={() => handleCreateAutomation(lead.id, lead.leadName)}
+              onViewDetails={(id, name) => handleViewDetails(id, name)}
+            />
+          ))
         )}
       </div>
 
-      <DeleteConfirmationDialog
-        isOpen={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setLeadToDelete(null);
-        }}
-        onConfirm={() => {
-          if (leadToDelete) {
-            handleDeleteLead(leadToDelete);
-          }
-          setDeleteDialogOpen(false);
-        }}
-        title="Delete Lead List"
-        description="Are you sure you want to delete this lead list? This action cannot be undone."
-        isDeleting={isDeleting}
-      />
+      {/* Delete Confirmation Dialog */}
+      {deleteDialogOpen && (
+        <DeleteConfirmationDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={() => {
+            if (leadToDelete) {
+              handleDeleteLead(leadToDelete);
+              setDeleteDialogOpen(false);
+              setLeadToDelete(null);
+            }
+          }}
+          title="Delete Lead List"
+          description="Are you sure you want to delete this lead list? This action cannot be undone."
+          isDeleting={isDeleting}
+        />
+      )}
 
-      <CookieRefreshDialog
+      {/* Cookie Error Dialog */}
+      <CookieRefreshDialog 
         isOpen={cookieErrorDialogOpen}
         onClose={() => setCookieErrorDialogOpen(false)}
         onRefresh={handleRefreshCookies}
       />
 
+      {/* Lead Details Dialog */}
       {selectedLead && (
         <LeadDetailsDialog
           isOpen={detailsDialogOpen}
           onClose={() => setDetailsDialogOpen(false)}
           leadId={selectedLead.id}
           leadName={selectedLead.name}
+          onCreateAutomation={() => {
+            handleCreateAutomation(selectedLead.id, selectedLead.name);
+            setDetailsDialogOpen(false);
+          }}
         />
       )}
     </div>

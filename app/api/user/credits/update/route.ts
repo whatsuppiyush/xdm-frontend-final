@@ -25,13 +25,27 @@ export async function POST(request: Request) {
       }, { status: 404 });
     }
 
-    // Check if user has enough credits
+    // Check if user is on a free trial
+    if (userCredits.isTrialActive) {
+      // Check if trial has ended
+      if (userCredits.trialEndDate && new Date() > new Date(userCredits.trialEndDate)) {
+        return NextResponse.json({ 
+          error: "Your free trial has ended. Please upgrade to continue using the service.",
+          success: false,
+          trialEnded: true,
+          remainingCredits: userCredits.leadCredits
+        }, { status: 403 });
+      }
+    }
+    
+    // Determine how many credits to deduct
+    let creditsToDeduct = leadsCount;
+    let wasLimited = false;
+    
+    // If user doesn't have enough credits, just reduce to zero
     if (userCredits.leadCredits < leadsCount) {
-      return NextResponse.json({ 
-        error: "Insufficient lead credits",
-        success: false,
-        remainingCredits: userCredits.leadCredits
-      }, { status: 400 });
+      creditsToDeduct = userCredits.leadCredits;
+      wasLimited = true;
     }
 
     // Update the user's credits by reducing the lead credits
@@ -39,7 +53,7 @@ export async function POST(request: Request) {
       where: { userId },
       data: {
         leadCredits: {
-          decrement: leadsCount
+          decrement: creditsToDeduct
         },
         updatedAt: new Date()
       }
@@ -47,7 +61,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true,
-      remainingCredits: updatedCredits.leadCredits
+      remainingCredits: updatedCredits.leadCredits,
+      isTrialActive: updatedCredits.isTrialActive,
+      isMonthly: updatedCredits.isMonthly,
+      wasLimited
     });
   } catch (error) {
     console.error("Error updating user credits:", error);

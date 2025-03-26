@@ -6,6 +6,8 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { ObjectId } from 'mongodb';
 import { pushUserToGoogleSheet } from '@/lib/googleSheets';
+import { pushUserToInstantly } from '@/lib/instantlyApi';
+import { pushUserToBeehiiv } from '@/lib/beehiivApi';
 
 declare module "next-auth" {
   interface Session {
@@ -94,6 +96,29 @@ export const authOptions: NextAuthOptions = {
                 console.error('Error pushing converted user data to Google Sheet:', sheetError);
                 // Continue with sign-in even if Google Sheet push fails
               }
+              
+              // Also push to Instantly.ai when user converts from credentials to Google
+              try {
+                await pushUserToInstantly({
+                  email: user.email,
+                  name: user.name
+                });
+              } catch (instantlyError) {
+                console.error('Error pushing converted user data to Instantly.ai:', instantlyError);
+                // Continue with sign-in even if Instantly.ai push fails
+              }
+              
+              // Also push to Beehiiv when user converts from credentials to Google
+              try {
+                await pushUserToBeehiiv({
+                  email: user.email,
+                  name: user.name,
+                  provider: 'google (converted from credentials)'
+                });
+              } catch (beehiivError) {
+                console.error('Error pushing converted user data to Beehiiv:', beehiivError);
+                // Continue with sign-in even if Beehiiv push fails
+              }
             }
             
             return true;
@@ -139,6 +164,29 @@ export const authOptions: NextAuthOptions = {
           } catch (sheetError) {
             console.error('Error pushing Google user data to Google Sheet:', sheetError);
             // Continue with sign-in even if Google Sheet push fails
+          }
+          
+          // Push new Google user data to Instantly.ai
+          try {
+            await pushUserToInstantly({
+              email: user.email,
+              name: user.name
+            });
+          } catch (instantlyError) {
+            console.error('Error pushing Google user data to Instantly.ai:', instantlyError);
+            // Continue with sign-in even if Instantly.ai push fails
+          }
+          
+          // Push new Google user data to Beehiiv
+          try {
+            await pushUserToBeehiiv({
+              email: user.email,
+              name: user.name,
+              provider: 'google'
+            });
+          } catch (beehiivError) {
+            console.error('Error pushing Google user data to Beehiiv:', beehiivError);
+            // Continue with sign-in even if Beehiiv push fails
           }
 
           return true;

@@ -9,86 +9,85 @@ import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/user-context";
 import { Slider } from "@/components/ui/slider";
 
+// Define interface for plan objects
+interface Plan {
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+  variantId: string;
+  purchaseUrl: string;
+  freeTrial: boolean;
+  freeTrialDays: number;
+  trialCredits: number;
+  popular?: boolean;
+  quantity?: number;
+  fixedQuantity?: boolean;
+  hasHadTrial?: boolean;
+}
+
 // Define the plans based on the provided information
-const plans = [
-  {
-    name: "Mini",
-    price: "$19",
-    description: "Perfect for individuals just getting started",
-    features: [
-      "50 DMs per day",
-      "3,000 Lead Credits",
-      "1 Twitter Account",
-      "Basic Analytics",
-      "Email Support",
-    ],
-    variantId: "714798",
-    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/2653f93c-dcef-43a5-ab21-4fe784700175",
-  },
+const plans: Plan[] = [
   {
     name: "Starter",
-    price: "$57",
-    description: "For growing businesses",
+    price: "$87",
+    description: "For individuals getting started",
     features: [
-      "200 DMs per day",
-      "12,000 Lead Credits",
+      "450 DMs per day",
+      "25,000 Lead Credits",
       "1 Twitter Account",
-      "Advanced Analytics",
-      "Priority Support",
-    ],
-    popular: true,
-    variantId: "714799",
-    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/3295469d-2f93-4ebc-85d8-df07aebec36e",
-  },
-  {
-    name: "Pro",
-    price: "$97",
-    description: "For power users and teams",
-    features: [
-      "450 DMs per day (per account)",
-      "27,000 Lead Credits (per account)",
-      "Multiple Twitter Accounts",
-      "Comprehensive Analytics",
-      "24/7 Priority Support",
-      "API Access",
+      "Advanced AI personalization",
+      "Priority email support",
+      "Unlimited message history",
+      "✨ 3-DAY FREE TRIAL ✨"
     ],
     variantId: "714800",
     purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/68f27604-6772-4cec-941f-c1e83e9b6ebe",
-    tiers: [
-      { 
-        name: "Standard Tier", 
-        minQuantity: 1, 
-        maxQuantity: 2,
-        pricePerAccount: 97,
-        variantId: "714800",
-        purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/68f27604-6772-4cec-941f-c1e83e9b6ebe"
-      },
-      { 
-        name: "Team Tier", 
-        minQuantity: 3, 
-        maxQuantity: 4,
-        pricePerAccount: 75,
-        variantId: "726374",
-        purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/194b3397-2038-492d-9184-5718800219d0"
-      },
-      { 
-        name: "Growth Tier", 
-        minQuantity: 5, 
-        maxQuantity: 9,
-        pricePerAccount: 67,
-        variantId: "726375",
-        purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/fa5fdff6-31e0-49d7-8166-9d13e8e45205"
-      },
-      { 
-        name: "Enterprise Tier", 
-        minQuantity: 10, 
-        maxQuantity: 15,
-        pricePerAccount: 49,
-        variantId: "726377",
-        purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/e8e0faaf-488d-4d9f-bb8e-c6a248917adb"
-      }
-    ]
+    freeTrial: true,
+    freeTrialDays: 3,
+    trialCredits: 1500
   },
+  {
+    name: "Growth",
+    price: "$67",
+    description: "For serious professionals",
+    features: [
+      "1350 DMs per day (450 × 3 accounts)",
+      "75,000 Lead Credits (25,000 × 3 accounts)",
+      "3 Twitter Accounts",
+      "Advanced AI personalization",
+      "Priority email support",
+      "Unlimited message history"
+    ],
+    popular: true,
+    variantId: "726375",
+    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/fa5fdff6-31e0-49d7-8166-9d13e8e45205",
+    quantity: 3,
+    fixedQuantity: true,
+    freeTrial: false,
+    freeTrialDays: 0,
+    trialCredits: 0
+  },
+  {
+    name: "Elite",
+    price: "$57",
+    description: "For power users & teams",
+    features: [
+      "2250 DMs per day (450 × 5 accounts)",
+      "125,000 Lead Credits (25,000 × 5 accounts)",
+      "5 Twitter Accounts",
+      "Advanced AI personalization",
+      "Priority email support",
+      "Unlimited message history"
+    ],
+    variantId: "726377",
+    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/e8e0faaf-488d-4d9f-bb8e-c6a248917adb",
+    quantity: 5,
+    fixedQuantity: true,
+    freeTrial: false,
+    freeTrialDays: 0,
+    trialCredits: 0
+  }
 ];
 
 export default function SubscriptionSettings() {
@@ -97,15 +96,31 @@ export default function SubscriptionSettings() {
     name: string;
     leadCredits: number;
     planType: string | null;
+    isMonthly: boolean;
     customerPortalUrl?: string | null;
     updatePaymentMethodUrl?: string | null;
+    isTrialActive?: boolean;
+    trialStartDate?: Date | null;
+    trialEndDate?: Date | null;
+    trialStatus?: string | null;
+    hadPreviousTrial?: boolean;
+    createdAt?: Date | null;
+    subscriptionId?: string | null;
   }>({
     name: "No Plan",
     leadCredits: 0,
     planType: null,
+    isMonthly: false,
+    isTrialActive: false,
+    trialStatus: null,
+    subscriptionId: null
   });
   const [loading, setLoading] = useState(true);
-  const [proQuantity, setProQuantity] = useState(1);
+  // Add a state to track which button is loading
+  const [buttonLoadingState, setButtonLoadingState] = useState<{
+    [key: string]: boolean;
+  }>({});
+  // No longer need to track quantity for individual plans as they have fixed quantities
 
   useEffect(() => {
     const fetchUserCredits = async () => {
@@ -121,8 +136,16 @@ export default function SubscriptionSettings() {
             name: data.planType,
             leadCredits: data.leadCredits,
             planType: data.planType,
+            isMonthly: data.isMonthly || false,
             customerPortalUrl: data.customerPortalUrl,
             updatePaymentMethodUrl: data.updatePaymentMethodUrl,
+            isTrialActive: data.isTrialActive,
+            trialStartDate: data.trialStartDate,
+            trialEndDate: data.trialEndDate,
+            trialStatus: data.trialStatus,
+            hadPreviousTrial: data.hadPreviousTrial,
+            createdAt: data.createdAt,
+            subscriptionId: data.subscriptionId
           });
         }
       } catch (error) {
@@ -150,105 +173,147 @@ export default function SubscriptionSettings() {
     return `${baseUrl}?quantity=${quantity}&checkout[custom][user_id]=${userId}`;
   };
 
-  // Get current price per account for Pro plan based on quantity
-  const getProPriceForQuantity = (quantity: number) => {
-    const proPlan = plans[2]; // Pro plan
-    
-    // Add null check before accessing tiers
-    if (!proPlan || !proPlan.tiers) {
-      return 0; // Or some default price
+  // No longer need tier-specific functions since plans have fixed quantities
+
+  // Function to handle opening checkout URLs with retry mechanism
+  const openCheckoutWithRetry = (checkoutUrl: string) => {
+    // Store the checkout URL in sessionStorage to persist through page refresh
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('pendingCheckoutUrl', checkoutUrl);
     }
     
-    const tier = proPlan.tiers.find(t =>
-      quantity >= t.minQuantity && quantity <= t.maxQuantity
-    );
+    // Immediately open the checkout URL
+    const newWindow = window.open(checkoutUrl, "_blank");
     
-    return tier ? tier.pricePerAccount : 97; // Return tier price or default
-  };
-
-  // Get current tier for Pro plan based on quantity
-  const getProTierForQuantity = (quantity: number) => {
-    const proPlan = plans[2]; // Pro plan
-    
-    // Add null check before accessing tiers
-    if (!proPlan || !proPlan.tiers) {
-      return "Standard Tier"; // Default tier name
+    // If window was blocked or failed to open
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      console.log("Initial window open may have been blocked, will retry...");
     }
     
-    return proPlan.tiers.find(
-      tier => quantity >= tier.minQuantity && quantity <= tier.maxQuantity
-    )?.name || "Standard Tier";
-  };
-
-  // Get the current tier object for Pro plan based on quantity
-  const getProTierObjectForQuantity = (quantity: number) => {
-    const proPlan = plans[2]; // Pro plan
+    // Set a retry timer with multiple attempts
+    let attempts = 0;
+    const maxAttempts = 3;
     
-    // Add null check before accessing tiers
-    if (!proPlan || !proPlan.tiers) {
-      return { 
-        name: "Standard Tier", 
-        minQuantity: 1, 
-        maxQuantity: 2,
-        pricePerAccount: 97,
-        variantId: "462172",
-        purchaseUrl: plans[2].purchaseUrl
-      }; // Default tier object
-    }
-    
-    return proPlan.tiers.find(
-      tier => quantity >= tier.minQuantity && quantity <= tier.maxQuantity
-    ) || proPlan.tiers[0]; // Default to first tier if not found
-  };
-
-  // Calculate total price and savings
-  const calculateProTotalPrice = (quantity: number) => {
-    const tier = getProTierObjectForQuantity(quantity);
-    const pricePerAccount = tier.pricePerAccount;
-    const totalPrice = pricePerAccount * quantity;
-    const regularPrice = 97 * quantity; // Regular price without volume discount
-    const savings = regularPrice - totalPrice;
-    
-    // Each Pro account gets 27,000 lead credits
-    const leadCreditsPerAccount = 27000;
-    const totalLeadCredits = leadCreditsPerAccount * quantity;
-    
-    return {
-      pricePerAccount,
-      totalPrice,
-      savings,
-      totalDMs: 13500 * quantity,
-      totalLeadCredits
-    };
-  };
-
-  const proDetails = calculateProTotalPrice(proQuantity);
-
-  // Test function for Lemon Squeezy URL format
-  const getDirectLemonSqueezyUrl = (plan: any, quantity: number) => {
-    try {
-      console.log("Original Purchase URL:", plan.purchaseUrl);
-      
-      // Get the tier for this quantity to use the correct purchase URL
-      if (plan.name === "Pro") {
-        const tier = getProTierObjectForQuantity(quantity);
-        console.log("Selected tier:", tier.name, "Price per account:", tier.pricePerAccount);
-        console.log("Selected quantity:", quantity);
+    const retryOpening = () => {
+      if (attempts < maxAttempts) {
+        attempts++;
         
-        // Use the tier-specific purchase URL with quantity parameter
-        const checkoutUrl = `${tier.purchaseUrl}?quantity=${quantity}&checkout[custom][user_id]=${userId}`;
-        console.log("Final checkout URL:", checkoutUrl);
-        return checkoutUrl;
+        // Get URL from session storage in case it was updated
+        const storedUrl = sessionStorage.getItem('pendingCheckoutUrl');
+        
+        if (storedUrl) {
+          console.log(`Retry attempt ${attempts} to open checkout URL`);
+          const retryWindow = window.open(storedUrl, "_blank");
+          
+          // If still unsuccessful, try again with a longer delay
+          if (!retryWindow || retryWindow.closed || typeof retryWindow.closed === 'undefined') {
+            setTimeout(retryOpening, 1500 * attempts); // Increase delay with each retry
+          } else {
+            // Successful open, remove from storage after a delay to ensure it loads
+            setTimeout(() => {
+              sessionStorage.removeItem('pendingCheckoutUrl');
+            }, 5000);
+          }
+        }
+      } else {
+        // Max attempts reached, show UI message to user
+        alert("The checkout page couldn't be opened automatically. Please click 'Upgrade Plan' again or check your popup blocker settings.");
+      }
+    };
+    
+    // Start first retry after initial delay
+    setTimeout(retryOpening, 1500);
+  };
+
+  // Generate checkout URL using the Checkouts API endpoint
+  const getDirectLemonSqueezyUrl = async (plan: any) => {
+    try {
+      console.log("Creating checkout through API for plan:", plan.name);
+      
+      // Use the plan's fixed quantity if available, otherwise default to 1
+      const quantity = plan.fixedQuantity ? plan.quantity : 1;
+      
+      // Use variant ID directly from the plan object
+      const variantId = plan.variantId;
+      
+      if (!variantId) {
+        console.error(`No variant ID found for plan: ${plan.name}`);
+        throw new Error(`Unknown plan type: ${plan.name}`);
       }
       
-      // For non-Pro plans, use the original URL
-      const checkoutUrl = `${plan.purchaseUrl}?quantity=${quantity}&checkout[custom][user_id]=${userId}`;
-      console.log("Final checkout URL:", checkoutUrl);
-      return checkoutUrl;
+      console.log(`Sending request to create checkout for plan: ${plan.name}, variant ID: ${variantId}, quantity: ${quantity}`);
+      
+      // Call our custom API endpoint which uses LemonSqueezy's Checkouts API
+      const response = await fetch('/api/checkout/lemonsqueezy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId: variantId,
+          quantity: quantity,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error creating checkout:', errorData);
+        throw new Error(`Failed to create checkout: ${errorData.error || 'Unknown error'}`);
+      }
+      
+      const data = await response.json();
+      console.log('Checkout created successfully, URL:', data.url);
+      
+      // Check if user previously had a trial (we still need this for the UI)
+      const hadPreviousTrial = currentPlan.hadPreviousTrial || 
+                               currentPlan.trialStartDate !== null || 
+                               (!currentPlan.isTrialActive && !currentPlan.isMonthly && currentPlan.planType) ||
+                               currentPlan.subscriptionId !== null;
+      
+      // If user had a previous trial, update the plan object to remove trial text in UI
+      if (hadPreviousTrial) {
+        plan.hasHadTrial = true;
+      }
+      
+      return data.url;
     } catch (error) {
       console.error("Error creating checkout URL:", error);
-      return plan.purchaseUrl + `?quantity=${quantity}&checkout[custom][user_id]=${userId}`;
+      // Fallback to standard URL with user ID if our API fails
+      return plan.purchaseUrl + `?checkout[custom][user_id]=${userId}`;
     }
+  };
+
+  // Get subscription status message
+  const getSubscriptionStatusMessage = () => {
+    if (!currentPlan.planType) return null;
+    
+    if (currentPlan.isTrialActive) {
+      if (currentPlan.trialStatus?.startsWith('active-')) {
+        const daysRemaining = currentPlan.trialStatus.replace('active-', '');
+        return `Trial - ${daysRemaining} days remaining`;
+      } else if (currentPlan.trialStatus === 'ended') {
+        return "Trial ended - Please upgrade";
+      }
+      return "Free Trial";
+    } else if (currentPlan.isMonthly) {
+      return "Active subscription";
+    } else {
+      return "Cancelled subscription";
+    }
+  };
+
+  // Update function to calculate grace period status based on creation date
+  const getGracePeriodStatus = () => {
+    if (!currentPlan.createdAt || currentPlan.isMonthly || currentPlan.isTrialActive) return null;
+    
+    const creationDate = new Date(currentPlan.createdAt);
+    const gracePeriodEnd = new Date(creationDate);
+    gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 30);
+    
+    const now = new Date();
+    const daysRemaining = Math.ceil((gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+ 
   };
 
   return (
@@ -275,8 +340,53 @@ export default function SubscriptionSettings() {
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Billed monthly</p>
+                  {currentPlan.isTrialActive ? (
+                    <div className="mb-2">
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300">
+                        Free Trial
+                      </Badge>
+                      {currentPlan.trialStatus?.startsWith('active-') && (
+                        <span className="ml-2 text-xs font-medium text-yellow-700">
+                          {currentPlan.trialStatus.replace('active-', '')} days remaining
+                        </span>
+                      )}
+                      {currentPlan.trialStatus === 'ended' && (
+                        <span className="ml-2 text-xs font-medium text-red-600">
+                          Trial ended - Please upgrade
+                        </span>
+                      )}
+                    </div>
+                  ) : currentPlan.isMonthly ? (
+                    <div className="mb-2">
+                      <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300">
+                        Active Subscription
+                      </Badge>
+                    </div>
+                  ) : currentPlan.planType ? (
+                    <div className="mb-2">
+                      <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300">
+                        Cancelled
+                      </Badge>
+                      {getGracePeriodStatus() && (
+                        <span className="ml-2 text-xs font-medium text-orange-600">
+                          {getGracePeriodStatus()}
+                        </span>
+                      )}
+                    </div>
+                  ) : null}
                   <p>Available Lead Credits: {currentPlan.leadCredits}</p>
+                  {currentPlan.isTrialActive && (
+                    <p className="text-xs text-yellow-700">
+                       During trial, you have 1,500 lead credits. After trial ends, you&apos;ll get 25,000 credits.
+                    </p>
+                  )}
+                  {!currentPlan.isMonthly && !currentPlan.isTrialActive && currentPlan.planType && (
+                    <p className="text-xs text-red-700">
+                      Your subscription has been cancelled. {getGracePeriodStatus() ? 
+                        "You can continue using your remaining credits during the grace period." : 
+                        "Subscribe again to get more lead credits."}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap w-full gap-2">
@@ -295,7 +405,7 @@ export default function SubscriptionSettings() {
                       <CreditCard className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
                       Manage Subscription
                     </Button>
-                    {currentPlan.updatePaymentMethodUrl && (
+                    {currentPlan.updatePaymentMethodUrl && currentPlan.isMonthly && (
                       <Button 
                         variant="outline"
                         size="sm"
@@ -309,28 +419,102 @@ export default function SubscriptionSettings() {
                     <Button 
                       size="sm"
                       className="text-xs sm:text-sm"
-                      onClick={() => {
-                        // Use the original upgrade logic
-                        const nextPlanBaseUrl = currentPlan.planType === "Mini" 
-                          ? plans[1].purchaseUrl 
-                          : currentPlan.planType === "Starter" 
-                            ? plans[2].purchaseUrl 
-                            : plans[2].purchaseUrl;
-                        window.open(getCheckoutUrl(nextPlanBaseUrl), "_blank");
+                      variant={!currentPlan.isMonthly && !currentPlan.isTrialActive ? "destructive" : "default"}
+                      onClick={async () => {
+                        try {
+                          // Set loading state
+                          setButtonLoadingState(prev => ({ ...prev, upgrade: true }));
+                          
+                          // Get current plan details
+                          const currentPlanIndex = plans.findIndex(p => p.name === currentPlan.planType);
+                          
+                          // Get next plan or fallback to last plan
+                          const nextPlanIndex = currentPlanIndex < plans.length - 1 ? currentPlanIndex + 1 : plans.length - 1;
+                          const nextPlan = plans[nextPlanIndex];
+                          
+                          // Get checkout URL first before cancelling subscription
+                          const checkoutUrl = await getDirectLemonSqueezyUrl(nextPlan);
+                          
+                          // First cancel the existing subscription if there is one
+                          if (currentPlan.subscriptionId) {
+                            console.log(`Cancelling existing subscription ${currentPlan.subscriptionId} before upgrade`);
+                            
+                            const cancelResponse = await fetch('/api/subscription/cancel', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                subscriptionId: currentPlan.subscriptionId,
+                                isUpgrade: true // Flag to indicate this is part of an upgrade
+                              }),
+                            });
+                            
+                            if (!cancelResponse.ok) {
+                              const errorData = await cancelResponse.json();
+                              console.error('Error cancelling subscription before upgrade:', errorData);
+                              throw new Error(`Failed to cancel subscription: ${errorData.error || 'Unknown error'}`);
+                            }
+                            
+                            console.log('Successfully cancelled existing subscription before upgrade');
+                          }
+                          
+                          // Open checkout using the enhanced retry function
+                          openCheckoutWithRetry(checkoutUrl);
+                        } catch (error) {
+                          console.error("Error during upgrade process:", error);
+                          alert("There was an error during the upgrade process. Please try again or contact support.");
+                        } finally {
+                          // Reset loading state
+                          setButtonLoadingState(prev => ({ ...prev, upgrade: false }));
+                        }
                       }}
+                      disabled={buttonLoadingState.upgrade}
                     >
-                      <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
-                      Upgrade Plan
+                      {buttonLoadingState.upgrade ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-current"></span>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
+                          {!currentPlan.isMonthly && !currentPlan.isTrialActive ? "Resubscribe Now" : "Upgrade Plan"}
+                        </>
+                      )}
                     </Button>
                   </>
                 ) : (
                   <Button 
                     size="sm"
                     className="text-xs sm:text-sm"
-                    onClick={() => window.open(getCheckoutUrl(plans[0].purchaseUrl), "_blank")}
+                    onClick={async () => {
+                      try {
+                        // Set loading state
+                        setButtonLoadingState(prev => ({ ...prev, getStarted: true }));
+                        
+                        const checkoutUrl = await getDirectLemonSqueezyUrl(plans[0]);
+                        window.open(checkoutUrl, "_blank");
+                      } catch (error) {
+                        console.error("Error getting checkout URL:", error);
+                      } finally {
+                        // Reset loading state
+                        setButtonLoadingState(prev => ({ ...prev, getStarted: false }));
+                      }
+                    }}
+                    disabled={buttonLoadingState.getStarted}
                   >
-                    <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
-                    Get Started
+                    {buttonLoadingState.getStarted ? (
+                      <>
+                        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></span>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
+                        Get Started
+                      </>
+                    )}
                   </Button>
                 )}
               </div>
@@ -352,7 +536,7 @@ export default function SubscriptionSettings() {
                 className={cn(
                   "relative",
                   plan.popular && "border-primary",
-                  currentPlan.planType === plan.name && "bg-muted"
+                  currentPlan.planType === plan.name && currentPlan.isMonthly && "bg-muted"
                 )}
               >
                 {plan.popular && (
@@ -360,9 +544,14 @@ export default function SubscriptionSettings() {
                     Most Popular
                   </Badge>
                 )}
-                {currentPlan.planType === plan.name && (
+                {currentPlan.planType === plan.name && currentPlan.isMonthly && (
                   <Badge className="absolute -top-2 left-4 bg-green-500">
                     Current Plan
+                  </Badge>
+                )}
+                {currentPlan.planType === plan.name && !currentPlan.isMonthly && !currentPlan.isTrialActive && (
+                  <Badge className="absolute -top-2 left-4 bg-red-500">
+                    Cancelled
                   </Badge>
                 )}
                 <CardContent className="flex flex-col h-full pt-6 px-3 sm:px-6">
@@ -372,91 +561,38 @@ export default function SubscriptionSettings() {
                         {plan.name}
                       </h3>
                       <div className="flex flex-wrap items-baseline gap-1">
-                        {plan.name === "Pro" ? (
-                          <>
-                            <span className="text-3xl font-bold">
-                              ${proDetails.pricePerAccount.toFixed(2)}
+                        <span className="text-3xl font-bold">
+                          {plan.price}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {plan.fixedQuantity ? `per account / month` : `/month`}
+                        </span>
+                        {plan.fixedQuantity && (
+                          <span className="text-md ml-1 block w-full mt-1">
+                            <span className="font-semibold text-blue-600">
+                              {plan.name === "Growth" ? "$67 × 3 = $201/mo total" : "$57 × 5 = $285/mo total"}
                             </span>
-                            <span className="text-sm text-muted-foreground">
-                              per account / month
-                            </span>
-                            <span className="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                              {getProTierForQuantity(proQuantity)}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-3xl font-bold">
-                              {plan.price}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              /month
-                            </span>
-                          </>
+                          </span>
+                        )}
+                        {plan.freeTrial && !plan.hasHadTrial && (
+                          <span className="ml-2 text-xs px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full font-bold">
+                            {plan.freeTrialDays}-DAY FREE TRIAL
+                          </span>
+                        )}
+                        {plan.freeTrial && plan.hasHadTrial && (
+                          <span className="ml-2 text-xs px-2 py-1 bg-gray-200 text-gray-800 rounded-full font-medium line-through">
+                            No free trial available
+                          </span>
                         )}
                       </div>
-                      {plan.name === "Pro" && (
-                        <div className="mt-4 space-y-4">
-                          <div className="flex flex-wrap items-center justify-between gap-1">
-                            <span className="text-sm">Number of accounts:</span>
-                            <span className="font-semibold">{proQuantity}</span>
-                          </div>
-                          <div className="flex items-center gap-1 sm:gap-2 w-full">
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-full flex-shrink-0"
-                              onClick={() => setProQuantity(Math.max(1, proQuantity - 1))}
-                              disabled={proQuantity <= 1}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <Slider
-                              value={[proQuantity]}
-                              min={1}
-                              max={15}
-                              step={1}
-                              className="flex-1 min-w-[100px]"
-                              onValueChange={(value) => setProQuantity(value[0])}
-                            />
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-full flex-shrink-0"
-                              onClick={() => setProQuantity(Math.min(15, proQuantity + 1))}
-                              disabled={proQuantity >= 15}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-4 text-xs text-muted-foreground mt-1">
-                            <div className="text-center">
-                              <div>1-2</div>
-                              <div>$97/acct</div>
-                            </div>
-                            <div className="text-center">
-                              <div>3-4</div>
-                              <div>$75/acct</div>
-                            </div>
-                            <div className="text-center">
-                              <div>5-9</div>
-                              <div>$67/acct</div>
-                            </div>
-                            <div className="text-center">
-                              <div>10-15</div>
-                              <div>$49/acct</div>
-                            </div>
-                          </div>
-                          <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-md text-sm">
-                            <div className="flex items-start gap-2">
-                              <div className="h-2 w-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0" />
-                              <div>
-                                <strong>Total: ${proDetails.totalPrice.toFixed(2)}</strong>
-                                {proDetails.savings > 0 && (
-                                  <div className="text-xs mt-0.5">
-                                    Save ${proDetails.savings.toFixed(2)} with volume discount
-                                  </div>
-                                )}
+                      {plan.fixedQuantity && (
+                        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md text-sm">
+                          <div className="flex items-start gap-2">
+                            <div className="h-2 w-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
+                            <div>
+                              
+                              <div className="text-xs mt-0.5">
+                                {plan.name === "Growth" ? "Perfect for small teams" : "Ideal for larger teams"}
                               </div>
                             </div>
                           </div>
@@ -467,86 +603,93 @@ export default function SubscriptionSettings() {
                       </p>
                     </div>
                     
-                    {plan.name === "Pro" ? (
-                      <>
-                        <div className="space-y-2">
-                          <div className="space-y-1">
-                            <h4 className="text-sm font-medium">450 DMs per day (per account)</h4>
-                            <p className="text-xs text-muted-foreground">
-                              13,500 DMs per month × {proQuantity} = {proDetails.totalDMs.toLocaleString()} total
-                            </p>
-                            <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-500 w-full" />
-                            </div>
-                          </div>
+                    <ul className="space-y-2">
+                        {plan.features.map((feature) => {
+                          // Check if this is the free trial feature and it's not available
+                          const isFreeTrial = feature.includes('FREE TRIAL');
                           
-                          <div className="space-y-1">
-                            <h4 className="text-sm font-medium">27,000 Lead Credits (per account)</h4>
-                            <p className="text-xs text-muted-foreground">
-                              Total: {proDetails.totalLeadCredits.toLocaleString()} lead credits
-                            </p>
-                            <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-500 w-full" />
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium">What&apos;s included:</h4>
-                          <ul className="space-y-2">
-                            <li className="flex items-center gap-2 text-sm">
-                              <Check className="h-4 w-4 text-green-500 shrink-0" />
-                              <span>Connect up to {proQuantity} Twitter {proQuantity === 1 ? 'account' : 'accounts'}</span>
+                          // Skip the free trial feature if it's not available
+                          if (isFreeTrial && plan.hasHadTrial) {
+                            return null;
+                          }
+                          
+                          return (
+                            <li
+                              key={feature}
+                              className={`flex items-center gap-2 text-sm ${isFreeTrial ? 'py-1 my-1' : ''}`}
+                            >
+                              <Check className={`h-4 w-4 shrink-0 ${isFreeTrial ? 'text-yellow-500' : 'text-primary'}`} />
+                              <span className={isFreeTrial ? 'font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-md' : ''}>{feature}</span>
                             </li>
-                            <li className="flex items-center gap-2 text-sm">
-                              <Check className="h-4 w-4 text-green-500 shrink-0" />
-                              <span>Advanced AI personalization</span>
-                            </li>
-                            <li className="flex items-center gap-2 text-sm">
-                              <Check className="h-4 w-4 text-green-500 shrink-0" />
-                              <span>Priority email support</span>
-                            </li>
-                            <li className="flex items-center gap-2 text-sm">
-                              <Check className="h-4 w-4 text-green-500 shrink-0" />
-                              <span>Unlimited message history</span>
-                            </li>
-                          </ul>
-                          <p className="text-xs text-muted-foreground mt-4">
-                            Cost per DM: ${(proDetails.pricePerAccount / 13500).toFixed(3)}
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <ul className="space-y-2">
-                        {plan.features.map((feature) => (
-                          <li
-                            key={feature}
-                            className="flex items-center gap-2 text-sm"
-                          >
-                            <Check className="h-4 w-4 text-primary shrink-0" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
+                          );
+                        })}
                       </ul>
-                    )}
                   </div>
                   
                   <div className="mt-6">
                     <Button
                       className="w-full mt-auto"
-                      variant={currentPlan.planType === plan.name ? "outline" : "default"}
-                      onClick={() => {
-                        if (plan.name === "Pro") {
-                          // Use the direct URL format with quantity parameter for Lemon Squeezy
-                          const checkoutUrl = getDirectLemonSqueezyUrl(plan, proQuantity);
-                          console.log("Opening checkout URL:", checkoutUrl);
-                          window.open(checkoutUrl, "_blank");
-                        } else {
-                          window.open(getCheckoutUrl(plan.purchaseUrl), "_blank");
+                      variant={currentPlan.planType === plan.name && currentPlan.isMonthly ? "outline" : "default"}
+                      onClick={async () => {
+                        try {
+                          // Set loading state for this specific plan button
+                          setButtonLoadingState(prev => ({ ...prev, [plan.name]: true }));
+                          
+                          // Get checkout URL first
+                          const checkoutUrl = await getDirectLemonSqueezyUrl(plan);
+                          
+                          // If user has an existing subscription and it's not the free trial plan
+                          // AND they're trying to upgrade to a different plan, cancel the current one first
+                          if (currentPlan.subscriptionId && 
+                              currentPlan.planType !== plan.name && 
+                              currentPlan.isMonthly) {
+                            
+                            console.log(`Cancelling existing subscription ${currentPlan.subscriptionId} before subscribing to ${plan.name}`);
+                            
+                            const cancelResponse = await fetch('/api/subscription/cancel', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                subscriptionId: currentPlan.subscriptionId,
+                                isUpgrade: true // Flag to indicate this is part of an upgrade
+                              }),
+                            });
+                            
+                            if (!cancelResponse.ok) {
+                              const errorData = await cancelResponse.json();
+                              console.error('Error cancelling subscription before upgrade:', errorData);
+                              throw new Error(`Failed to cancel subscription: ${errorData.error || 'Unknown error'}`);
+                            }
+                            
+                            console.log(`Successfully cancelled subscription before subscribing to ${plan.name}`);
+                          }
+                          
+                          // Open checkout using the enhanced retry function
+                          openCheckoutWithRetry(checkoutUrl);
+                        } catch (error) {
+                          console.error("Error getting checkout URL:", error);
+                          alert("There was an error during the upgrade process. Please try again or contact support.");
+                        } finally {
+                          // Reset loading state
+                          setButtonLoadingState(prev => ({ ...prev, [plan.name]: false }));
                         }
                       }}
+                      disabled={buttonLoadingState[plan.name]}
                     >
-                      {plan.name === "Pro" ? "Get Pro" : (currentPlan.planType === plan.name ? "Current Plan" : "Subscribe")}
+                      {buttonLoadingState[plan.name] ? (
+                        <div className="flex items-center justify-center">
+                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-current"></span>
+                          <span>Processing...</span>
+                        </div>
+                      ) : (
+                        currentPlan.planType === plan.name && currentPlan.isMonthly ? 
+                          "Current Plan" : 
+                          (currentPlan.planType === plan.name && !currentPlan.isMonthly ? 
+                            "Resubscribe" : 
+                            (plan.freeTrial && !plan.hasHadTrial ? `START ${plan.freeTrialDays}-DAY FREE TRIAL` : "Subscribe"))
+                      )}
                     </Button>
                   </div>
                 </CardContent>

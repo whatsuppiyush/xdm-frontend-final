@@ -6,7 +6,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 interface TutorialDialogProps {
   open: boolean;
@@ -18,26 +21,40 @@ export default function TutorialDialog({
   onOpenChange,
 }: TutorialDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} data-oid="c8v7x.3">
-      <DialogContent className="sm:max-w-[800px]" data-oid="gil_lr9">
-        <DialogHeader data-oid="iich.mi">
-          <DialogTitle data-oid="w_fv.wo">
-            How to Use Twitter DM Outreach
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden rounded-xl bg-slate-900">
+        <DialogClose className="absolute right-3 top-3 rounded-full p-1.5 text-slate-300 bg-slate-800/50 hover:bg-slate-700 transition-colors z-10">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogClose>
+        
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle className="text-xl font-semibold text-white">
+            How to Use XAutoDM
           </DialogTitle>
-          <DialogDescription data-oid="exx2aco">
-            Watch this quick tutorial to learn how to use the platform
-            effectively
+          <DialogDescription className="text-slate-300 text-sm">
+            Watch this quick tutorial to learn how to use the platform effectively
           </DialogDescription>
         </DialogHeader>
-        <div className="aspect-video" data-oid="l_ht875">
+        
+        <div className="aspect-video border-t border-slate-800">
           <iframe
-            className="w-full h-full rounded-lg"
+            className="w-full h-full"
             src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-            title="Twitter DM Outreach Tutorial"
+            title="XAutoDM Tutorial"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            data-oid="ukvyo4:"
           />
+        </div>
+        
+        <div className="bg-slate-900 p-4 flex justify-end border-t border-slate-800">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            className="text-white border-slate-700 hover:bg-slate-800 hover:text-white"
+          >
+            Close Tutorial
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

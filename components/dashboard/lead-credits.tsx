@@ -56,13 +56,13 @@ export default function LeadCredits() {
 
   if (credits.loading) {
     return (
-      <Card className="col-span-4">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="w-full">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
           <CardTitle className="text-sm font-medium">Loading Credits...</CardTitle>
           <Database className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">--</div>
+        <CardContent className="px-4 pb-4">
+          <div className="text-xl sm:text-2xl font-bold">--</div>
         </CardContent>
       </Card>
     );
@@ -70,35 +70,39 @@ export default function LeadCredits() {
 
   if (!credits.planType) {
     return (
-      <div className="col-span-4 grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium">Lead Credits</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">No Active Subscription</div>
+          <CardContent className="px-4 pb-4">
+            <div className="text-xl sm:text-2xl font-bold">No Subscription</div>
             <p className="text-xs text-muted-foreground mt-2">
               Purchase a plan to get lead credits
             </p>
-            <Button className="mt-4" size="sm">
-              <Link href="/settings?tab=subscription">Purchase Plan</Link>
-            </Button>
+            <div className="mt-4">
+              <Button className="w-full sm:w-auto" size="sm" asChild>
+                <Link href="/settings?tab=subscription">Purchase Plan</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium">Twitter Accounts</CardTitle>
             <Twitter className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <p className="text-xs text-muted-foreground mt-2">
               Connect your Twitter account to get started
             </p>
-            <Button variant="outline" size="sm" className="mt-4">
-              <Link href="/settings?tab=twitter">Connect Twitter</Link>
-            </Button>
+            <div className="mt-4">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto" asChild>
+                <Link href="/settings?tab=twitter">Connect Twitter</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -106,14 +110,14 @@ export default function LeadCredits() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
           <CardTitle className="text-sm font-medium">Lead Credits</CardTitle>
           <Database className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{credits.leadCredits.toLocaleString()}</div>
+        <CardContent className="px-4 pb-4">
+          <div className="text-xl sm:text-2xl font-bold">{credits.leadCredits.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground mt-2">
             {credits.planType} Plan: {totalCredits.toLocaleString()} total credits
           </p>
@@ -127,15 +131,16 @@ export default function LeadCredits() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
           <CardTitle className="text-sm font-medium">Twitter Accounts</CardTitle>
           <Twitter className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-        
-          <Button variant="outline" size="sm" className="mt-4">
-            <Link href="/settings?tab=twitter">Connect Twitter</Link>
-          </Button>
+        <CardContent className="px-4 pb-4">
+          <div className="mt-4">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" asChild>
+              <Link href="/settings?tab=twitter">Connect Twitter</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

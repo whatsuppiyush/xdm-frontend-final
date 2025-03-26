@@ -28,30 +28,40 @@ export default function LeadListCard({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const isLoading = status === 'in_progress';
 
+  // Format date to "Oct 10, 2023" format
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   return (
     <>
       <Card 
-        className="border border-gray-200 hover:border-gray-300 transition-all cursor-pointer h-full"
+        className="border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm transition-all cursor-pointer h-full hover:shadow-md"
         onClick={() => onViewDetails(id, name)}
       >
         <CardContent className="p-4 sm:p-6 h-full flex flex-col">
           {/* Name and creation date */}
           <div className="mb-3">
-            <h3 className="text-base sm:text-lg font-semibold mb-1 text-gray-900 break-words line-clamp-2">{name}</h3>
-            <div className="text-xs sm:text-sm text-gray-500">
-              Created {new Date(createdAt).toLocaleDateString()}
+            <h3 className="text-base sm:text-lg font-semibold mb-1 text-gray-900 dark:text-gray-100 break-words line-clamp-2">{name}</h3>
+            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              Created {formatDate(createdAt)}
             </div>
           </div>
           
           {/* Status indicator */}
           <div className="mb-3">
             {isLoading ? (
-              <div className="flex items-center text-orange-500">
+              <div className="flex items-center text-purple-400">
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 <span className="text-sm">Scraping in progress...</span>
               </div>
             ) : (
-              <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs sm:text-sm inline-flex">
+              <div className="bg-purple-50 dark:bg-purple-900/30 text-purple-500 dark:text-purple-300 px-3 py-1 rounded-full text-xs sm:text-sm inline-flex">
                 {leadCount.toLocaleString()} leads
               </div>
             )}
@@ -62,7 +72,7 @@ export default function LeadListCard({
             <Button
               variant="outline"
               size="sm"
-              className="border flex-1 min-w-[80px] h-9"
+              className="border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex-1 min-w-[80px] h-9 text-gray-700 dark:text-gray-300"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click
                 setIsConfirmOpen(true);
@@ -72,8 +82,7 @@ export default function LeadListCard({
               Delete
             </Button>
             <Button 
-              className="border flex-1 min-w-[80px] h-9" 
-              variant="outline" 
+              className="bg-blue-500 hover:bg-blue-600 text-white flex-1 min-w-[80px] h-9 transition-colors duration-200" 
               size="sm"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click

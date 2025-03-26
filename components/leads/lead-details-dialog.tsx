@@ -4,17 +4,32 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import LeadsList from "@/components/leads/leads-list";
+import LeadsGrid from "@/components/leads/leads-grid";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Play, X, DatabaseIcon, XIcon } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  CalendarIcon,
+  MailIcon,
+  MessageCircleIcon,
+  User2Icon,
+  UsersIcon,
+} from "lucide-react";
+import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
+import { Lead } from "./leads-grid";
+import { format } from "date-fns";
 
 interface LeadDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   leadId: string | null;
   leadName: string;
+  onCreateAutomation: () => void;
 }
 
 export default function LeadDetailsDialog({
@@ -22,6 +37,7 @@ export default function LeadDetailsDialog({
   onClose,
   leadId,
   leadName,
+  onCreateAutomation,
 }: LeadDetailsDialogProps) {
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState([]);
@@ -82,36 +98,103 @@ export default function LeadDetailsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-auto p-4 sm:p-6">
-        <DialogHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
-            <DialogTitle className="text-lg sm:text-xl break-words">{leadName} Details</DialogTitle>
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-auto p-0 w-[calc(100%-24px)] mx-auto bg-background dark:border-slate-700" hideCloseButton>
+        <div className="sticky top-0 bg-background z-10 border-b dark:border-slate-700">
+          {/* Mobile header */}
+          <div className="flex md:hidden justify-between items-center p-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">{leadName}</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          </div>
+          
+          {/* Desktop header */}
+          <div className="hidden md:flex justify-between items-center p-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{leadName}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Showing {leads.length} leads from this list
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {!loading && leads.length > 0 && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-2"
+                    onClick={handleDownloadCSV}
+                  >
+                    <Download className="h-4 w-4" />
+                    Export as CSV
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-purple-500 hover:bg-purple-600 text-white transition-colors duration-200"
+                    onClick={onCreateAutomation}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Automate
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="ml-2"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+          
+          {/* Mobile info line and download button */}
+          <div className="flex md:hidden items-center justify-between px-4 pb-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Showing {leads.length} leads
+            </p>
             {!loading && leads.length > 0 && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex items-center gap-2 w-full sm:w-auto sm:mr-8 mt-2 sm:mt-0"
+                className="flex items-center gap-1 text-xs h-8 px-2"
                 onClick={handleDownloadCSV}
               >
-                <Download className="h-4 w-4" />
-                Download CSV
+                <Download className="h-3 w-3" />
+                Export CSV
               </Button>
             )}
           </div>
-          <DialogDescription className="mt-1">
-            Showing {leads.length} leads from this list
-          </DialogDescription>
-        </DialogHeader>
+        </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          </div>
-        ) : (
-          <div className="mt-4">
-            <LeadsList leads={leads} />
-          </div>
-        )}
+        <div className="p-4 sm:p-6">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-300 dark:text-purple-400" />
+            </div>
+          ) : (
+            <LeadsGrid leads={leads} />
+          )}
+        </div>
+        
+        {/* Mobile-only footer with automate button */}
+        <div className="md:hidden p-4 border-t dark:border-slate-700 bg-gray-50 dark:bg-gray-800 flex justify-end">
+          {!loading && leads.length > 0 && (
+            <Button
+              className="bg-purple-500 hover:bg-purple-600 text-white w-full transition-colors duration-200"
+              onClick={onCreateAutomation}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Automate
+            </Button>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

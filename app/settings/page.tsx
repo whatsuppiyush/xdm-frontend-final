@@ -13,7 +13,7 @@ import { useSearchParams } from "next/navigation";
 // Create a wrapper component that uses useSearchParams
 function SettingsContent() {
   const { userId, isLoading } = useUser();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("twitter");
   const searchParams = useSearchParams();
 
   // Use useCallback to memoize the function
@@ -24,59 +24,79 @@ function SettingsContent() {
   useEffect(() => {
     // Check if tab parameter exists and set active tab accordingly
     const tabParam = searchParams?.get("tab");
-    if (tabParam === "twitter") {
-      setActiveTab("twitter");
+    if (tabParam === "profile") {
+      setActiveTab("profile");
     } else if (tabParam === "subscription") {
       setActiveTab("subscription");
     } else if (tabParam === "dnc") {
       setActiveTab("dnc");
     } else {
-      setActiveTab("profile"); // Default to profile if no valid tab is specified
+      setActiveTab("twitter"); // Default to twitter if no valid tab is specified
     }
   }, [searchParams]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-6 w-6 animate-spin" />
+        <Loader2 className="h-6 w-6 animate-spin dark:text-gray-400" />
       </div>
     );
   }
 
   // Add a guard for userId
   if (!userId) {
-    return <div className="p-8">Please log in to view settings</div>;
+    return <div className="p-8 dark:text-gray-300">Please log in to view settings</div>;
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Settings</h1>
+    <div className="w-full px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+      <div className="flex justify-between items-center py-4 border-b border-gray-200 dark:border-[#242f44]">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
       </div>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <div className="overflow-x-auto pb-2">
-          <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="subscription">Subscription</TabsTrigger>
-            <TabsTrigger value="twitter">Twitter Accounts</TabsTrigger>
-            <TabsTrigger value="dnc">Do Not Contact</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
+        <div className="w-full bg-gray-50 dark:bg-[#131c2e]/50 p-1.5 rounded-lg">
+          <TabsList className="w-full grid grid-cols-4 gap-1 dark:bg-[#0c1221]">
+            <TabsTrigger 
+              value="twitter" 
+              className="text-[11px] leading-tight sm:text-sm py-2 px-1 sm:px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm dark:text-gray-300 dark:data-[state=active]:bg-[#1c2739] dark:data-[state=active]:text-white"
+            >
+              Twitter
+            </TabsTrigger>
+            <TabsTrigger 
+              value="profile" 
+              className="text-[11px] leading-tight sm:text-sm py-2 px-1 sm:px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm dark:text-gray-300 dark:data-[state=active]:bg-[#1c2739] dark:data-[state=active]:text-white"
+            >
+              Profile
+            </TabsTrigger>
+            <TabsTrigger 
+              value="subscription" 
+              className="text-[11px] leading-tight sm:text-sm py-2 px-1 sm:px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm dark:text-gray-300 dark:data-[state=active]:bg-[#1c2739] dark:data-[state=active]:text-white"
+            >
+              Subscription
+            </TabsTrigger>
+            <TabsTrigger 
+              value="dnc" 
+              className="text-[11px] leading-tight sm:text-sm py-2 px-1 sm:px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm dark:text-gray-300 dark:data-[state=active]:bg-[#1c2739] dark:data-[state=active]:text-white"
+            >
+              Do Not Contact
+            </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="profile">
-          <ProfileSettings />
-        </TabsContent>
-
-        <TabsContent value="subscription">
-          <SubscriptionSettings />
-        </TabsContent>
-
-        <TabsContent value="twitter">
+        <TabsContent value="twitter" className="mt-4 w-full bg-white dark:bg-transparent rounded-lg shadow-sm border border-gray-200 dark:border-transparent p-1 sm:p-4">
           <TwitterAccounts userId={userId} />
         </TabsContent>
 
-        <TabsContent value="dnc">
+        <TabsContent value="profile" className="mt-4 w-full bg-white dark:bg-transparent rounded-lg shadow-sm border border-gray-200 dark:border-transparent p-1 sm:p-4">
+          <ProfileSettings />
+        </TabsContent>
+
+        <TabsContent value="subscription" className="mt-4 w-full bg-white dark:bg-transparent rounded-lg shadow-sm border border-gray-200 dark:border-transparent p-1 sm:p-4">
+          <SubscriptionSettings />
+        </TabsContent>
+
+        <TabsContent value="dnc" className="mt-4 w-full bg-white dark:bg-transparent rounded-lg shadow-sm border border-gray-200 dark:border-transparent p-1 sm:p-4">
           <DoNotContact />
         </TabsContent>
       </Tabs>

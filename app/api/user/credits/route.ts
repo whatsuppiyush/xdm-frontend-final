@@ -24,12 +24,39 @@ export async function GET() {
         leadCredits: 0,
         planType: null,
         subscriptionId: null,
+        isMonthly: false,
         customerPortalUrl: null,
-        updatePaymentMethodUrl: null
+        updatePaymentMethodUrl: null,
+        isTrialActive: false,
+        trialStartDate: null,
+        trialEndDate: null,
+        trialStatus: null
       });
     }
     
-    return NextResponse.json(userCredits);
+    // Check if trial has ended but isTrialActive is still true
+    let trialStatus = null;
+    if (userCredits.isTrialActive) {
+      if (userCredits.trialEndDate && new Date() > new Date(userCredits.trialEndDate)) {
+        trialStatus = "ended";
+      } else {
+        trialStatus = "active";
+        
+        // Calculate days remaining in trial
+        if (userCredits.trialEndDate) {
+          const now = new Date();
+          const endDate = new Date(userCredits.trialEndDate);
+          const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          trialStatus = `active-${daysRemaining}`; // e.g., "active-2" means 2 days remaining
+        }
+      }
+    }
+    
+    // Return user credits with trial information
+    return NextResponse.json({
+      ...userCredits,
+      trialStatus
+    });
   } catch (error) {
     console.error("Error fetching user credits:", error);
     return NextResponse.json({ error: "Failed to fetch user credits" }, { status: 500 });

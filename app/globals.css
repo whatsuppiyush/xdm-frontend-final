@@ -73,4 +73,27 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Dark mode transitions */
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 0.2s;
+  }
+}
+
+/* Add custom scrollbar-hide utility */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
 }

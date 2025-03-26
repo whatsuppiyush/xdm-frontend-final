@@ -11,115 +11,122 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Twitter, HelpCircle, Menu, X } from "lucide-react";
+import { 
+  Twitter, 
+  HelpCircle,
+} from "lucide-react";
 import Link from "next/link";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import Sidebar from "./sidebar";
 import { LogoutButton } from "@/components/ui/logout-button";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Navbar() {
   const { data: session } = useSession();
   const userEmail = session?.user?.email;
   const userName = session?.user?.name || userEmail?.split("@")[0] || "User";
   const userImage = session?.user?.image;
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   return (
-    <div
-      className="h-16 border-b px-4 md:px-6 flex items-center justify-between md:justify-end"
-      data-oid="2snud40"
-    >
-      {/* Removed mobile sheet since it's now in the layout */}
-
-      <div className="md:hidden font-semibold flex-1 text-center" data-oid="iip4_zj">
-        XAutoDM
-      </div>
-
-      <DropdownMenu data-oid="egwheqm">
-        <DropdownMenuTrigger asChild data-oid="u-ic48w">
-          <Button
-            variant="ghost"
-            className="relative h-8 w-8 rounded-full"
-            data-oid="nn5.n9z"
-          >
-            <Avatar className="h-8 w-8" data-oid="1ea2x33">
-              <AvatarImage
-                src={userImage || undefined}
-                alt={userName}
-                data-oid="bh9_bst"
+    <nav className="bg-background border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex justify-between h-16">
+          {/* Logo section */}
+          <div className="flex items-center">
+            <Link href="/" className="flex-shrink-0 flex items-center">
+              <Image 
+                src="https://xautodm.com/logo.svg" 
+                alt="XDM Logo" 
+                width={120}
+                height={32}
+                className="h-8 w-auto"
               />
+            </Link>
+          </div>
 
-              <AvatarFallback data-oid="d_qc-7i">
-                {userName.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" data-oid="os9lzrx">
-          <DropdownMenuLabel data-oid="jrz2x87">
-            <div className="flex flex-col space-y-1" data-oid="dm1b1vx">
-              <p className="text-sm font-medium" data-oid="0eco9.:">
-                {userName}
-              </p>
-              <p className="text-xs text-muted-foreground" data-oid="dmzh9ew">
-                {userEmail}
-              </p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator data-oid="v_12.mr" />
-          <DropdownMenuGroup data-oid="z32fqno">
-            <DropdownMenuItem asChild data-oid="pm6df1w">
-              <Link
-                href="/settings?tab=twitter"
-                className="cursor-pointer"
-                data-oid="tj3e16w"
-              >
-                <Twitter className="mr-2 h-4 w-4" data-oid=":itc6m7" />
-                Twitter Accounts
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild data-oid="rfhy8c9">
-              <Link
-                href="/settings?tab=subscription"
-                className="cursor-pointer"
-                data-oid="llcbuwf"
-              >
-                <svg
-                  className="mr-2 h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  data-oid=":x6p0w1"
+          {/* Center title */}
+          <div className="flex items-center justify-center flex-1">
+
+          </div>
+
+          {/* Right side actions */}
+          <div className="flex items-center space-x-2">
+            {/* Theme toggle button */}
+            <ThemeToggle />
+            
+            {/* User dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-8 w-8 rounded-full"
                 >
-                  <path
-                    d="M4 3h16a2 2 0 0 1 2 2v6a10 10 0 0 1-10 10A10 10 0 0 1 2 11V5a2 2 0 0 1 2-2z"
-                    data-oid="32mqey5"
-                  />
-
-                  <polyline points="8 10 12 14 16 10" data-oid="eo2x:y_" />
-                </svg>
-                Subscription Plan
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild data-oid="5r9r-wl">
-              <Link href="/help" className="cursor-pointer" data-oid="nlw0cb9">
-                <HelpCircle className="mr-2 h-4 w-4" data-oid="ug3yf6z" />
-                Help & Support
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator data-oid="nry4gsq" />
-          <LogoutButton data-oid="wizq4-t" />
-        </DropdownMenuContent>
-      </DropdownMenu>
-      
-      {/* Removed floating button since it's now in the layout */}
-    </div>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={userImage || undefined}
+                      alt={userName}
+                    />
+                    <AvatarFallback>
+                      {userName.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">
+                      {userName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {userEmail}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/settings?tab=twitter"
+                      className="cursor-pointer"
+                    >
+                      <Twitter className="mr-2 h-4 w-4" />
+                      Twitter Accounts
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/settings?tab=subscription"
+                      className="cursor-pointer"
+                    >
+                      <svg
+                        className="mr-2 h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M4 3h16a2 2 0 0 1 2 2v6a10 10 0 0 1-10 10A10 10 0 0 1 2 11V5a2 2 0 0 1 2-2z" />
+                        <polyline points="8 10 12 14 16 10" />
+                      </svg>
+                      Subscription Plan
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <LogoutButton />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+    </nav>
   );
 }
