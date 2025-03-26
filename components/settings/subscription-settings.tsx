@@ -381,7 +381,9 @@ export default function SubscriptionSettings() {
                         className="text-xs sm:text-sm dark:bg-neutral-600 dark:hover:bg-neutral-700"
                         variant="secondary"
                         onClick={() => {
-                          window.open(currentPlan.updatePaymentMethodUrl, "_blank");
+                          if (typeof currentPlan.updatePaymentMethodUrl === 'string') {
+                            window.open(currentPlan.updatePaymentMethodUrl, "_blank");
+                          }
                         }}
                       >
                         <CreditCard className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
