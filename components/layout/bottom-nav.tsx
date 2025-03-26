@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, MessageSquare, Settings, Grid, UserSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useTheme } from "@/contexts/theme-context";
+import { useTheme } from "next-themes";
 
 const routes = [
   {

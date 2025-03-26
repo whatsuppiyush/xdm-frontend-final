@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { pushUserToGoogleSheet } from '@/lib/googleSheets';
 import { pushUserToInstantly } from '@/lib/instantlyApi';
+import { pushUserToBeehiiv } from '@/lib/beehiivApi';
 
 export async function POST(request: Request) {
   try {
@@ -80,6 +81,18 @@ export async function POST(request: Request) {
     } catch (instantlyError) {
       console.error('Error pushing user data to Instantly.ai:', instantlyError);
       // Continue with signup even if Instantly.ai push fails
+    }
+    
+    // Push user data to Beehiiv
+    try {
+      await pushUserToBeehiiv({
+        email: user.email,
+        name: user.name,
+        provider: 'credentials'
+      });
+    } catch (beehiivError) {
+      console.error('Error pushing user data to Beehiiv:', beehiivError);
+      // Continue with signup even if Beehiiv push fails
     }
 
     return NextResponse.json({

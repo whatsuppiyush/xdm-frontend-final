@@ -16,6 +16,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import SignupForm from "./SignupForm";
 import { toast } from "@/components/ui/use-toast";
+import Image from "next/image";
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -99,23 +100,36 @@ export default function Login() {
 
   return (
     <div
-      className="flex items-center justify-center min-h-screen bg-background"
+      className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950"
       data-oid="oymr3mq"
     >
-      <Card className="w-[380px]" data-oid="vvvaj69">
-        <CardHeader className="text-center" data-oid="e3.vhhx">
-          <CardTitle data-oid="b.1tfqt">
-            {isSignup ? "Create Account" : "Welcome Back"}
-          </CardTitle>
-          <CardDescription data-oid="8fxro9s">
-            {isSignup
-              ? "Sign up to get started"
-              : "Login to access your dashboard"}
-          </CardDescription>
+      <Card className="w-[380px] border-none bg-slate-900/40 backdrop-blur-xl shadow-2xl dark:shadow-purple-500/10" data-oid="vvvaj69">
+        <CardHeader className="text-center space-y-6" data-oid="e3.vhhx">
+          <div className="flex items-center justify-center w-full">
+            <div className="relative w-12 h-12">
+              <Image
+                src="https://xautodm.com/logo.svg"
+                alt="xAutoDM"
+                fill
+                priority
+                className="object-contain"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent" data-oid="b.1tfqt">
+              {isSignup ? "Create Account" : "Welcome Back"}
+            </CardTitle>
+            <CardDescription className="text-slate-400" data-oid="8fxro9s">
+              {isSignup
+                ? "Sign up to get started"
+                : "Login to access your dashboard"}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4" data-oid="aby.uqp">
           {error && (
-            <Alert variant="destructive" data-oid="sg.dw3t">
+            <Alert variant="destructive" className="bg-red-500/10 text-red-200 border-red-500/20" data-oid="sg.dw3t">
               <AlertDescription data-oid="jq.kc5r">
                 {getErrorMessage(error)}
               </AlertDescription>
@@ -132,7 +146,7 @@ export default function Login() {
                 data-oid="izeh.g."
               >
                 <div className="space-y-2" data-oid="-fgfy4a">
-                  <Label htmlFor="email" data-oid="w3kg2a_">
+                  <Label htmlFor="email" className="text-slate-200" data-oid="w3kg2a_">
                     Email
                   </Label>
                   <Input
@@ -142,11 +156,12 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    className="bg-white text-black border-0 rounded-xl placeholder:text-slate-400"
                     data-oid="8mdc8a4"
                   />
                 </div>
                 <div className="space-y-2" data-oid="cqb2057">
-                  <Label htmlFor="password" data-oid="k6y9cm.">
+                  <Label htmlFor="password" className="text-slate-200" data-oid="k6y9cm.">
                     Password
                   </Label>
                   <Input
@@ -156,12 +171,13 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    className="bg-white text-black border-0 rounded-xl placeholder:text-slate-400"
                     data-oid="gt7j6e4"
                   />
                 </div>
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full bg-purple-600 hover:bg-purple-500 text-white transition-all duration-200"
                   disabled={isLoading}
                   data-oid="qzx:bkr"
                 >
@@ -170,20 +186,11 @@ export default function Login() {
               </form>
 
               <div className="relative" data-oid="zqktp6c">
-                <div
-                  className="absolute inset-0 flex items-center"
-                  data-oid="f2hui3v"
-                >
-                  <span className="w-full border-t" data-oid="sn7h4mh" />
+                <div className="absolute inset-0 flex items-center" data-oid="f2hui3v">
+                  <span className="w-full border-t border-slate-700/50" data-oid="sn7h4mh" />
                 </div>
-                <div
-                  className="relative flex justify-center text-xs uppercase"
-                  data-oid="kyk-rz3"
-                >
-                  <span
-                    className="bg-background px-2 text-muted-foreground"
-                    data-oid="z_3p0g."
-                  >
+                <div className="relative flex justify-center text-xs uppercase" data-oid="kyk-rz3">
+                  <span className="bg-slate-900/40 px-2 text-slate-400" data-oid="z_3p0g.">
                     Or continue with
                   </span>
                 </div>
@@ -192,7 +199,7 @@ export default function Login() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="w-full bg-slate-800/50 text-white border-slate-700/50 hover:bg-slate-700/50 hover:border-purple-500/50 transition-all duration-200"
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
                 data-oid="k_ntip-"
@@ -222,7 +229,7 @@ export default function Login() {
           <div className="text-center text-sm" data-oid="ap-xw7j">
             <button
               type="button"
-              className="text-primary hover:underline"
+              className="text-purple-400 hover:text-purple-300 transition-colors duration-200"
               onClick={() => setIsSignup(!isSignup)}
               data-oid="0vbwzs7"
             >

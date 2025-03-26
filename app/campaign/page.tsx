@@ -14,13 +14,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StepsNavigation } from "@/components/ui/steps-navigation";
-import { Trash2, ArrowLeft, Check, Loader2, Square, Pause, Play, Moon, Sun } from "lucide-react";
+import { Trash2, ArrowLeft, Check, Loader2, Square, Pause, Play } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
-import { useTheme } from "@/contexts/theme-context";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { toast } from "@/components/ui/use-toast";
 import { DAILY_MESSAGE_LIMIT } from "@/lib/constants";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface AutomatedLead {
   id: string;
@@ -64,8 +65,16 @@ interface CampaignProgress {
 }
 
 export default function CampaignPage() {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  // Only use theme after component has mounted to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Use resolvedTheme for more accurate theme detection
+  const isDark = mounted && (resolvedTheme || theme) === 'dark';
   const [isCreating, setIsCreating] = useState(false);
   const [step, setStep] = useState<number>(1);
   const [campaignName, setCampaignName] = useState("");

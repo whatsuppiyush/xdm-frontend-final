@@ -2,7 +2,8 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
-import { useTheme } from "@/contexts/theme-context";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 interface StepsNavigationProps {
   steps: {
@@ -22,7 +23,14 @@ export function StepsNavigation({
   className,
 }: StepsNavigationProps) {
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const [mounted, setMounted] = useState(false);
+  
+  // Only use theme after component has mounted to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted && theme === 'dark';
 
   return (
     <div
