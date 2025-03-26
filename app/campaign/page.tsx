@@ -763,7 +763,7 @@ export default function CampaignPage() {
           <div className={cn(
             "mb-4 rounded-lg border p-1 sm:hidden",
             isDark 
-              ? "bg-gray-900 border-gray-800" 
+              ? "bg-gray-900/90 border-gray-700 shadow-lg" 
               : "bg-white border-gray-200"
           )}>
             <div className="flex justify-between items-center">
@@ -785,7 +785,7 @@ export default function CampaignPage() {
                         ? (isDark ? "text-purple-400" : "text-black")
                         : (isDark ? "text-gray-500" : "text-gray-400"),
                       isPast && (isDark 
-                        ? "text-gray-400" 
+                        ? "text-gray-300" 
                         : "text-gray-600"),
                       isFuture && "opacity-50"
                     )}
@@ -794,13 +794,13 @@ export default function CampaignPage() {
                       className={cn(
                         "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium transition-all mb-1",
                         isActive && (isDark 
-                          ? "bg-purple-600 text-white" 
+                          ? "bg-purple-600 text-white shadow-md shadow-purple-900/50" 
                           : "bg-black text-white"),
                         isPast && (isDark 
-                          ? "bg-gray-700 text-gray-300" 
+                          ? "bg-purple-800/70 text-purple-200" 
                           : "bg-gray-200 text-gray-700"),
                         isFuture && (isDark 
-                          ? "bg-gray-800 text-gray-400" 
+                          ? "bg-gray-800 text-gray-400 border border-gray-700" 
                           : "bg-gray-100 text-gray-400")
                       )}
                     >

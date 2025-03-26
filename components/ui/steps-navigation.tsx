@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
+import { useTheme } from "@/contexts/theme-context";
 
 interface StepsNavigationProps {
   steps: {
@@ -20,13 +21,23 @@ export function StepsNavigation({
   onStepClick,
   className,
 }: StepsNavigationProps) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
     <div
-      className={cn("w-full bg-white rounded-lg shadow-sm", className)}
+      className={cn(
+        "w-full rounded-lg",
+        isDark ? "bg-gray-800 shadow-md" : "bg-white shadow-sm",
+        className
+      )}
       data-oid=":780bk-"
     >
       <div
-        className="grid grid-cols-4 divide-x divide-gray-100 overflow-x-auto"
+        className={cn(
+          "grid grid-cols-4 overflow-x-auto",
+          isDark ? "divide-x divide-gray-700" : "divide-x divide-gray-100"
+        )}
         data-oid="0m3kq:1"
       >
         {steps.map((step, index) => {
@@ -42,8 +53,10 @@ export function StepsNavigation({
               disabled={isFuture}
               className={cn(
                 "relative group p-2 sm:p-4 md:p-6 transition-all duration-300",
-                "hover:bg-gray-50/80",
-                isActive && "bg-gray-50",
+                isDark 
+                  ? "hover:bg-gray-700" 
+                  : "hover:bg-gray-50/80",
+                isActive && (isDark ? "bg-gray-700" : "bg-gray-50"),
                 isPast && "cursor-pointer",
                 isFuture && "cursor-not-allowed opacity-50",
               )}
@@ -53,7 +66,10 @@ export function StepsNavigation({
               {isActive && (
                 <motion.div
                   layoutId="activeIndicator"
-                  className="absolute inset-x-0 -bottom-[2px] h-[2px] bg-primary"
+                  className={cn(
+                    "absolute inset-x-0 -bottom-[2px] h-[2px]",
+                    isDark ? "bg-purple-500" : "bg-primary"
+                  )}
                   initial={false}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   data-oid="p09a4bx"
@@ -64,10 +80,16 @@ export function StepsNavigation({
                 {/* Step Number or Status */}
                 <div
                   className={cn(
-                    "flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium",
-                    isActive && "bg-primary text-white",
-                    isPast && "bg-primary/10 text-primary",
-                    isFuture && "bg-gray-100 text-gray-400",
+                    "flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-colors",
+                    isActive && (isDark 
+                      ? "bg-purple-600 text-white shadow-sm shadow-purple-900/50" 
+                      : "bg-primary text-white"),
+                    isPast && (isDark 
+                      ? "bg-purple-900/40 text-purple-300" 
+                      : "bg-primary/10 text-primary"),
+                    isFuture && (isDark 
+                      ? "bg-gray-700 text-gray-400 border border-gray-600" 
+                      : "bg-gray-100 text-gray-400"),
                   )}
                   data-oid="-ow3y6."
                 >
@@ -79,8 +101,9 @@ export function StepsNavigation({
                   <div
                     className={cn(
                       "text-xs sm:text-sm font-semibold mb-0 sm:mb-1",
-                      isActive && "text-primary",
-                      isFuture && "text-gray-400",
+                      isActive && (isDark ? "text-purple-400" : "text-primary"),
+                      isPast && (isDark ? "text-gray-300" : "text-gray-700"),
+                      isFuture && (isDark ? "text-gray-500" : "text-gray-400"),
                     )}
                     data-oid="mv-idch"
                   >
@@ -88,7 +111,10 @@ export function StepsNavigation({
                   </div>
                   {step.subtitle && (
                     <div
-                      className="text-[10px] sm:text-xs text-gray-500 line-clamp-1 sm:line-clamp-2 hidden xs:block"
+                      className={cn(
+                        "text-[10px] sm:text-xs line-clamp-1 sm:line-clamp-2 hidden xs:block",
+                        isDark ? "text-gray-400" : "text-gray-500"
+                      )}
                       data-oid="q4fb07u"
                     >
                       {step.subtitle}
@@ -100,9 +126,9 @@ export function StepsNavigation({
                 <ChevronRight
                   className={cn(
                     "w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 transition-transform hidden sm:block",
-                    isActive && "text-primary",
+                    isActive && (isDark ? "text-purple-400" : "text-primary"),
                     "group-hover:translate-x-1",
-                    isFuture && "text-gray-300",
+                    isFuture && (isDark ? "text-gray-600" : "text-gray-300"),
                   )}
                   data-oid="ozx-exr"
                 />
