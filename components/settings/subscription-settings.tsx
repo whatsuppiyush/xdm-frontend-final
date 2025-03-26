@@ -131,6 +131,13 @@ export default function SubscriptionSettings() {
         const response = await fetch("/api/user/credits");
         const data = await response.json();
         
+        // Update all plans to show no trial if user has had a trial before
+        if (data.hadPreviousTrial || data.trialStartDate || (!data.isTrialActive && !data.isMonthly && data.planType) || data.subscriptionId) {
+          plans.forEach(plan => {
+            plan.hasHadTrial = true;
+          });
+        }
+        
         if (data.planType) {
           setCurrentPlan({
             name: data.planType,
@@ -175,54 +182,15 @@ export default function SubscriptionSettings() {
 
   // No longer need tier-specific functions since plans have fixed quantities
 
-  // Function to handle opening checkout URLs with retry mechanism
+  // Function to handle opening checkout URLs
   const openCheckoutWithRetry = (checkoutUrl: string) => {
-    // Store the checkout URL in sessionStorage to persist through page refresh
+    // Store the checkout URL in sessionStorage
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('pendingCheckoutUrl', checkoutUrl);
     }
     
-    // Immediately open the checkout URL
-    const newWindow = window.open(checkoutUrl, "_blank");
-    
-    // If window was blocked or failed to open
-    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-      console.log("Initial window open may have been blocked, will retry...");
-    }
-    
-    // Set a retry timer with multiple attempts
-    let attempts = 0;
-    const maxAttempts = 3;
-    
-    const retryOpening = () => {
-      if (attempts < maxAttempts) {
-        attempts++;
-        
-        // Get URL from session storage in case it was updated
-        const storedUrl = sessionStorage.getItem('pendingCheckoutUrl');
-        
-        if (storedUrl) {
-          console.log(`Retry attempt ${attempts} to open checkout URL`);
-          const retryWindow = window.open(storedUrl, "_blank");
-          
-          // If still unsuccessful, try again with a longer delay
-          if (!retryWindow || retryWindow.closed || typeof retryWindow.closed === 'undefined') {
-            setTimeout(retryOpening, 1500 * attempts); // Increase delay with each retry
-          } else {
-            // Successful open, remove from storage after a delay to ensure it loads
-            setTimeout(() => {
-              sessionStorage.removeItem('pendingCheckoutUrl');
-            }, 5000);
-          }
-        }
-      } else {
-        // Max attempts reached, show UI message to user
-        alert("The checkout page couldn't be opened automatically. Please click 'Upgrade Plan' again or check your popup blocker settings.");
-      }
-    };
-    
-    // Start first retry after initial delay
-    setTimeout(retryOpening, 1500);
+    // Simply open the checkout URL in a new tab
+    window.open(checkoutUrl, "_blank");
   };
 
   // Generate checkout URL using the Checkouts API endpoint
@@ -393,96 +361,33 @@ export default function SubscriptionSettings() {
                 {currentPlan.planType ? (
                   <>
                     <Button 
-                      variant="outline"
                       size="sm"
-                      className="text-xs sm:text-sm dark:border-slate-600 dark:bg-slate-700/50 dark:hover:bg-slate-700"
+                      className="text-xs sm:text-sm dark:bg-neutral-600 dark:hover:bg-neutral-700"
+                      variant="secondary"
                       onClick={() => {
-                        // Use the customer portal URL if available, otherwise fallback to the generic URL
-                        const portalUrl = currentPlan.customerPortalUrl || "https://app.lemonsqueezy.com/my-orders";
-                        window.open(portalUrl, "_blank");
+                        if (currentPlan.customerPortalUrl) {
+                          window.open(currentPlan.customerPortalUrl, "_blank");
+                        } else {
+                          alert("No subscription management portal available. Please contact support.");
+                        }
                       }}
                     >
                       <CreditCard className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
                       Manage Subscription
                     </Button>
-                    {currentPlan.updatePaymentMethodUrl && currentPlan.isMonthly && (
+                    {currentPlan.updatePaymentMethodUrl && (
                       <Button 
-                        variant="outline"
                         size="sm"
-                        className="text-xs sm:text-sm dark:border-slate-600 dark:bg-slate-700/50 dark:hover:bg-slate-700"
-                        onClick={() => window.open(currentPlan.updatePaymentMethodUrl!, "_blank")}
+                        className="text-xs sm:text-sm dark:bg-neutral-600 dark:hover:bg-neutral-700"
+                        variant="secondary"
+                        onClick={() => {
+                          window.open(currentPlan.updatePaymentMethodUrl, "_blank");
+                        }}
                       >
                         <CreditCard className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
                         Update Payment
                       </Button>
                     )}
-                    <Button 
-                      size="sm"
-                      className="text-xs sm:text-sm dark:bg-purple-600 dark:hover:bg-purple-700"
-                      variant={!currentPlan.isMonthly && !currentPlan.isTrialActive ? "destructive" : "default"}
-                      onClick={async () => {
-                        try {
-                          // Set loading state
-                          setButtonLoadingState(prev => ({ ...prev, upgrade: true }));
-                          
-                          // Get current plan details
-                          const currentPlanIndex = plans.findIndex(p => p.name === currentPlan.planType);
-                          
-                          // Get next plan or fallback to last plan
-                          const nextPlanIndex = currentPlanIndex < plans.length - 1 ? currentPlanIndex + 1 : plans.length - 1;
-                          const nextPlan = plans[nextPlanIndex];
-                          
-                          // Get checkout URL first before cancelling subscription
-                          const checkoutUrl = await getDirectLemonSqueezyUrl(nextPlan);
-                          
-                          // First cancel the existing subscription if there is one
-                          if (currentPlan.subscriptionId) {
-                            console.log(`Cancelling existing subscription ${currentPlan.subscriptionId} before upgrade`);
-                            
-                            const cancelResponse = await fetch('/api/subscription/cancel', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                subscriptionId: currentPlan.subscriptionId,
-                                isUpgrade: true // Flag to indicate this is part of an upgrade
-                              }),
-                            });
-                            
-                            if (!cancelResponse.ok) {
-                              const errorData = await cancelResponse.json();
-                              console.error('Error cancelling subscription before upgrade:', errorData);
-                              throw new Error(`Failed to cancel subscription: ${errorData.error || 'Unknown error'}`);
-                            }
-                            
-                            console.log('Successfully cancelled existing subscription before upgrade');
-                          }
-                          
-                          // Open checkout using the enhanced retry function
-                          openCheckoutWithRetry(checkoutUrl);
-                        } catch (error) {
-                          console.error("Error during upgrade process:", error);
-                          alert("There was an error during the upgrade process. Please try again or contact support.");
-                        } finally {
-                          // Reset loading state
-                          setButtonLoadingState(prev => ({ ...prev, upgrade: false }));
-                        }
-                      }}
-                      disabled={buttonLoadingState.upgrade}
-                    >
-                      {buttonLoadingState.upgrade ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-current"></span>
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
-                          {!currentPlan.isMonthly && !currentPlan.isTrialActive ? "Resubscribe Now" : "Upgrade Plan"}
-                        </>
-                      )}
-                    </Button>
                   </>
                 ) : (
                   <Button 
