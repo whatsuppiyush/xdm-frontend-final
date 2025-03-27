@@ -414,12 +414,12 @@ export default function SubscriptionSettings() {
                     {buttonLoadingState.getStarted ? (
                       <>
                         <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></span>
-                        Processing...
+                        <span className="text-white">Processing...</span>
                       </>
                     ) : (
                       <>
-                        <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4" />
-                        Get Started
+                        <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4 text-white" />
+                        <span className="text-white">Get Started</span>
                       </>
                     )}
                   </Button>

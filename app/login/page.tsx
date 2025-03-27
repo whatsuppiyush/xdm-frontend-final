@@ -5,8 +5,10 @@ import Login from "@/components/login/Login";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <Login />
-    </Suspense>
+    <div className="dark">
+      <Suspense fallback={<div>Loading...</div>}>
+        <Login />
+      </Suspense>
+    </div>
   );
 } 

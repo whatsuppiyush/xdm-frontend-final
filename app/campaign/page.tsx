@@ -681,7 +681,7 @@ export default function CampaignPage() {
 
   return (
     <div className={cn(
-      "container space-y-4 py-6 pb-28 sm:pb-6 px-4 md:px-8",
+      "flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full",
       isDark ? "text-gray-100" : ""
     )}>
       {/* Campaign header */}
