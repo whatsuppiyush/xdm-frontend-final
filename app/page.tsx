@@ -4,12 +4,11 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Plus, Zap } from "lucide-react";
 import DashboardMetrics from "@/components/dashboard/metrics";
-import TutorialDialog from "@/components/dashboard/tutorial-dialog";
 import { useUser } from "@/contexts/user-context";
 import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
-  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const { userId } = useUser();
   const [planDetails, setPlanDetails] = useState<{
     name: string;
@@ -66,6 +65,10 @@ export default function Dashboard() {
 
     fetchUserCredits();
   }, [userId]);
+
+  const handleVideoClick = () => {
+    setIsVideoPlaying(true);
+  };
 
   // Function to get remaining trial days
   const getRemainingDays = () => {
@@ -188,27 +191,41 @@ export default function Dashboard() {
         <section>
           <h2 className="text-xl md:text-2xl font-semibold mb-4 text-slate-800 dark:text-slate-200">Tutorial Video</h2>
           <div 
-            className="relative bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl overflow-hidden aspect-video shadow-md cursor-pointer"
-            onClick={() => setTutorialOpen(true)}
+            className="relative rounded-xl overflow-hidden shadow-md cursor-pointer w-full"
+            style={{ paddingBottom: '56.25%' }} /* 16:9 aspect ratio */
+            onClick={handleVideoClick}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-              <h3 className="text-2xl md:text-3xl font-bold text-white mb-6">XAutoDM Tutorial</h3>
-              
-              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full hover:bg-white/30 transition-all duration-200">
-                <Play className="h-8 w-8 text-white" />
-              </div>
-              
-              <div className="absolute bottom-0 left-0 right-0 p-5 text-left bg-gradient-to-t from-black/70 to-transparent">
-                <h4 className="text-lg md:text-xl font-semibold text-white">How to automate your X messages</h4>
-                <p className="text-gray-200 mt-1 text-sm md:text-base">
-                  Learn how to set up your first automated messaging campaign in under 5 minutes.
-                </p>
-              </div>
-            </div>
+            {isVideoPlaying ? (
+              // Embedded video player (shown when play is clicked on desktop)
+              <iframe
+                className="absolute top-0 left-0 w-full h-full z-10"
+                src="https://www.youtube.com/embed/OZUfUaEAHbA?autoplay=1&modestbranding=1&rel=0&fs=1&showinfo=0&color=white"
+                title="XAutoDM Tutorial"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                frameBorder="0"
+              />
+            ) : (
+              <>
+                {/* Video Thumbnail */}
+                <div className="absolute inset-0 bg-black flex items-center justify-center overflow-hidden">
+                  <img 
+                    src="/thumbnail.png" 
+                    alt="XAutoDM Tutorial Video Thumbnail" 
+                    className="w-full object-contain"
+                  />
+                </div>
+                
+                {/* Overlay Elements */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full hover:bg-white/30 transition-all duration-200 hover:scale-110">
+                    <Play className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </section>
-
-        <TutorialDialog open={tutorialOpen} onOpenChange={setTutorialOpen} />
       </main>
     </div>
   );
