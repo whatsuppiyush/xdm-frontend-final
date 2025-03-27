@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StepsNavigation } from "@/components/ui/steps-navigation";
-import { Trash2, ArrowLeft, Check, Loader2, Square, Pause, Play, ArrowRight } from "lucide-react";
+import { Trash2, ArrowLeft, Check, Loader2, Square, Pause, Play, RefreshCw, ArrowRight } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -104,6 +104,7 @@ export default function CampaignPage() {
     total: DAILY_MESSAGE_LIMIT,
     remaining: DAILY_MESSAGE_LIMIT 
   });
+  const [isRecovering, setIsRecovering] = useState(false);
   
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
@@ -114,12 +115,18 @@ export default function CampaignPage() {
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  const filteredCampaigns = dmqueueList.filter(campaign => {
-    if (activeTab === "In Progress") {
-      return campaign.status === "In Progress" || campaign.status === "Paused";
+  const filterCampaigns = (status: string) => {
+    if (status === "In Progress") {
+      // Include both "In Progress" and "Rate Limited" campaigns
+      return dmqueueList.filter(
+        (queue) => queue.status === "In Progress" || queue.status === "Rate Limited"
+      );
+    } else {
+      return dmqueueList.filter((queue) => queue.status === status);
     }
-    return campaign.status === activeTab;
-  });
+  };
+
+  const filteredCampaigns = filterCampaigns(activeTab);
 
   const fetchMessages = async () => {
     if (!userId) return;
@@ -678,6 +685,51 @@ export default function CampaignPage() {
       { id: messageVariants.length + 1, content: "", isEnabled: true },
     ]);
   };
+
+  const handleRecoverAllCampaigns = async () => {
+    try {
+      setIsRecovering(true);
+      
+      const response = await fetch('/api/campaigns/recover-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to recover campaigns');
+      }
+      
+      const data = await response.json();
+      
+      toast({
+        title: "Recovery Complete",
+        description: `Recovered ${data.recovered} campaigns.`,
+      });
+      
+      // Refresh the campaign list
+      fetchMessages();
+      
+    } catch (error) {
+      console.error('Error recovering campaigns:', error);
+      toast({
+        title: "Error",
+        description: "Failed to recover campaigns. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
+  // Update the tab labels and values
+  const tabs = [
+    { value: "In Progress", label: "Active" },
+    { value: "Paused", label: "Paused" },
+    { value: "Completed", label: "Completed" }
+  ];
 
   return (
     <div className={cn(
@@ -1527,12 +1579,12 @@ export default function CampaignPage() {
             "border-b flex",
             isDark && "border-gray-800"
           )}>
-            {["In Progress", "Completed", "Stopped", "Rate Limited"].map((tab) => (
+            {tabs.map((tab) => (
               <button
-                key={tab}
+                key={tab.value}
                 className={cn(
                   "px-4 py-2 font-medium text-sm transition-colors",
-                  activeTab === tab
+                  activeTab === tab.value
                     ? isDark 
                       ? "border-b-2 border-purple-500 text-purple-400" 
                       : "border-b-2 border-black text-black"
@@ -1540,9 +1592,9 @@ export default function CampaignPage() {
                       ? "text-gray-400 hover:text-gray-200"
                       : "text-gray-500 hover:text-gray-900"
                 )}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => setActiveTab(tab.value)}
               >
-                {tab}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -1619,7 +1671,6 @@ export default function CampaignPage() {
                           queue.status === "In Progress" && (isDark ? "bg-blue-900/60 text-blue-300" : "bg-blue-100 text-blue-700"),
                           queue.status === "Paused" && (isDark ? "bg-amber-900/60 text-amber-300" : "bg-amber-100 text-amber-700"),
                           queue.status === "Stopped" && (isDark ? "bg-yellow-900/60 text-yellow-300" : "bg-yellow-100 text-yellow-700"),
-                          queue.status === "Rate Limited" && (isDark ? "bg-red-900/60 text-red-300" : "bg-red-100 text-red-700"),
                           queue.status === "Completed" && (isDark ? "bg-emerald-900/60 text-emerald-300 font-medium" : "bg-emerald-100 text-emerald-700 font-medium")
                         )}>
                           {queue.status}
@@ -1768,6 +1819,27 @@ export default function CampaignPage() {
         description="Are you sure you want to delete this campaign? This action cannot be undone."
         isDeleting={isDeleting}
       />
+
+      {/* {dmqueueList.some(queue => queue.status === "In Progress" || queue.status === "Rate Limited") && (
+        <Button
+          variant="outline"
+          onClick={handleRecoverAllCampaigns}
+          disabled={isRecovering}
+          className="ml-2"
+        >
+          {isRecovering ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Recovering...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Recover Campaigns
+            </>
+          )}
+        </Button>
+      )} */}
     </div>
   );
 }

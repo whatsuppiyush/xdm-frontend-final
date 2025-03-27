@@ -28,7 +28,6 @@ export async function GET(request: Request) {
       
       let status = 'completed';
       let errorType = null;
-      console.log("Status data: in api/leads/route.ts", statusData);
       if (statusData) {
         try {
           // Check if statusData is already an object or needs parsing
