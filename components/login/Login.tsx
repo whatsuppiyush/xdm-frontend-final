@@ -100,10 +100,10 @@ export default function Login() {
 
   return (
     <div
-      className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950"
+      className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-100 via-purple-50/20 to-slate-100 dark:from-slate-950 dark:via-purple-950/20 dark:to-slate-950"
       data-oid="oymr3mq"
     >
-      <Card className="w-[380px] border-none bg-slate-900/40 backdrop-blur-xl shadow-2xl dark:shadow-purple-500/10" data-oid="vvvaj69">
+      <Card className="w-[380px] border border-slate-200 bg-white/80 dark:border-none dark:bg-slate-900/40 backdrop-blur-xl shadow-lg dark:shadow-2xl dark:shadow-purple-500/10" data-oid="vvvaj69">
         <CardHeader className="text-center space-y-6" data-oid="e3.vhhx">
           <div className="flex items-center justify-center w-full">
             <div className="relative w-12 h-12">
@@ -117,10 +117,10 @@ export default function Login() {
             </div>
           </div>
           <div className="space-y-1.5">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent" data-oid="b.1tfqt">
+            <CardTitle className="text-2xl font-bold text-slate-800 dark:bg-gradient-to-r dark:from-white dark:to-purple-200 dark:bg-clip-text dark:text-transparent" data-oid="b.1tfqt">
               {isSignup ? "Create Account" : "Welcome Back"}
             </CardTitle>
-            <CardDescription className="text-slate-400" data-oid="8fxro9s">
+            <CardDescription className="text-slate-600 dark:text-slate-400" data-oid="8fxro9s">
               {isSignup
                 ? "Sign up to get started"
                 : "Login to access your dashboard"}
@@ -129,7 +129,7 @@ export default function Login() {
         </CardHeader>
         <CardContent className="space-y-4" data-oid="aby.uqp">
           {error && (
-            <Alert variant="destructive" className="bg-red-500/10 text-red-200 border-red-500/20" data-oid="sg.dw3t">
+            <Alert variant="destructive" className="bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-500/20" data-oid="sg.dw3t">
               <AlertDescription data-oid="jq.kc5r">
                 {getErrorMessage(error)}
               </AlertDescription>
@@ -146,7 +146,7 @@ export default function Login() {
                 data-oid="izeh.g."
               >
                 <div className="space-y-2" data-oid="-fgfy4a">
-                  <Label htmlFor="email" className="text-slate-200" data-oid="w3kg2a_">
+                  <Label htmlFor="email" className="text-slate-700 dark:text-slate-200" data-oid="w3kg2a_">
                     Email
                   </Label>
                   <Input
@@ -156,12 +156,12 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="bg-white text-black border-0 rounded-xl placeholder:text-slate-400"
+                    className="bg-white border border-slate-300 text-slate-900 dark:bg-white dark:text-black dark:border-0 rounded-xl placeholder:text-slate-400"
                     data-oid="8mdc8a4"
                   />
                 </div>
                 <div className="space-y-2" data-oid="cqb2057">
-                  <Label htmlFor="password" className="text-slate-200" data-oid="k6y9cm.">
+                  <Label htmlFor="password" className="text-slate-700 dark:text-slate-200" data-oid="k6y9cm.">
                     Password
                   </Label>
                   <Input
@@ -171,7 +171,7 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="bg-white text-black border-0 rounded-xl placeholder:text-slate-400"
+                    className="bg-white border border-slate-300 text-slate-900 dark:bg-white dark:text-black dark:border-0 rounded-xl placeholder:text-slate-400"
                     data-oid="gt7j6e4"
                   />
                 </div>
@@ -187,10 +187,10 @@ export default function Login() {
 
               <div className="relative" data-oid="zqktp6c">
                 <div className="absolute inset-0 flex items-center" data-oid="f2hui3v">
-                  <span className="w-full border-t border-slate-700/50" data-oid="sn7h4mh" />
+                  <span className="w-full border-t border-slate-300 dark:border-slate-700/50" data-oid="sn7h4mh" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase" data-oid="kyk-rz3">
-                  <span className="bg-slate-900/40 px-2 text-slate-400" data-oid="z_3p0g.">
+                  <span className="bg-white px-2 text-slate-500 dark:bg-slate-900/40 dark:text-slate-400" data-oid="z_3p0g.">
                     Or continue with
                   </span>
                 </div>
@@ -199,7 +199,7 @@ export default function Login() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full bg-slate-800/50 text-white border-slate-700/50 hover:bg-slate-700/50 hover:border-purple-500/50 transition-all duration-200"
+                className="w-full bg-white text-slate-800 border-slate-300 hover:bg-slate-100 hover:border-slate-400 dark:bg-slate-800/50 dark:text-white dark:border-slate-700/50 dark:hover:bg-slate-700/50 dark:hover:border-purple-500/50 transition-all duration-200"
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
                 data-oid="k_ntip-"
@@ -229,7 +229,7 @@ export default function Login() {
           <div className="text-center text-sm" data-oid="ap-xw7j">
             <button
               type="button"
-              className="text-purple-400 hover:text-purple-300 transition-colors duration-200"
+              className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 transition-colors duration-200"
               onClick={() => setIsSignup(!isSignup)}
               data-oid="0vbwzs7"
             >

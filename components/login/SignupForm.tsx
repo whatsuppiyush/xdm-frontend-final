@@ -57,13 +57,13 @@ export default function SignupForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" data-oid="2epemmv">
       {error && (
-        <Alert variant="destructive" className="bg-red-500/10 text-red-200 border-red-500/20" data-oid="t.o1ba7">
+        <Alert variant="destructive" className="bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-500/20" data-oid="t.o1ba7">
           <AlertDescription data-oid="p4k1z52">{error}</AlertDescription>
         </Alert>
       )}
 
       <div className="space-y-2" data-oid="2:fc.g7">
-        <Label htmlFor="name" className="text-slate-200" data-oid="lb7bk5o">
+        <Label htmlFor="name" className="text-slate-700 dark:text-slate-200" data-oid="lb7bk5o">
           Name
         </Label>
         <Input
@@ -72,13 +72,13 @@ export default function SignupForm() {
           placeholder="Enter your name"
           value={formData.name}
           onChange={handleChange}
-          className="bg-white text-black border-0 rounded-xl placeholder:text-slate-400"
+          className="bg-white border border-slate-300 text-slate-900 dark:bg-white dark:text-black dark:border-0 rounded-xl placeholder:text-slate-400"
           data-oid="8o_g4xk"
         />
       </div>
 
       <div className="space-y-2" data-oid=":nvfr8m">
-        <Label htmlFor="email" className="text-slate-200" data-oid="cr8j6hi">
+        <Label htmlFor="email" className="text-slate-700 dark:text-slate-200" data-oid="cr8j6hi">
           Email
         </Label>
         <Input
@@ -89,13 +89,13 @@ export default function SignupForm() {
           value={formData.email}
           onChange={handleChange}
           required
-          className="bg-white text-black border-0 rounded-xl placeholder:text-slate-400"
+          className="bg-white border border-slate-300 text-slate-900 dark:bg-white dark:text-black dark:border-0 rounded-xl placeholder:text-slate-400"
           data-oid="ldw_46f"
         />
       </div>
 
       <div className="space-y-2" data-oid="kld1wcq">
-        <Label htmlFor="password" className="text-slate-200" data-oid="qe0w.et">
+        <Label htmlFor="password" className="text-slate-700 dark:text-slate-200" data-oid="qe0w.et">
           Password
         </Label>
         <Input
@@ -106,7 +106,7 @@ export default function SignupForm() {
           value={formData.password}
           onChange={handleChange}
           required
-          className="bg-white text-black border-0 rounded-xl placeholder:text-slate-400"
+          className="bg-white border border-slate-300 text-slate-900 dark:bg-white dark:text-black dark:border-0 rounded-xl placeholder:text-slate-400"
           data-oid="auab6-k"
         />
       </div>
