@@ -293,7 +293,7 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
               <span>Connected Accounts</span>
               <Button
                 size="sm"
-                className="h-9 text-xs sm:text-sm dark:bg-purple-700 dark:hover:bg-purple-800"
+                className="h-9 text-xs sm:text-sm dark:bg-purple-700 dark:hover:bg-purple-800 text-white"
                 onClick={() => {
                   setTwitterAccountName("");
                   setCookiesInput("");

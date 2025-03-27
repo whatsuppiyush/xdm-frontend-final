@@ -77,19 +77,12 @@ export default function Dashboard() {
 
   // Function to get plan status badge
   const getPlanStatusBadge = () => {
-    if (planDetails.isTrialActive) {
-      return (
-        <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">
-          Free Trial - {getRemainingDays()} days left
-        </Badge>
-      );
-    } else if (planDetails.isMonthly) {
-      return (
-        <Badge className="bg-green-500 text-white hover:bg-green-600">
-          Active
-        </Badge>
-      );
-    } else if (planDetails.planType) {
+    // Don't show badge if plan is active or trial is active
+    if (planDetails.isTrialActive || planDetails.isMonthly) {
+      return null;
+    }
+    
+    if (planDetails.planType) {
       return (
         <Badge className="bg-red-500 text-white hover:bg-red-600">
           Inactive
@@ -147,46 +140,49 @@ export default function Dashboard() {
           <DashboardMetrics />
         </section>
         
-        {/* Subscription Card */}
-        <section className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl shadow-md overflow-hidden">
-          <div className="p-5 md:p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-              <div className="flex items-start md:items-center gap-4">
-                <div className="bg-purple-500 p-3 rounded-lg shadow-sm">
-                  <Zap className="h-5 w-5 text-white" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-xl md:text-2xl font-bold text-white">
-                      {planDetails.name}
-                    </h2>
-                    {getPlanStatusBadge()}
+        {/* Subscription Card - Only show if no active plan/trial */}
+        {!planDetails.isTrialActive && !planDetails.isMonthly && (
+          <section className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl shadow-md overflow-hidden">
+            <div className="p-5 md:p-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="flex items-start md:items-center gap-4">
+                  <div className="bg-purple-500 p-3 rounded-lg shadow-sm">
+                    <Zap className="h-5 w-5 text-white" />
                   </div>
-                  <p className="text-gray-300 text-sm md:text-base">
-                    {planDetails.dmsPerDay.toLocaleString()} DMs/day limit
-                  </p>
-                  {!planDetails.planType && !planDetails.hadPreviousTrial && (
-                    <p className="text-purple-300 text-sm">
-                      Start your 3-day free trial today!
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-xl md:text-2xl font-bold text-white">
+                        {planDetails.name}
+                      </h2>
+                      {getPlanStatusBadge()}
+                    </div>
+                    <p className="text-gray-300 text-sm md:text-base">
+                      {planDetails.dmsPerDay.toLocaleString()} DMs/day limit
                     </p>
-                  )}
+                    {/* Only show trial message for first time users with no plan */}
+                    {!planDetails.planType && !planDetails.hadPreviousTrial && !planDetails.isTrialActive && (
+                      <p className="text-purple-300 text-sm">
+                        Start your 3-day free trial today!
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
-                <Button 
-                  className={`${!planDetails.planType && !planDetails.hadPreviousTrial 
-                    ? 'bg-purple-600 hover:bg-purple-700' 
-                    : 'bg-purple-600/90 hover:bg-purple-700'} 
-                    text-white shadow-sm transition-all duration-200`}
-                  onClick={actionButton.action}
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  {actionButton.text}
-                </Button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
+                  <Button 
+                    className={`${!planDetails.planType && !planDetails.hadPreviousTrial 
+                      ? 'bg-purple-600 hover:bg-purple-700' 
+                      : 'bg-purple-600/90 hover:bg-purple-700'} 
+                      text-white shadow-sm transition-all duration-200`}
+                    onClick={actionButton.action}
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    {actionButton.text}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
         
         {/* Tutorial Video */}
         <section>

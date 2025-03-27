@@ -241,12 +241,12 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="p-4 md:px-8 md:py-6 space-y-6 md:space-y-8">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Manage your Leads</h1>
         <Button
           onClick={() => setIsImporting(true)}
-          className="bg-purple-400 hover:bg-purple-500 text-white w-full sm:w-auto"
+          className="dark:bg-purple-600 dark:hover:bg-purple-700 text-white w-full sm:w-auto"
         >
           <PlusCircle className="h-4 w-4 mr-2" />
           Add new leads
@@ -325,7 +325,7 @@ export default function LeadsPage() {
             </p>
             <Button 
               onClick={() => setIsImporting(true)}
-              className="bg-purple-400 hover:bg-purple-500 text-white w-full sm:w-auto"
+              className="dark:bg-purple-600 dark:hover:bg-purple-700 text-white w-full sm:w-auto"
             >
               <PlusCircle className="h-4 w-4 mr-2" />
               Add new leads

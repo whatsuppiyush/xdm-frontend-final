@@ -14,10 +14,14 @@ import { useSearchParams } from "next/navigation";
 function SettingsContent() {
   const { userId, isLoading } = useUser();
   const [activeTab, setActiveTab] = useState("twitter");
+  const [showComingSoon, setShowComingSoon] = useState(false);
   const searchParams = useSearchParams();
 
   // Use useCallback to memoize the function
   const handleTabChange = useCallback((value: string) => {
+    if (value === "dnc") {
+      setShowComingSoon(true);
+    }
     setActiveTab(value);
   }, []);
 
@@ -49,7 +53,7 @@ function SettingsContent() {
   }
 
   return (
-    <div className="w-full px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
       <div className="flex justify-between items-center py-4 border-b border-gray-200 dark:border-[#242f44]">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
       </div>
@@ -97,7 +101,7 @@ function SettingsContent() {
         </TabsContent>
 
         <TabsContent value="dnc" className="mt-4 w-full bg-white dark:bg-transparent rounded-lg shadow-sm border border-gray-200 dark:border-transparent p-1 sm:p-4">
-          <DoNotContact />
+          <DoNotContact showComingSoon={showComingSoon} setShowComingSoon={setShowComingSoon} />
         </TabsContent>
       </Tabs>
     </div>
