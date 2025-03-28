@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signIn } from "next-auth/react";
+import { toast } from "sonner";
 
 export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -20,6 +22,7 @@ export default function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setMessage("");
 
     try {
       const response = await fetch("/api/auth/signup", {
@@ -34,15 +37,22 @@ export default function SignupForm() {
         throw new Error(data.error || "Failed to sign up");
       }
 
-      // Automatically sign in after successful signup
-      await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
-        callbackUrl: "/",
-        redirect: true,
-      });
+      if (data.message) {
+        // Display coming soon message
+        setMessage(data.message);
+        toast.info(data.message);
+      } else if (data.success) {
+        // Automatically sign in after successful signup
+        await signIn("credentials", {
+          email: formData.email,
+          password: formData.password,
+          callbackUrl: "/",
+          redirect: true,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign up");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -59,6 +69,12 @@ export default function SignupForm() {
       {error && (
         <Alert variant="destructive" className="bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-200 dark:border-red-500/20" data-oid="t.o1ba7">
           <AlertDescription data-oid="p4k1z52">{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {message && (
+        <Alert className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:border-blue-500/20">
+          <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
 
@@ -117,7 +133,7 @@ export default function SignupForm() {
         disabled={isLoading}
         data-oid=".degw-q"
       >
-        {isLoading ? "Creating Account..." : "Sign Up"}
+        {isLoading ? "Processing..." : "Sign Up"}
       </Button>
     </form>
   );
