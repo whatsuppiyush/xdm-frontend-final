@@ -122,6 +122,7 @@ export default function DashboardMetrics() {
           let totalMessageItems = 0;
           messagesData.messages?.forEach((message: MessageData) => {
             totalMessageItems += message.messages?.length || 0;
+            console.log(message);
           });
           
           setMetrics([

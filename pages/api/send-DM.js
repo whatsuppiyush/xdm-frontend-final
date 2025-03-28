@@ -7,6 +7,7 @@ import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import redis from '@/lib/redis';
 import { DAILY_MESSAGE_LIMIT } from '@/lib/constants';
+import { createServer } from 'http';
 const prisma = new PrismaClient();
 const MAX_RETRIES = 2;
 
@@ -432,7 +433,7 @@ const sendDM = async (recipientId, message, cookies, browser) => {
     // Find composer with minimal DOM operations
     console.log(`[${recipientId}] Waiting for composer selector`);
     await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
-      timeout: 30000,
+      timeout: 60000,
       visible: true
     });
     console.log(`[${recipientId}] Composer found, attempting to type`);
@@ -556,7 +557,7 @@ async function checkAndIncrementDailyLimit(userId) {
     // For testing in development: use a very short expiration time
     const isDev = process.env.NODE_ENV === 'development';
     
-    if (isDev) {
+    if (false) {
       // For testing: expire in 2 minutes
       console.log('TESTING MODE: Setting rate limit key to expire in 2 minutes');
       await redis.expire(dailyLimitKey, 120); // 120 seconds
@@ -575,6 +576,83 @@ async function checkAndIncrementDailyLimit(userId) {
     canSend: true,
     currentCount: newCount
   };
+}
+
+// Add a recovery function that runs on server start
+async function recoverActiveCampaigns() {
+  try {
+    console.log("Starting campaign recovery process after server restart...");
+    
+    // Get all campaign keys from Redis
+    const campaignKeys = await redis.keys('campaign:*:data');
+    console.log(`Found ${campaignKeys.length} campaigns to check for recovery`);
+    
+    for (const key of campaignKeys) {
+      const campaignId = key.split(':')[1];
+      
+      // Load campaign data
+      const campaignQueue = new CampaignQueue(campaignId);
+      await campaignQueue.loadFromRedis();
+      
+      // Only resume campaigns that were in Running or Rate Limited status
+      if (campaignQueue.status === 'Running' || campaignQueue.status === 'Rate Limited') {
+        console.log(`Recovering campaign ${campaignId} with status: ${campaignQueue.status}`);
+        
+        // For rate limited campaigns, check if limit has reset
+        if (campaignQueue.status === 'Rate Limited') {
+          const userId = campaignQueue.queue.length > 0 ? campaignQueue.queue[0].userId : null;
+          
+          if (userId) {
+            const today = new Date().toISOString().split('T')[0];
+            const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
+            const dailyUsage = await redis.get(dailyLimitKey);
+            
+            // If limit has reset or is below threshold, set to Running
+            if (!dailyUsage || parseInt(dailyUsage) < DAILY_MESSAGE_LIMIT) {
+              console.log(`Rate limit reset detected for campaign ${campaignId}, resuming`);
+              campaignQueue.status = 'Running';
+              await campaignQueue.saveToRedis();
+              
+              // Update database status
+              try {
+                await prisma.message.update({
+                  where: { id: campaignId },
+                  data: { status: 'In Progress' }
+                });
+              } catch (error) {
+                console.error('Failed to update message status:', error);
+              }
+            } else {
+              console.log(`Campaign ${campaignId} remains rate limited, skipping recovery`);
+              continue;
+            }
+          }
+        }
+        
+        // Start processing with a delay to avoid overwhelming the server on restart
+        if (campaignQueue.queue.length > 0) {
+          setTimeout(() => {
+            console.log(`Starting recovered campaign ${campaignId}`);
+            campaignQueue.process().catch(console.error);
+          }, Math.random() * 10000); // Stagger starts to avoid resource contention
+        }
+      }
+    }
+    
+    console.log("Campaign recovery process completed");
+  } catch (error) {
+    console.error("Error during campaign recovery:", error);
+  }
+}
+
+// Run recovery on server start
+if (process.env.NODE_ENV !== 'development') {
+  // In production, run immediately
+  recoverActiveCampaigns();
+} else {
+  // In development, wait a bit for everything to initialize
+  console.log("Waiting 5 seconds for development recovery");
+  setTimeout(recoverActiveCampaigns, 5000);
 }
 
 export default async function handler(req, res) {
