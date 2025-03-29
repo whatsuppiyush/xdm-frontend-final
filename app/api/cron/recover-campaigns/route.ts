@@ -40,7 +40,7 @@ class CampaignQueue {
 
 export async function GET(request: Request) {
   try {
-    // Verify this is a legitimate cron request (add authentication as needed)
+    // Verify this is a legitimate cron request
     const { searchParams } = new URL(request.url);
     const authToken = searchParams.get('token');
     
@@ -48,98 +48,183 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    // Find only campaigns that should be running (exclude Paused)
-    const activeCampaigns = await prisma.message.findMany({
-      where: {
-        status: {
-          in: ['In Progress', 'Rate Limited']
-        }
-      }
-    });
+    console.log("Running campaign recovery and rate limit check CRON job");
     
-    console.log(`Found ${activeCampaigns.length} campaigns to recover`);
+    // Get all campaign queues from Redis
+    const queueKeys = await redis.keys('queue:*');
+    console.log(`Found ${queueKeys.length} campaign queues in Redis`);
     
-    let recoveredCount = 0;
+    if (queueKeys.length === 0) {
+      return NextResponse.json({ 
+        success: true, 
+        message: "No campaign queues found in Redis" 
+      });
+    }
     
-    // Process each campaign
-    for (const campaign of activeCampaigns) {
-      const campaignQueue = new CampaignQueue(campaign.id);
-      await campaignQueue.loadFromRedis();
+    let resumedRateLimitedCount = 0;
+    let recoveredRunningCount = 0;
+    let fixedQueueCount = 0;
+    
+    // Process each queue found in Redis
+    for (const queueKey of queueKeys) {
+      // Extract campaign ID from the key (queue:campaignId)
+      const campaignId = queueKey.split(':')[1];
+      if (!campaignId) continue;
       
-      // Check if campaign is actually running in Redis and has messages in queue
-      if (campaignQueue.queue.length > 0) {
-        if (campaign.status === 'Rate Limited') {
-          // Check if rate limit has reset
-          const userId = campaign.userId;
-          if (userId) {
-            const today = new Date().toISOString().split('T')[0];
-            const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
-            const dailyUsage = await redis.get(dailyLimitKey);
-            const dailyUsageStr = typeof dailyUsage === 'string' ? dailyUsage : JSON.stringify(dailyUsage);
-            
-            if (!dailyUsageStr || parseInt(dailyUsageStr) < DAILY_MESSAGE_LIMIT) {
-              console.log(`Rate limit reset detected for campaign ${campaign.id}, resuming`);
-              campaignQueue.status = 'Running';
-              await campaignQueue.saveToRedis();
-              
-              await prisma.message.update({
-                where: { id: campaign.id },
-                data: { status: 'In Progress' }
-              });
-              
-              // Start processing by calling the send-DM API
-              try {
-                await fetch(`${process.env.NEXTAUTH_URL}/api/send-DM`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    action: 'resume',
-                    campaignId: campaign.id
-                  }),
-                });
-                recoveredCount++;
-              } catch (error) {
-                console.error(`Error resuming campaign ${campaign.id}:`, error);
+      // Get queue data from Redis
+      const queueData = await redis.get(queueKey);
+      if (!queueData) continue;
+      
+      // Parse queue state
+      const queueState = typeof queueData === 'string' ? JSON.parse(queueData) : queueData;
+      
+      // Skip empty queues or stopped campaigns
+      if (!queueState.queue || queueState.queue.length === 0 || queueState.status === 'Stopped') {
+        continue;
+      }
+      
+      // Get campaign data from database (we still need this for userId and status)
+      const campaign = await prisma.message.findUnique({
+        where: { id: campaignId }
+      });
+      
+      // Skip if campaign doesn't exist in database
+      if (!campaign) {
+        console.log(`Campaign ${campaignId} exists in Redis but not in database, cleaning up...`);
+        await redis.del(queueKey);
+        continue;
+      }
+      
+      console.log(`Processing campaign ${campaignId}: DB status=${campaign.status}, Redis status=${queueState.status}`);
+      
+      // CASE 1: Rate Limited campaigns - check if limit has reset
+      if (campaign.status === 'Rate Limited') {
+        const userId = campaign.userId;
+        if (!userId) continue;
+        
+        // Get the current date in YYYY-MM-DD format for the daily limit key
+        const today = new Date().toISOString().split('T')[0];
+        const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
+        
+        // Check if the daily limit key exists and get its value
+        const dailyUsage = await redis.get(dailyLimitKey);
+        
+        // Handle different return types from Redis
+        let currentUsage = 0;
+        if (dailyUsage) {
+          if (typeof dailyUsage === 'string') {
+            try {
+              currentUsage = parseInt(dailyUsage);
+            } catch (e) {
+              console.error(`Error parsing daily usage for user ${userId}:`, e);
+            }
+          } else if (typeof dailyUsage === 'number') {
+            currentUsage = dailyUsage;
+          } else {
+            try {
+              // Check if dailyUsage is an object but not null
+              if (dailyUsage && typeof dailyUsage === 'object') {
+                // If it's an empty object or has a numeric value property, handle accordingly
+                const stringified = JSON.stringify(dailyUsage);
+                if (stringified !== '{}') {
+                  const parsedUsage = JSON.parse(stringified);
+                  if (typeof parsedUsage === 'number') {
+                    currentUsage = parsedUsage;
+                  }
+                }
               }
+            } catch (e) {
+              console.error(`Error parsing JSON daily usage for user ${userId}:`, e);
             }
           }
-        } else if (campaign.status === 'In Progress' && campaignQueue.status !== 'Running') {
-          // Resume campaign that should be running but isn't
-          console.log(`Recovering interrupted campaign ${campaign.id}`);
-          campaignQueue.status = 'Running';
-          await campaignQueue.saveToRedis();
+        }
+        
+        console.log(`User ${userId} daily usage: ${currentUsage}/${DAILY_MESSAGE_LIMIT}`);
+        
+        // Check if we're below the limit (either key doesn't exist or count is below limit)
+        if (currentUsage < DAILY_MESSAGE_LIMIT) {
+          console.log(`Resuming rate-limited campaign ${campaignId} - under daily limit`);
           
-          // Start processing by calling the send-DM API
-          try {
-            await fetch(`${process.env.NEXTAUTH_URL}/api/send-DM`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                action: 'resume',
-                campaignId: campaign.id
-              }),
-            });
-            recoveredCount++;
-          } catch (error) {
-            console.error(`Error resuming campaign ${campaign.id}:`, error);
+          // Update campaign status in database
+          await prisma.message.update({
+            where: { id: campaignId },
+            data: { status: 'In Progress' }
+          });
+          
+          // Update queue status in Redis
+          queueState.status = 'Running';
+          await redis.set(queueKey, JSON.stringify(queueState));
+          
+          // Call the send-DM API to resume processing
+          await fetch(`${process.env.NEXTAUTH_URL}/api/send-DM`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'resume',
+              campaignId: campaignId
+            }),
+          });
+          
+          resumedRateLimitedCount++;
+        } else {
+          // Still rate limited - check when the key will expire
+          const ttl = await redis.ttl(dailyLimitKey);
+          if (ttl > 0) {
+            const expiryHours = Math.floor(ttl / 3600);
+            const expiryMinutes = Math.floor((ttl % 3600) / 60);
+            console.log(`Campaign ${campaignId} still rate limited. Limit will reset in ${expiryHours}h ${expiryMinutes}m`);
+          } else if (ttl === -1) {
+            // Key exists but has no expiry - this shouldn't happen, but let's fix it
+            console.log(`Campaign ${campaignId} rate limit key has no expiry, setting 24h expiry`);
+            await redis.expire(dailyLimitKey, 24 * 60 * 60); // 24 hours in seconds
           }
         }
+      }
+      // CASE 2: In Progress campaigns with non-Running queue status
+      else if (campaign.status === 'In Progress' && queueState.status !== 'Running') {
+        console.log(`Recovering in-progress campaign ${campaignId} with queue status ${queueState.status}`);
+        
+        // Set queue status to Running
+        queueState.status = 'Running';
+        await redis.set(queueKey, JSON.stringify(queueState));
+        
+        // Call the send-DM API to resume processing
+        await fetch(`${process.env.NEXTAUTH_URL}/api/send-DM`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'resume',
+            campaignId: campaignId
+          }),
+        });
+        
+        recoveredRunningCount++;
+      }
+      // CASE 3: Running queue but database status is not In Progress
+      else if (queueState.status === 'Running' && campaign.status !== 'In Progress') {
+        console.log(`Fixing database status for campaign ${campaignId}: ${campaign.status} -> In Progress`);
+        
+        await prisma.message.update({
+          where: { id: campaignId },
+          data: { status: 'In Progress' }
+        });
+        
+        fixedQueueCount++;
       }
     }
     
     return NextResponse.json({ 
       success: true, 
-      recovered: recoveredCount,
-      total: activeCampaigns.length
+      message: `Processed campaigns: resumed ${resumedRateLimitedCount} rate-limited, recovered ${recoveredRunningCount} in-progress, fixed ${fixedQueueCount} database statuses` 
     });
   } catch (error) {
-    console.error('Error recovering campaigns:', error);
+    console.error('Error in campaign recovery CRON job:', error);
     return NextResponse.json({ 
-      error: 'Failed to recover campaigns',
+      error: 'Failed to process campaigns',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }

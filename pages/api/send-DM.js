@@ -104,6 +104,8 @@ class CampaignQueue {
     let browserRestartCount = 0;
     let consecutiveMemoryErrors = 0;
     let limitCheckCounter = 0;
+    // Track failed recipients that need retry after browser restart
+    let recipientsToRetry = [];
 
     try {
       // Launch browser with memory optimization arguments
@@ -114,22 +116,31 @@ class CampaignQueue {
         await chromium.executablePath();
 
       this.browser = await puppeteer.launch({
-        args: [
-          ...chromium.args,
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
+            args: [
+                ...chromium.args,
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
           '--js-flags="--max-old-space-size=256"',
           '--single-process',
-        ],
-        executablePath,
-        headless: isLocal ? false : chromium.headless,
+            ],
+            executablePath,
+            headless: isLocal ? false : chromium.headless,
         defaultViewport: { width: 800, height: 600 },
         protocolTimeout: 180000,
         timeout: 180000
       });
 
       console.log(`Browser launched for campaign ${this.campaignId}`);
+
+      // Add any recipients that need retry from previous browser crash
+      if (recipientsToRetry.length > 0) {
+        console.log(`Adding ${recipientsToRetry.length} recipients back to the queue for retry`);
+        // Add failed recipients back to the beginning of the queue
+        this.queue = [...recipientsToRetry, ...this.queue];
+        recipientsToRetry = [];
+        await this.saveToRedis();
+      }
 
       while (this.queue.length > 0 && this.status === 'Running') {
         await this.loadFromRedis();
@@ -266,10 +277,22 @@ class CampaignQueue {
             // Save current state
             await this.saveToRedis();
             
+            // Add current recipient to retry list
+            const currentRecipient = this.queue[0];
+            recipientsToRetry.push(currentRecipient);
+            console.log("recipientsToRetry",recipientsToRetry);
+            // Remove from current queue to avoid duplicate processing
+            this.queue.shift();
+            await this.saveToRedis();
+            
             // Close browser
-            if (this.browser) {
-              await this.browser.close().catch(console.error);
-              this.browser = null;
+            try {
+              if (this.browser) {
+                await this.browser.close();
+                this.browser = null;
+              }
+            } catch (closeError) {
+              console.error('Error closing browser:', closeError);
             }
             
             // Progressive cooldown period - increases with consecutive errors
@@ -277,31 +300,40 @@ class CampaignQueue {
             console.log(`Cooling down for ${cooldownMinutes} minutes before restarting browser`);
             await new Promise(resolve => setTimeout(resolve, cooldownMinutes * 60000));
             
-            // Restart browser with minimal settings
-            this.browser = await puppeteer.launch({
-              args: [
-                ...chromium.args,
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--js-flags="--max-old-space-size=256"'
-              ],
-              executablePath,
-              headless: isLocal ? false : chromium.headless,
-              defaultViewport: { width: 800, height: 600 }
-            });
-            
-            console.log("Browser restarted after cooldown");
-            
-            // Don't count this as a failure
-            continue;
+            // Restart browser
+            try {
+              this.browser = await puppeteer.launch({
+                args: [
+                  ...chromium.args,
+                  '--no-sandbox',
+                  '--disable-setuid-sandbox',
+                  '--disable-dev-shm-usage',
+                  '--js-flags="--max-old-space-size=256"'
+                ],
+                executablePath,
+                headless: isLocal ? false : chromium.headless,
+                defaultViewport: { width: 800, height: 600 }
+              });
+              
+              console.log("Browser restarted after cooldown");
+              
+              // Add failed recipients back to the beginning of the queue
+              this.queue = [...recipientsToRetry, ...this.queue];
+              recipientsToRetry = [];
+              await this.saveToRedis();
+            } catch (restartError) {
+              console.error('Error restarting browser:', restartError);
+              // If we can't restart the browser, we'll exit the loop and try again later
+                    break;
+            }
           } else {
-            // For other errors, count as a failure
-            console.error(`Error sending message to ${recipientId}:`, error);
+            // For non-memory errors, handle as a regular failed attempt
+            console.error(`Error sending DM to ${recipientId}:`, error);
             this.handleFailedAttempt(recipientId);
           }
         }
         
+        // Save state after each message
         await this.saveToRedis();
       }
       
@@ -537,7 +569,7 @@ async function checkAndIncrementDailyLimit(userId) {
   const parsedCount = currentCount ? parseInt(currentCount) : 0;
   
   // For testing: use a very low limit in development
-  const effectiveLimit = process.env.NODE_ENV === 'development' ? 10 : DAILY_MESSAGE_LIMIT;
+  const effectiveLimit = process.env.NODE_ENV === 'development' ? 25 : DAILY_MESSAGE_LIMIT;
   console.log(`Current count: ${parsedCount}, Limit: ${effectiveLimit}`);
   
   // If already at limit, don't increment
@@ -578,81 +610,95 @@ async function checkAndIncrementDailyLimit(userId) {
   };
 }
 
-// Add a recovery function that runs on server start
+// Update the recoverActiveCampaigns function to also process queues with "Running" status
 async function recoverActiveCampaigns() {
   try {
-    console.log("Starting campaign recovery process after server restart...");
+    // Use queue:* pattern to find all campaign queues
+    console.log("Recovering active campaigns");
+    const queueKeys = await redis.keys('queue:*');
+    console.log(`Found ${queueKeys.length} campaign queues in Redis`);
     
-    // Get all campaign keys from Redis
-    const campaignKeys = await redis.keys('campaign:*:data');
-    console.log(`Found ${campaignKeys.length} campaigns to check for recovery`);
+    if (queueKeys.length === 0) {
+      return { recovered: 0 };
+    }
     
-    for (const key of campaignKeys) {
-      const campaignId = key.split(':')[1];
+    let recoveredCount = 0;
+    
+    // Process each queue found in Redis
+    for (const queueKey of queueKeys) {
+      // Extract campaign ID from the key (queue:campaignId)
+      const campaignId = queueKey.split(':')[1];
       
-      // Load campaign data
+      if (!campaignId) continue;
+      
+      // Get campaign data from database
+      const campaign = await prisma.message.findUnique({
+        where: { id: campaignId }
+      });
+      
+      // Skip if campaign doesn't exist in database
+      if (!campaign) continue;
+      
+      // Load queue state from Redis
       const campaignQueue = new CampaignQueue(campaignId);
       await campaignQueue.loadFromRedis();
       
-      // Only resume campaigns that were in Running or Rate Limited status
-      if (campaignQueue.status === 'Running' || campaignQueue.status === 'Rate Limited') {
-        console.log(`Recovering campaign ${campaignId} with status: ${campaignQueue.status}`);
+      // Only process if queue has messages
+      if (campaignQueue.queue.length > 0 && campaignQueue.status !== 'Stopped') {
+        console.log(`Checking campaign ${campaignId} with status ${campaign.status}, queue status: ${campaignQueue.status}`);
         
         // For rate limited campaigns, check if limit has reset
-        if (campaignQueue.status === 'Rate Limited') {
-          const userId = campaignQueue.queue.length > 0 ? campaignQueue.queue[0].userId : null;
-          
-          if (userId) {
-            const today = new Date().toISOString().split('T')[0];
-            const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
-            const dailyUsage = await redis.get(dailyLimitKey);
+        if (campaign.status === 'Rate Limited') {
+          const userId = campaign.userId;
+          const today = new Date().toISOString().split('T')[0];
+          const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
+          const dailyUsage = await redis.get(dailyLimitKey);
+          const dailyUsageStr = typeof dailyUsage === 'string' ? dailyUsage : JSON.stringify(dailyUsage);
+          console.log('Rate Limited campaign',recoveredCount);
+          if (!dailyUsageStr || parseInt(dailyUsageStr) < DAILY_MESSAGE_LIMIT) {
+            // Resume campaign
+            campaignQueue.status = 'Running';
+            await campaignQueue.saveToRedis();
             
-            // If limit has reset or is below threshold, set to Running
-            if (!dailyUsage || parseInt(dailyUsage) < DAILY_MESSAGE_LIMIT) {
-              console.log(`Rate limit reset detected for campaign ${campaignId}, resuming`);
-              campaignQueue.status = 'Running';
-              await campaignQueue.saveToRedis();
-              
-              // Update database status
-              try {
-                await prisma.message.update({
-                  where: { id: campaignId },
-                  data: { status: 'In Progress' }
-                });
-              } catch (error) {
-                console.error('Failed to update message status:', error);
-              }
-            } else {
-              console.log(`Campaign ${campaignId} remains rate limited, skipping recovery`);
-              continue;
-            }
+            await prisma.message.update({
+              where: { id: campaignId },
+              data: { status: 'In Progress' }
+            });
+            
+            // Start processing this campaign
+            campaignQueue.process().catch(console.error);
+            recoveredCount++;
           }
         }
-        
-        // Start processing with a delay to avoid overwhelming the server on restart
-        if (campaignQueue.queue.length > 0) {
-          setTimeout(() => {
-            console.log(`Starting recovered campaign ${campaignId}`);
-            campaignQueue.process().catch(console.error);
-          }, Math.random() * 10000); // Stagger starts to avoid resource contention
+        // For In Progress or Running campaigns, ensure they're actually running
+        else if (campaignQueue.status === 'Running') {
+          // Always set to Running to ensure it's processed
+          campaignQueue.status = 'Running';
+          await campaignQueue.saveToRedis();
+          
+          // Start processing this campaign
+          campaignQueue.process().catch(console.error);
+          recoveredCount++;
         }
       }
     }
     
-    console.log("Campaign recovery process completed");
+    console.log(`Recovered ${recoveredCount} campaigns`);
+    return { recovered: recoveredCount };
   } catch (error) {
-    console.error("Error during campaign recovery:", error);
+    console.error('Error recovering campaigns:', error);
+    return { recovered: 0, error: error.message };
   }
 }
 
 // Run recovery on server start
 if (process.env.NODE_ENV !== 'development') {
   // In production, run immediately
-  recoverActiveCampaigns();
+  //recoverActiveCampaigns();
 } else {
   // In development, wait a bit for everything to initialize
   console.log("Waiting 5 seconds for development recovery");
-  setTimeout(recoverActiveCampaigns, 5000);
+  //setTimeout(recoverActiveCampaigns, 5000);
 }
 
 export default async function handler(req, res) {
@@ -785,10 +831,10 @@ export default async function handler(req, res) {
                 const today = new Date().toISOString().split('T')[0];
                 const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
                 await redis.del(dailyLimitKey);
-                return res.status(200).json({ 
-                    success: true, 
+            return res.status(200).json({ 
+                success: true, 
                     message: 'Rate limit reset for testing'
-                });
+            });
             }
         }
     } else if (req.method === 'GET') {
