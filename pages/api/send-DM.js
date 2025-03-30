@@ -252,6 +252,12 @@ class CampaignQueue {
           const success = await sendDM(recipientId, message, cookies, this.browser);
           
           if (success) {
+            // Only increment the counter AFTER successful message sending
+            if (userId) {
+              await incrementDailyLimit(userId);
+              console.log(`Incremented daily message count for user ${userId} after successful send`);
+            }
+            
             await this.updateMessageStatus(recipientId, message);
             this.processedRecipients.add(recipientId);
             this.queue.shift();
@@ -556,17 +562,17 @@ const messageTransformFunction = (message,recipient) => {
     return transformedMessage;
 }
 
-// Optimize the checkAndIncrementDailyLimit function
-async function checkAndIncrementDailyLimit(userId) {
+// Split the function into check and increment
+async function checkDailyLimit(userId) {
   if (!userId) {
-    console.error("userId is undefined in checkAndIncrementDailyLimit");
+    console.error("userId is undefined in checkDailyLimit");
     return { canSend: false };
   }
   
   const today = new Date().toISOString().split('T')[0];
   const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
   
-  // First check if we're already at the limit before incrementing
+  // Check if we're already at the limit
   const currentCount = await redis.get(dailyLimitKey);
   const parsedCount = currentCount ? parseInt(currentCount) : 0;
   
@@ -574,41 +580,59 @@ async function checkAndIncrementDailyLimit(userId) {
   const effectiveLimit = process.env.NODE_ENV === 'development' ? 25 : DAILY_MESSAGE_LIMIT;
   console.log(`Current count: ${parsedCount}, Limit: ${effectiveLimit}`);
   
-  // If already at limit, don't increment
-  if (parsedCount >= effectiveLimit) {
-    console.log(`Daily limit of ${effectiveLimit} reached for user ${userId}`);
-    return {
-      canSend: false,
-      currentCount: parsedCount
-    };
+  return {
+    canSend: parsedCount < effectiveLimit,
+    currentCount: parsedCount
+  };
+}
+
+// New function to increment the counter only after successful send
+async function incrementDailyLimit(userId) {
+  if (!userId) {
+    console.error("userId is undefined in incrementDailyLimit");
+    return { success: false };
   }
+  
+  const today = new Date().toISOString().split('T')[0];
+  const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
   
   // Increment the counter
   const newCount = await redis.incr(dailyLimitKey);
   
   // If this is the first increment, set expiration
   if (newCount === 1) {
-    // For testing in development: use a very short expiration time
-    const isDev = process.env.NODE_ENV === 'development';
-    
-    if (false) {
-      // For testing: expire in 2 minutes
-      console.log('TESTING MODE: Setting rate limit key to expire in 2 minutes');
-      await redis.expire(dailyLimitKey, 120); // 120 seconds
-    } else {
-      // Production: Calculate seconds until midnight of the next day
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const secondsUntilMidnight = Math.floor((tomorrow.getTime() - Date.now()) / 1000);
-      await redis.expire(dailyLimitKey, secondsUntilMidnight);
-    }
+    // Calculate seconds until midnight of the next day
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const secondsUntilMidnight = Math.floor((tomorrow.getTime() - Date.now()) / 1000);
+    await redis.expire(dailyLimitKey, secondsUntilMidnight);
   }
   
-  console.log(`Daily message count for user ${userId}: ${newCount}/${effectiveLimit}`);
+  console.log(`Daily message count for user ${userId} incremented to: ${newCount}`);
+  
+  return {
+    success: true,
+    currentCount: newCount
+  };
+}
+
+// Update the existing function to use the new split functions
+async function checkAndIncrementDailyLimit(userId) {
+  const checkResult = await checkDailyLimit(userId);
+  
+  if (!checkResult.canSend) {
+    return {
+      canSend: false,
+      currentCount: checkResult.currentCount
+    };
+  }
+  
+  // Only increment if we're going to send
+  const incrementResult = await incrementDailyLimit(userId);
   
   return {
     canSend: true,
-    currentCount: newCount
+    currentCount: incrementResult.currentCount
   };
 }
 
