@@ -146,6 +146,25 @@ export async function POST(request: Request) {
           count: transformedFollowers.length
         }));
 
+        // Send completion email notification
+        try {
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          await fetch(`${baseUrl}/api/send-lead-scraping-notification`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              listName: newLead.leadName,
+              leadCount: transformedFollowers.length,
+              userId: newLead.userId
+            }),
+          });
+        } catch (emailError) {
+          console.error('Error sending lead scraping completion email:', emailError);
+          // Don't throw error here as the scraping was successful
+        }
+
         // Reduce lead credits for users with available leads
         if (hasAvailableLeads && transformedFollowers.length > 0) {
           try {
