@@ -217,15 +217,16 @@ export async function GET(request: Request) {
           }
         }
       }
-      // CASE 2: In Progress campaigns with non-Running queue status
-      else if (campaign.status === 'In Progress' && queueState.status !== 'Running') {
+      // CASE 2: In Progress campaigns with Running queue status
+      else if (campaign.status === 'In Progress' && queueState.status === 'Running') {
         console.log(`Recovering in-progress campaign ${campaignId} with queue status ${queueState.status}`);
         
         // Set queue status to Running
-        queueState.status = 'Running';
-        await redis.set(queueKey, JSON.stringify(queueState));
+        // queueState.status = 'Running';
+        // await redis.set(queueKey, JSON.stringify(queueState));
         
-        // Call the send-DM API to resume processing
+        // Call the send-DM API to resume processing with a timeout between campaigns
+        console.log(`Calling send-DM API to resume campaign ${campaignId}`);
         await fetch(`${process.env.NEXTAUTH_URL}/api/send-DM`, {
           method: 'POST',
           headers: {
@@ -236,6 +237,10 @@ export async function GET(request: Request) {
             campaignId: campaignId
           }),
         });
+        
+        // Add timeout between consecutive campaign recoveries
+        console.log(`Waiting 10 seconds before recovering next campaign`);
+        await new Promise(resolve => setTimeout(resolve, 10000)); // 5 second delay
         
         recoveredRunningCount++;
       }
