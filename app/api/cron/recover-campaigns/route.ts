@@ -235,7 +235,8 @@ export async function GET(request: Request) {
           },
           body: JSON.stringify({
             action: 'resume',
-            campaignId: campaignId
+            campaignId: campaignId,
+            cron: true
           }),
         });
         

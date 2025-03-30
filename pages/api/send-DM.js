@@ -241,7 +241,8 @@ class CampaignQueue {
         limitCheckCounter++;
 
         // Apply delay between messages
-        const delay = 1 * 60000;
+        const delay = Math.floor(Math.random() * (4 - 2 + 1) + 2) * 60000;
+        console.log(`Waiting ${delay/60000} minutes before sending next message`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
         await this.loadFromRedis();
@@ -406,7 +407,7 @@ class CampaignQueue {
     if (this.queue.length > 0) {
       this.process().catch(console.error);
     }
-    console.log(`Campaign ${this.campaignId} resumed`);
+    console.log(`Campaign ${this.campaignId} resumed and items in queue`,this.queue.length);
   }
 
   async updateQueueWithUserId(userId) {
