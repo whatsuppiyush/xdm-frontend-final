@@ -71,12 +71,47 @@ export async function GET(request: Request) {
       const campaignId = queueKey.split(':')[1];
       if (!campaignId) continue;
       
-      // Get queue data from Redis
-      const queueData = await redis.get(queueKey);
-      if (!queueData) continue;
-      
-      // Parse queue state
-      const queueState = typeof queueData === 'string' ? JSON.parse(queueData) : queueData;
+      // Parse queue state with better error handling
+      let queueState;
+      try {
+        // Get queue data from Redis
+        const queueData = await redis.get(queueKey);
+        if (!queueData) continue;
+        
+        // Parse queue state with better error handling
+        // If it's already an object, use it directly
+        if (typeof queueData === 'object' && queueData !== null) {
+          queueState = queueData;
+        } 
+        // If it's a string, try to parse it as JSON
+        else if (typeof queueData === 'string') {
+          // Check if it's a simple string status like "Paused" or "Running"
+          if (["Paused", "Running", "Stopped", "Ready"].includes(queueData)) {
+            console.log(`Campaign ${campaignId} has legacy string status: ${queueData}. Creating proper queue object.`);
+            // Create a proper queue object
+            queueState = {
+              campaignId: campaignId,
+              queue: [],
+              processedRecipients: [],
+              status: queueData
+            };
+            // Save the proper format back to Redis
+            await redis.set(queueKey, JSON.stringify(queueState));
+          } else {
+            // Try to parse as JSON
+            queueState = JSON.parse(queueData);
+          }
+        } else {
+          console.log(`Campaign ${campaignId} has invalid queue data type: ${typeof queueData}. Skipping.`);
+          continue;
+        }
+      } catch (parseError) {
+        console.error(`Error parsing queue data for campaign ${campaignId}:`, parseError);
+        // Don't try to log queueData here as it might be out of scope
+        // Delete the invalid data and skip this campaign
+        await redis.del(queueKey);
+        continue;
+      }
       
       // Skip empty queues or stopped campaigns
       if (!queueState.queue || queueState.queue.length === 0 || queueState.status === 'Stopped') {
@@ -217,6 +252,19 @@ export async function GET(request: Request) {
       }
     }
     
+    const logMessage = `CRON job completed at ${new Date().toISOString()}: resumed ${resumedRateLimitedCount} rate-limited, recovered ${recoveredRunningCount} in-progress, fixed ${fixedQueueCount} database statuses`;
+    console.log(logMessage);
+
+    // Create a Redis key to store the last run information
+    await redis.set('cron:last-run', JSON.stringify({
+      timestamp: new Date().toISOString(),
+      results: {
+        resumedRateLimitedCount,
+        recoveredRunningCount,
+        fixedQueueCount
+      }
+    }));
+
     return NextResponse.json({ 
       success: true, 
       message: `Processed campaigns: resumed ${resumedRateLimitedCount} rate-limited, recovered ${recoveredRunningCount} in-progress, fixed ${fixedQueueCount} database statuses` 
