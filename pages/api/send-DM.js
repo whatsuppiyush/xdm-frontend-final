@@ -266,6 +266,7 @@ class CampaignQueue {
           console.log("error inside process catch block",error);
           if (error.message.includes('Target.createTarget timed out') || 
               error.message.includes('out of memory') || 
+              error.message.includes('TimeoutError') ||
               error.message.includes('Browser closed') ||
               error.message.includes('Protocol error') || 
               error.message.includes('Increase the \'protocolTimeout\'')) {
