@@ -703,7 +703,7 @@ if (process.env.NODE_ENV !== 'development') {
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
-        const { action, message, cookies,recipients, campaignId } = req.body;
+        const { action, message, cookies,recipients, campaignId, cron = false } = req.body;
         //const recipients = [{id:'1393223661851607042'},{id:'1393223661851607042'},{id:'1393223661851607042'},{id:'1393223661851607042'}]//['1393223661851607042',"1151640228349612032"];
         //console.log("recipientIds",recipients);
         if (action === 'stop') {
@@ -763,8 +763,8 @@ export default async function handler(req, res) {
             
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
-            console.log("campaignQueue.status",campaignQueue.status);
-            if (campaignQueue.status === 'Paused') {
+            console.log("campaignQueue.status and cron",campaignQueue.status,cron);
+            if (campaignQueue.status === 'Paused' || cron) {
                 await campaignQueue.resume();
                 console.log(`Resumed paused queue for campaign ${campaignId}`);
             }
