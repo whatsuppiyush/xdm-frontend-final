@@ -241,7 +241,8 @@ class CampaignQueue {
         limitCheckCounter++;
 
         // Apply delay between messages
-        const delay = 1 * 60000;
+        const delay = Math.floor(Math.random() * (4 - 2 + 1) + 2) * 60000;
+        console.log(`Waiting ${delay/60000} minutes before sending next message`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
         await this.loadFromRedis();
@@ -251,6 +252,12 @@ class CampaignQueue {
           const success = await sendDM(recipientId, message, cookies, this.browser);
           
           if (success) {
+            // Only increment the counter AFTER successful message sending
+            if (userId) {
+              await incrementDailyLimit(userId);
+              console.log(`Incremented daily message count for user ${userId} after successful send`);
+            }
+            
             await this.updateMessageStatus(recipientId, message);
             this.processedRecipients.add(recipientId);
             this.queue.shift();
@@ -262,12 +269,15 @@ class CampaignQueue {
           }
         } catch (error) {
           // Check for memory-related errors - add the specific Target.createTarget error
-          console.log("error inside process catch block",error);
+          console.log("error inside process catch block", error);
           if (error.message.includes('Target.createTarget timed out') || 
               error.message.includes('out of memory') || 
+              error.message.includes('TimeoutError') ||
               error.message.includes('Browser closed') ||
               error.message.includes('Protocol error') || 
-              error.message.includes('Increase the \'protocolTimeout\'')) {
+              error.message.includes('Increase the \'protocolTimeout\'') ||
+              error.message.includes('Waiting for selector') ||
+              error.message.includes('Waiting failed:')) {
             
             // Increment consecutive errors
             consecutiveMemoryErrors++;
@@ -280,7 +290,7 @@ class CampaignQueue {
             // Add current recipient to retry list
             const currentRecipient = this.queue[0];
             recipientsToRetry.push(currentRecipient);
-            console.log("recipientsToRetry",recipientsToRetry);
+            console.log("recipientsToRetry", recipientsToRetry);
             // Remove from current queue to avoid duplicate processing
             this.queue.shift();
             await this.saveToRedis();
@@ -324,7 +334,7 @@ class CampaignQueue {
             } catch (restartError) {
               console.error('Error restarting browser:', restartError);
               // If we can't restart the browser, we'll exit the loop and try again later
-                    break;
+              break;
             }
           } else {
             // For non-memory errors, handle as a regular failed attempt
@@ -406,7 +416,7 @@ class CampaignQueue {
     if (this.queue.length > 0) {
       this.process().catch(console.error);
     }
-    console.log(`Campaign ${this.campaignId} resumed`);
+    console.log(`Campaign ${this.campaignId} resumed and items in queue`,this.queue.length);
   }
 
   async updateQueueWithUserId(userId) {
@@ -529,7 +539,9 @@ const sendDM = async (recipientId, message, cookies, browser) => {
         error.message.includes('out of memory') || 
         error.message.includes('Browser closed') ||
         error.message.includes('Protocol error') || 
-        error.message.includes('Increase the \'protocolTimeout\'')) {
+        error.message.includes('Increase the \'protocolTimeout\'') ||
+        error.message.includes('Waiting for selector') ||
+        error.message.includes('Waiting failed:')) {
       throw error; // Rethrow memory errors
     }
     
@@ -554,17 +566,17 @@ const messageTransformFunction = (message,recipient) => {
     return transformedMessage;
 }
 
-// Optimize the checkAndIncrementDailyLimit function
-async function checkAndIncrementDailyLimit(userId) {
+// Split the function into check and increment
+async function checkDailyLimit(userId) {
   if (!userId) {
-    console.error("userId is undefined in checkAndIncrementDailyLimit");
+    console.error("userId is undefined in checkDailyLimit");
     return { canSend: false };
   }
   
   const today = new Date().toISOString().split('T')[0];
   const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
   
-  // First check if we're already at the limit before incrementing
+  // Check if we're already at the limit
   const currentCount = await redis.get(dailyLimitKey);
   const parsedCount = currentCount ? parseInt(currentCount) : 0;
   
@@ -572,41 +584,59 @@ async function checkAndIncrementDailyLimit(userId) {
   const effectiveLimit = process.env.NODE_ENV === 'development' ? 25 : DAILY_MESSAGE_LIMIT;
   console.log(`Current count: ${parsedCount}, Limit: ${effectiveLimit}`);
   
-  // If already at limit, don't increment
-  if (parsedCount >= effectiveLimit) {
-    console.log(`Daily limit of ${effectiveLimit} reached for user ${userId}`);
-    return {
-      canSend: false,
-      currentCount: parsedCount
-    };
+  return {
+    canSend: parsedCount < effectiveLimit,
+    currentCount: parsedCount
+  };
+}
+
+// New function to increment the counter only after successful send
+async function incrementDailyLimit(userId) {
+  if (!userId) {
+    console.error("userId is undefined in incrementDailyLimit");
+    return { success: false };
   }
+  
+  const today = new Date().toISOString().split('T')[0];
+  const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
   
   // Increment the counter
   const newCount = await redis.incr(dailyLimitKey);
   
   // If this is the first increment, set expiration
   if (newCount === 1) {
-    // For testing in development: use a very short expiration time
-    const isDev = process.env.NODE_ENV === 'development';
-    
-    if (false) {
-      // For testing: expire in 2 minutes
-      console.log('TESTING MODE: Setting rate limit key to expire in 2 minutes');
-      await redis.expire(dailyLimitKey, 120); // 120 seconds
-    } else {
-      // Production: Calculate seconds until midnight of the next day
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const secondsUntilMidnight = Math.floor((tomorrow.getTime() - Date.now()) / 1000);
-      await redis.expire(dailyLimitKey, secondsUntilMidnight);
-    }
+    // Calculate seconds until midnight of the next day
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const secondsUntilMidnight = Math.floor((tomorrow.getTime() - Date.now()) / 1000);
+    await redis.expire(dailyLimitKey, secondsUntilMidnight);
   }
   
-  console.log(`Daily message count for user ${userId}: ${newCount}/${effectiveLimit}`);
+  console.log(`Daily message count for user ${userId} incremented to: ${newCount}`);
+  
+  return {
+    success: true,
+    currentCount: newCount
+  };
+}
+
+// Update the existing function to use the new split functions
+async function checkAndIncrementDailyLimit(userId) {
+  const checkResult = await checkDailyLimit(userId);
+  
+  if (!checkResult.canSend) {
+    return {
+      canSend: false,
+      currentCount: checkResult.currentCount
+    };
+  }
+  
+  // Only increment if we're going to send
+  const incrementResult = await incrementDailyLimit(userId);
   
   return {
     canSend: true,
-    currentCount: newCount
+    currentCount: incrementResult.currentCount
   };
 }
 
@@ -703,7 +733,7 @@ if (process.env.NODE_ENV !== 'development') {
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
-        const { action, message, cookies,recipients, campaignId } = req.body;
+        const { action, message, cookies,recipients, campaignId, cron = false } = req.body;
         //const recipients = [{id:'1393223661851607042'},{id:'1393223661851607042'},{id:'1393223661851607042'},{id:'1393223661851607042'}]//['1393223661851607042',"1151640228349612032"];
         //console.log("recipientIds",recipients);
         if (action === 'stop') {
@@ -763,8 +793,8 @@ export default async function handler(req, res) {
             
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
-            console.log("campaignQueue.status",campaignQueue.status);
-            if (campaignQueue.status === 'Paused') {
+            console.log("campaignQueue.status and cron",campaignQueue.status,cron);
+            if (campaignQueue.status === 'Paused' || cron) {
                 await campaignQueue.resume();
                 console.log(`Resumed paused queue for campaign ${campaignId}`);
             }
