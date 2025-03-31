@@ -269,13 +269,15 @@ class CampaignQueue {
           }
         } catch (error) {
           // Check for memory-related errors - add the specific Target.createTarget error
-          console.log("error inside process catch block",error);
+          console.log("error inside process catch block", error);
           if (error.message.includes('Target.createTarget timed out') || 
               error.message.includes('out of memory') || 
               error.message.includes('TimeoutError') ||
               error.message.includes('Browser closed') ||
               error.message.includes('Protocol error') || 
-              error.message.includes('Increase the \'protocolTimeout\'')) {
+              error.message.includes('Increase the \'protocolTimeout\'') ||
+              error.message.includes('Waiting for selector') ||
+              error.message.includes('Waiting failed:')) {
             
             // Increment consecutive errors
             consecutiveMemoryErrors++;
@@ -288,7 +290,7 @@ class CampaignQueue {
             // Add current recipient to retry list
             const currentRecipient = this.queue[0];
             recipientsToRetry.push(currentRecipient);
-            console.log("recipientsToRetry",recipientsToRetry);
+            console.log("recipientsToRetry", recipientsToRetry);
             // Remove from current queue to avoid duplicate processing
             this.queue.shift();
             await this.saveToRedis();
@@ -332,7 +334,7 @@ class CampaignQueue {
             } catch (restartError) {
               console.error('Error restarting browser:', restartError);
               // If we can't restart the browser, we'll exit the loop and try again later
-                    break;
+              break;
             }
           } else {
             // For non-memory errors, handle as a regular failed attempt
@@ -537,7 +539,9 @@ const sendDM = async (recipientId, message, cookies, browser) => {
         error.message.includes('out of memory') || 
         error.message.includes('Browser closed') ||
         error.message.includes('Protocol error') || 
-        error.message.includes('Increase the \'protocolTimeout\'')) {
+        error.message.includes('Increase the \'protocolTimeout\'') ||
+        error.message.includes('Waiting for selector') ||
+        error.message.includes('Waiting failed:')) {
       throw error; // Rethrow memory errors
     }
     
