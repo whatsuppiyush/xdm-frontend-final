@@ -295,42 +295,60 @@ class CampaignQueue {
             this.queue.shift();
             await this.saveToRedis();
             
-            // Close browser
+            // Progressive cooldown period - increases with consecutive errors
+            const cooldownMinutes = Math.min(3 + (consecutiveMemoryErrors * 2), 10);
+            console.log(`Cooling down for ${cooldownMinutes} minutes before restarting browser`);
+            
+            // Close browser BEFORE cooldown to free up memory
             try {
               if (this.browser) {
                 await this.browser.close();
                 this.browser = null;
+                console.log("Browser closed successfully before cooldown");
               }
             } catch (closeError) {
               console.error('Error closing browser:', closeError);
             }
             
-            // Progressive cooldown period - increases with consecutive errors
-            const cooldownMinutes = Math.min(3 + (consecutiveMemoryErrors * 2), 15);
-            console.log(`Cooling down for ${cooldownMinutes} minutes before restarting browser`);
+            // Add a log to mark the start of cooldown
+            console.log(`Cooldown started at ${new Date().toISOString()}, will resume at ${new Date(Date.now() + cooldownMinutes * 60000).toISOString()}`);
+            
+            // Perform the actual cooldown
             await new Promise(resolve => setTimeout(resolve, cooldownMinutes * 60000));
+            
+            // Add a log to confirm cooldown completed
+            console.log(`Cooldown completed at ${new Date().toISOString()}, restarting browser now`);
             
             // Restart browser
             try {
+              console.log("Launching new browser instance after cooldown");
               this.browser = await puppeteer.launch({
                 args: [
                   ...chromium.args,
                   '--no-sandbox',
                   '--disable-setuid-sandbox',
                   '--disable-dev-shm-usage',
-                  '--js-flags="--max-old-space-size=256"'
+                  '--js-flags="--max-old-space-size=256"',
+                  '--single-process' // Add this to reduce memory usage
                 ],
                 executablePath,
                 headless: isLocal ? false : chromium.headless,
-                defaultViewport: { width: 800, height: 600 }
+                defaultViewport: { width: 800, height: 600 },
+                protocolTimeout: 180000, // Increase timeout to 3 minutes
+                timeout: 180000 // Increase timeout to 3 minutes
               });
               
-              console.log("Browser restarted after cooldown");
+              console.log("Browser restarted successfully after cooldown");
               
               // Add failed recipients back to the beginning of the queue
               this.queue = [...recipientsToRetry, ...this.queue];
               recipientsToRetry = [];
               await this.saveToRedis();
+              
+              // Important: Continue the loop from the beginning without moving to the next iteration
+              // This ensures we retry the failed recipient that we just put back at the front of the queue
+              console.log("Continuing message processing with restored queue");
+              continue;
             } catch (restartError) {
               console.error('Error restarting browser:', restartError);
               // If we can't restart the browser, we'll exit the loop and try again later
