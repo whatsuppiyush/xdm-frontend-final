@@ -20,7 +20,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { toast } from "@/components/ui/use-toast";
-import { DAILY_MESSAGE_LIMIT } from "@/lib/constants";
+import { getUserDailyMessageLimit } from "@/lib/planLimits";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface AutomatedLead {
@@ -101,8 +101,8 @@ export default function CampaignPage() {
   const [resumingCampaigns, setResumingCampaigns] = useState<Set<string>>(new Set());
   const [dailyLimit, setDailyLimit] = useState({ 
     used: 0, 
-    total: DAILY_MESSAGE_LIMIT,
-    remaining: DAILY_MESSAGE_LIMIT 
+    total: 0,
+    remaining: 0 
   });
   const [isRecovering, setIsRecovering] = useState(false);
   
@@ -585,6 +585,14 @@ export default function CampaignPage() {
     try {
       setSendingDM(true);
       setError(null);
+      
+      // Show initial notification
+      toast({
+        title: "Starting Campaign",
+        description: "It takes upto 5 minutes to start the campaign be patient.",
+        duration: 10000,
+      });
+      
       const recipientIds = selectedLeadList?.followers.map((follower) => follower.id);
       
       // Check if remaining daily limit is sufficient
@@ -674,6 +682,13 @@ export default function CampaignPage() {
     } catch (error) {
       console.error("Error sending DM:", error);
       setError("An error occurred while sending DM. Please try again later.");
+      
+      // Show error notification
+      toast({
+        title: "Error",
+        description: "Failed to start campaign. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setSendingDM(false);     
     }
@@ -782,13 +797,13 @@ export default function CampaignPage() {
                   style={{ width: `${Math.min(100, (dailyLimit.used / dailyLimit.total) * 100)}%` }}
                 />
               </div>
-              <div className="flex w-24 justify-between text-sm font-medium">
+              <div className="flex min-w-[100px] justify-between text-sm font-medium">
                 <span className={isDark ? "text-purple-400" : "text-blue-700"}>{dailyLimit.remaining}</span>
                 <span className={isDark ? "text-gray-400" : "text-gray-500"}>/ {dailyLimit.total}</span>
               </div>
             </div>
             <div className={cn(
-              "text-xs hidden sm:block",
+              "text-xs hidden sm:block whitespace-nowrap",
               isDark ? "text-gray-400" : "text-gray-500"
             )}>
               Messages reset at midnight UTC
@@ -1687,7 +1702,7 @@ export default function CampaignPage() {
                           isDark ? "bg-purple-600" : "bg-[#0F172A]"
                         )}
                         style={{
-                          width: `${(queue.processedLeads / queue.totalLeads) * 100}%`,
+                          width: queue.status === "Completed" ? "100%" : `${(queue.processedLeads / queue.totalLeads) * 100}%`,
                         }}
                       />
                     </div>

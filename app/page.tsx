@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Plus, Zap } from "lucide-react";
 import DashboardMetrics from "@/components/dashboard/metrics";
+import OnboardingChecklist from "@/components/dashboard/onboarding-checklist";
 import { useUser } from "@/contexts/user-context";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
@@ -164,6 +165,9 @@ export default function Dashboard() {
             {" "}to grow your audience
           </motion.p>
         </motion.div>
+        
+        {/* Onboarding Checklist */}
+        <OnboardingChecklist />
         
         {/* Status Cards with animated title */}
         <section>

@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/use-toast";
 
 interface TwitterProfile {
   handle: string;
@@ -135,6 +136,13 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
     try {
       setLoading(true);
       
+      // Show initial notification
+      toast({
+        title: "Starting Lead Import",
+        description: "It takes 2-10 minutes on average depending on the number of followers to scrape leads. We'll notify you via email once the process is complete.",
+        duration: 10000,
+      });
+      
       // Check user credits before proceeding
       const creditsResponse = await fetch("/api/user/credits");
       const creditsData = await creditsResponse.json();
@@ -186,8 +194,13 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
       console.error('Error saving leads:', error);
       setError(error instanceof Error ? error.message : "Failed to save leads");
       setLoading(false);
-    } finally {
-      // Don't set loading to false here if successful - we're navigating away
+      
+      // Show error notification
+      toast({
+        title: "Error",
+        description: "Failed to start lead import. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

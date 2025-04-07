@@ -56,6 +56,10 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
   const [isValidJson, setIsValidJson] = useState(false);
   const [accounts, setAccounts] = useState<TwitterAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userPlanInfo, setUserPlanInfo] = useState<{
+    planType: string | null;
+    quantity: number;
+  }>({ planType: null, quantity: 1 });
 
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -284,13 +288,58 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
     setIsValidJson(false);
   };
 
+  // Add function to get account limit based on plan
+  const getAccountLimit = (planType: string | null) => {
+    switch (planType) {
+      case 'Growth':
+        return 3;
+      case 'Elite':
+        return 5;
+      case 'Starter':
+      case 'Free':
+      default:
+        return 1;
+    }
+  };
+
+  // Add function to check if user can add more accounts
+  const canAddMoreAccounts = () => {
+    const limit = getAccountLimit(userPlanInfo.planType);
+    return accounts.length < limit;
+  };
+
+  // Add useEffect to fetch user plan info
+  useEffect(() => {
+    const fetchUserPlan = async () => {
+      try {
+        const response = await fetch('/api/user/credits');
+        const data = await response.json();
+        setUserPlanInfo({
+          planType: data.planType,
+          quantity: data.quantity || 1
+        });
+      } catch (error) {
+        console.error('Error fetching user plan:', error);
+      }
+    };
+    
+    if (userId) {
+      fetchUserPlan();
+    }
+  }, [userId]);
+
   return (
     <>
       <div className="w-full">
         <Card className="w-full border rounded-lg shadow-sm dark:border-[#1a2436] dark:bg-[#0c1221]">
           <CardHeader className="p-4 sm:p-6 border-b dark:border-[#1a2436]">
             <CardTitle className="text-xl flex justify-between items-center dark:text-white">
-              <span>Connected Accounts</span>
+              <div className="flex flex-col">
+                <span>Connected Accounts</span>
+                <span className="text-sm font-normal text-muted-foreground dark:text-gray-400">
+                  {accounts.length} of {getAccountLimit(userPlanInfo.planType)} accounts connected
+                </span>
+              </div>
               <Button
                 size="sm"
                 className="h-9 text-xs sm:text-sm dark:bg-purple-700 dark:hover:bg-purple-800 text-white"
@@ -301,11 +350,18 @@ export default function TwitterAccounts({ userId }: { userId: string }) {
                   setCurrentStep(0);
                   setConnectDialogOpen(true);
                 }}
+                disabled={!canAddMoreAccounts()}
+                title={!canAddMoreAccounts() ? `Maximum ${getAccountLimit(userPlanInfo.planType)} accounts allowed on your plan` : ""}
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Connect Account
               </Button>
             </CardTitle>
+            {!canAddMoreAccounts() && (
+              <div className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                You&apos;ve reached the maximum number of accounts one time for your plan. Upgrade to add more accounts.
+              </div>
+            )}
             {validatingCookies && (
               <div className="flex items-center text-sm text-muted-foreground dark:text-gray-400 mt-2">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin dark:text-gray-300" />

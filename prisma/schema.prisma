@@ -70,7 +70,7 @@ model userCredits {
   id               String    @id @default(auto()) @map("_id") @db.ObjectId
   userId           String    @unique @db.ObjectId
   leadCredits      Int       @default(0)
-  planType         String? // "Mini", "Starter", or "Pro"
+  planType         String? // "Starter", "Growth", or "Elite"
   planId           String? // Lemon Squeezy plan ID
   orderId          String? // Lemon Squeezy order ID
   subscriptionId   String? // Lemon Squeezy subscription ID
@@ -88,4 +88,14 @@ model userCredits {
   // Lemon Squeezy customer portal URLs
   customerPortalUrl      String? // URL to the customer portal
   updatePaymentMethodUrl String? // URL to update payment method
+}
+
+model PublicLeads {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  leadName   String
+  followers  Json[] // Array of follower objects
+  totalLeads Int
+  createdAt  DateTime @default(now())
+  isPublic   Boolean  @default(true)
+  sourceUrl  String? // Original Twitter profile URL that was scraped
 }
