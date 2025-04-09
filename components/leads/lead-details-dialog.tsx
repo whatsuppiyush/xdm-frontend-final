@@ -140,14 +140,36 @@ export default function LeadDetailsDialog({
             to { opacity: 1; transform: translateY(0); }
           }
           
+          @keyframes subtle-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.3); }
+            70% { box-shadow: 0 0 0 6px rgba(124, 58, 237, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+          }
+          
           .fade-in {
             animation: fadeIn 0.3s ease-out forwards;
           }
           
           .modern-button {
-            transition: all 0.2s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            will-change: transform;
+            transform: translateZ(0);
+          }
+          
+          .modern-button span {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            align-items: center;
+            transition: transform 0.2s ease;
+          }
+          
+          .modern-button:hover span {
+            transform: translateX(3px);
           }
           
           .modern-button:after {
@@ -158,12 +180,12 @@ export default function LeadDetailsDialog({
             top: 0;
             left: 0;
             pointer-events: none;
-            background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-image: radial-gradient(circle, rgba(255, 255, 255, 0.4) 10%, transparent 10.01%);
             background-repeat: no-repeat;
             background-position: 50%;
             transform: scale(10, 10);
             opacity: 0;
-            transition: transform 0.3s, opacity 0.5s;
+            transition: transform 0.4s, opacity 0.5s;
           }
           
           .modern-button:active:after {
@@ -178,12 +200,17 @@ export default function LeadDetailsDialog({
             color: white;
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.2), 0 2px 4px -1px rgba(124, 58, 237, 0.1);
+            border-radius: 10px;
+          }
+          
+          .btn-gradient:focus {
+            animation: subtle-pulse 1.5s infinite;
           }
           
           .btn-gradient:hover {
             background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
             box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3), 0 4px 6px -2px rgba(124, 58, 237, 0.2);
-            transform: translateY(-1px);
+            transform: translateY(-2px) scale(1.01);
           }
           
           .btn-gradient:active {
@@ -196,12 +223,43 @@ export default function LeadDetailsDialog({
             border: 1px solid rgba(124, 58, 237, 0.3);
             color: #7c3aed;
             transition: all 0.3s ease;
+            border-radius: 10px;
+            backdrop-filter: blur(4px);
+            position: relative;
+            overflow: hidden;
+          }
+          
+          .btn-outline-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(159, 122, 234, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+          
+          .btn-outline-modern:focus {
+            border-color: rgba(124, 58, 237, 0.8);
+            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1);
           }
           
           .btn-outline-modern:hover {
-            background: rgba(124, 58, 237, 0.05);
-            border-color: rgba(124, 58, 237, 0.5);
-            box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.1), 0 2px 4px -1px rgba(124, 58, 237, 0.05);
+            background: rgba(124, 58, 237, 0.08);
+            border-color: rgba(124, 58, 237, 0.6);
+            box-shadow: 0 4px 10px -2px rgba(124, 58, 237, 0.15);
+            transform: translateY(-2px);
+          }
+          
+          .btn-outline-modern:hover::before {
+            opacity: 1;
+          }
+          
+          .btn-outline-modern:active {
+            transform: translateY(0);
+            background: rgba(124, 58, 237, 0.12);
           }
           
           .floating-header {
@@ -232,19 +290,19 @@ export default function LeadDetailsDialog({
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="flex items-center gap-2 btn-outline-modern h-10 px-4 rounded-lg modern-button"
+                    className="flex items-center gap-2 btn-outline-modern h-10 px-4 modern-button"
                     onClick={handleDownloadCSV}
                   >
                     <Download className="h-4 w-4 text-purple-500" />
-                    Export as CSV
+                    <span>Export as CSV</span>
                   </Button>
                   <Button
                     size="sm"
-                    className="btn-gradient h-10 px-4 rounded-lg modern-button"
+                    className="btn-gradient h-10 px-5 modern-button"
                     onClick={onCreateAutomation}
                   >
                     <Play className="h-4 w-4 mr-2" />
-                    Automate
+                    <span>Automate</span>
                   </Button>
                 </>
               )}
@@ -252,7 +310,7 @@ export default function LeadDetailsDialog({
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="rounded-full h-9 w-9 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center"
+                className="rounded-full h-9 w-9 hover:bg-gray-200 hover:scale-105 dark:hover:bg-gray-800/60 transition-all duration-200 flex items-center justify-center shadow-sm"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -271,7 +329,7 @@ export default function LeadDetailsDialog({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors duration-200"
+              className="h-8 w-8 rounded-full hover:bg-gray-200 hover:scale-105 dark:hover:bg-gray-800/60 transition-all duration-200"
               onClick={onClose}
               aria-label="Close"
             >
@@ -288,11 +346,11 @@ export default function LeadDetailsDialog({
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex items-center gap-1 text-xs h-8 px-3 rounded-lg btn-outline-modern"
+                className="flex items-center gap-1 text-xs h-8 px-3 btn-outline-modern"
                 onClick={handleDownloadCSV}
               >
                 <Download className="h-3 w-3 text-purple-500" />
-                Export CSV
+                <span>Export CSV</span>
               </Button>
             )}
           </div>
@@ -315,11 +373,11 @@ export default function LeadDetailsDialog({
         <div className="md:hidden p-4 border-t dark:border-slate-700 bg-gray-50 dark:bg-gray-800 flex justify-end sticky bottom-0 shadow-md">
           {!loading && leads.length > 0 && (
             <Button
-              className="btn-gradient w-full rounded-lg h-10 modern-button"
+              className="btn-gradient w-full h-11 modern-button"
               onClick={onCreateAutomation}
             >
               <Play className="h-4 w-4 mr-2" />
-              Automate
+              <span>Automate</span>
             </Button>
           )}
         </div>

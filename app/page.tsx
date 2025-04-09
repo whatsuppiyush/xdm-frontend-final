@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Plus, Zap, ChevronRight } from "lucide-react";
+import { Play, ChevronRight } from "lucide-react";
 import DashboardMetrics from "@/components/dashboard/metrics";
 import OnboardingChecklist from "@/components/dashboard/onboarding-checklist";
 import { useUser } from "@/contexts/user-context";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 
 // Tutorial type definition
@@ -100,61 +99,6 @@ export default function Dashboard() {
   const [selectedTutorial, setSelectedTutorial] = useState(tutorialVideos[0]);
   const [showTutorialSection, setShowTutorialSection] = useState(false);
   const { userId } = useUser();
-  const [planDetails, setPlanDetails] = useState<{
-    name: string;
-    leadCredits: number;
-    planType: string | null;
-    isMonthly: boolean;
-    isTrialActive: boolean;
-    trialStatus: string | null;
-    dmsPerDay: number;
-    hadPreviousTrial: boolean;
-  }>({
-    name: "No Active Plan",
-    leadCredits: 0,
-    planType: null,
-    isMonthly: false,
-    isTrialActive: false,
-    trialStatus: null,
-    dmsPerDay: 450,
-    hadPreviousTrial: false
-  });
-
-  useEffect(() => {
-    const fetchUserCredits = async () => {
-      if (!userId) return;
-      
-      try {
-        const response = await fetch("/api/user/credits");
-        const data = await response.json();
-        
-        // Calculate DMs per day based on plan type
-        let dmsPerDay = 450; // Default for trial
-        if (data.planType === "Starter") {
-          dmsPerDay = 450;
-        } else if (data.planType === "Growth") {
-          dmsPerDay = 1350;
-        } else if (data.planType === "Elite") {
-          dmsPerDay = 2250;
-        }
-
-        setPlanDetails({
-          name: data.planType || "No Active Plan",
-          leadCredits: data.leadCredits,
-          planType: data.planType,
-          isMonthly: data.isMonthly || false,
-          isTrialActive: data.isTrialActive || false,
-          trialStatus: data.trialStatus,
-          dmsPerDay,
-          hadPreviousTrial: data.hadPreviousTrial || false
-        });
-      } catch (error) {
-        console.error("Error fetching user credits:", error);
-      }
-    };
-
-    fetchUserCredits();
-  }, [userId]);
 
   const handleVideoClick = () => {
     setIsVideoPlaying(true);
@@ -169,62 +113,6 @@ export default function Dashboard() {
     setShowTutorialSection(!showTutorialSection);
     setIsVideoPlaying(false);
   };
-
-  // Function to get remaining trial days
-  const getRemainingDays = () => {
-    if (planDetails.trialStatus?.startsWith('active-')) {
-      return planDetails.trialStatus.replace('active-', '');
-    }
-    return null;
-  };
-
-  // Function to get plan status badge
-  const getPlanStatusBadge = () => {
-    // Don't show badge if plan is active or trial is active
-    if (planDetails.isTrialActive || planDetails.isMonthly) {
-      return null;
-    }
-    
-    if (planDetails.planType) {
-      return (
-        <Badge className="bg-red-500 text-white hover:bg-red-600">
-          Inactive
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="outline" className="bg-slate-700 text-white border-slate-600">
-        No Plan
-      </Badge>
-    );
-  };
-
-  // Function to get action button configuration
-  const getActionButton = () => {
-    // For first time users with no previous trial
-    if (!planDetails.planType && !planDetails.hadPreviousTrial) {
-      return {
-        text: "Start Plan",
-        action: () => window.location.href = '/settings?tab=subscription'
-      };
-    }
-    
-    // For users with active plans or previous trials
-    if (planDetails.isTrialActive || planDetails.isMonthly) {
-      return {
-        text: "Manage Plan",
-        action: () => window.location.href = '/settings?tab=subscription'
-      };
-    }
-    
-    // For users with expired/cancelled plans
-    return {
-      text: "Upgrade to starter",
-      action: () => window.location.href = '/settings?tab=subscription'
-    };
-  };
-
-  const actionButton = getActionButton();
 
   return (
     <div className="flex-1 flex flex-col">
@@ -279,66 +167,6 @@ export default function Dashboard() {
           </motion.h2>
           <DashboardMetrics />
         </section>
-        
-        {/* Subscription Card - Only show if no active plan/trial */}
-        {!planDetails.isTrialActive && !planDetails.isMonthly && (
-          <motion.section 
-            className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl shadow-md overflow-hidden"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-          >
-            <div className="p-5 md:p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                <div className="flex items-start md:items-center gap-4">
-                  <motion.div 
-                    className="bg-purple-500 p-3 rounded-lg shadow-sm"
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    <Zap className="h-5 w-5 text-white" />
-                  </motion.div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-xl md:text-2xl font-bold text-white">
-                        {planDetails.name}
-                      </h2>
-                      {getPlanStatusBadge()}
-                    </div>
-                    <p className="text-gray-300 text-sm md:text-base">
-                      {planDetails.dmsPerDay.toLocaleString()} DMs/day limit
-                    </p>
-                    {/* Only show trial message for first time users with no plan */}
-                   
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button 
-                      className={`${!planDetails.planType && !planDetails.hadPreviousTrial 
-                        ? 'bg-purple-600 hover:bg-purple-700 relative overflow-hidden group' 
-                        : 'bg-purple-600/90 hover:bg-purple-700'} 
-                        text-white shadow-sm transition-all duration-200`}
-                      onClick={actionButton.action}
-                    >
-                      {/* Ripple effect for trial button */}
-                      {!planDetails.planType && !planDetails.hadPreviousTrial && (
-                        <span className="absolute inset-0 overflow-hidden rounded-md">
-                          <span className="absolute left-0 aspect-square w-8 -translate-x-full rounded-full bg-white/20 group-hover:animate-[ripple_0.7s_ease-out_infinite]"></span>
-                        </span>
-                      )}
-                      <Zap className={`h-4 w-4 mr-2 ${!planDetails.planType && !planDetails.hadPreviousTrial ? 'animate-pulse' : ''}`} />
-                      {actionButton.text}
-                    </Button>
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-          </motion.section>
-        )}
         
         {/* Tutorial Videos Learning Center */}
         <section>
