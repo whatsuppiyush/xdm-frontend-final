@@ -9,8 +9,18 @@ import { useUser } from "@/contexts/user-context";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 
+// Tutorial type definition
+interface Tutorial {
+  id: number;
+  title: string;
+  description: string;
+  duration: string;
+  thumbnail: string;
+  videoId: string;
+}
+
 // Tutorial videos data
-const tutorialVideos = [
+const tutorialVideos: Tutorial[] = [
   { 
     id: 1, 
     title: "Why Twitter/X", 
@@ -150,7 +160,7 @@ export default function Dashboard() {
     setIsVideoPlaying(true);
   };
 
-  const selectTutorial = (tutorial) => {
+  const selectTutorial = (tutorial: Tutorial) => {
     setSelectedTutorial(tutorial);
     setIsVideoPlaying(false);
   };

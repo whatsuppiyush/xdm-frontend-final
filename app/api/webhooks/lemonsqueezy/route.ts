@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
+import { formatSubscriptionId } from "@/lib/subscription-utils";
 
 // Define the plan IDs and their corresponding lead credits
 const PLAN_CREDITS = {
@@ -495,10 +496,10 @@ async function handleSubscriptionUpdated(payload: any) {
     const otherActiveSubscription = await prisma.userCredits.findFirst({
       where: {
         userId: user.id,
-        subscriptionId: {
-          not: subscriptionId,
-          not: null
-        },
+        AND: [
+          { subscriptionId: { not: subscriptionId } },
+          { subscriptionId: { not: null } }
+        ],
         isMonthly: true
       }
     });
@@ -619,9 +620,9 @@ async function handleSubscriptionUpdated(payload: any) {
       await prisma.userCredits.updateMany({
         where: {
           userId: user.id,
-          subscriptionId: {
-            not: subscriptionId
-          }
+          AND: [
+            { subscriptionId: { not: subscriptionId } }
+          ]
         },
         data: {
           isMonthly: false
@@ -707,10 +708,10 @@ async function handleSubscriptionCancelled(payload: any) {
     const otherActiveSubscription = await prisma.userCredits.findFirst({
       where: {
         userId: user.id,
-        subscriptionId: {
-          not: subscriptionId,
-          not: null
-        },
+        AND: [
+          { subscriptionId: { not: subscriptionId } },
+          { subscriptionId: { not: null } }
+        ],
         isMonthly: true
       }
     });
@@ -753,20 +754,4 @@ async function handleSubscriptionCancelled(payload: any) {
   } catch (error) {
     console.error('Error cancelling subscription:', error);
   }
-}
-
-// Helper function to ensure subscription IDs are stored as strings
-export function formatSubscriptionId(id: any): string | null {
-  if (!id) return null;
-  // If it's already a string, just return it
-  if (typeof id === 'string') {
-    // Check if it looks like a timestamp (contains T and Z in ISO format)
-    if (id.includes('T') && id.includes(':')) {
-      console.error(`Potential timestamp detected in subscription ID: ${id}`);
-      return null;
-    }
-    return id;
-  }
-  // Otherwise convert to string
-  return String(id);
 } 
