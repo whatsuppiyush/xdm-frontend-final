@@ -97,7 +97,7 @@ export default function SubscriptionSettings() {
     subscriptionId?: string | null;
     updatedAt?: Date | null;
   }>({
-    name: "No Plan",
+    name: "Free",
     leadCredits: 0,
     planType: null,
     isMonthly: false,
@@ -395,13 +395,48 @@ export default function SubscriptionSettings() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xl font-semibold">
-                    {currentPlan.planType || "No Active Plan"}
+                    {currentPlan.planType || "Free"}
                   </h3>
-                  {currentPlan.planType && (
+                  {currentPlan.planType ? (
                     <Badge variant="secondary" className="dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">Current Plan</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">Free Forever</Badge>
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground space-y-1">
+                  {!currentPlan.planType && (
+                    <div className="space-y-2">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
+                          <span>50 DMs per day (1,500/month)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
+                          <span>50K leads</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
+                          <span>1 Twitter Account</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
+                          <span>Basic AI personalization</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
+                          <span>Email support</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
+                          <span>30 days message history</span>
+                        </div>
+                      </div>
+                      
+                      
+                    </div>
+                  )}
+                  
                   {currentPlan.isMonthly ? (
                     <div className="mb-2">
                       <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 dark:hover:bg-green-900/50">
@@ -422,13 +457,13 @@ export default function SubscriptionSettings() {
                   ) : null}
                   
                   {/* Credits display with visual indicator */}
-                  <div className="mt-4 mb-2">
-                    <div className="flex justify-between mb-1">
-                      <span className="font-medium">Available Lead Credits:</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">{currentPlan.leadCredits.toLocaleString()}</span>
-                    </div>
-                    
-                    {currentPlan.planType && (
+                  {currentPlan.planType && (
+                    <div className="mt-4 mb-2">
+                      <div className="flex justify-between mb-1">
+                        <span className="font-medium">Available Lead Credits:</span>
+                        <span className="font-bold text-green-600 dark:text-green-400">{currentPlan.leadCredits.toLocaleString()}</span>
+                      </div>
+                      
                       <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-1">
                         <div 
                           className="bg-green-600 h-2.5 rounded-full dark:bg-green-500" 
@@ -437,8 +472,8 @@ export default function SubscriptionSettings() {
                           }}
                         ></div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   
                   {!currentPlan.isMonthly && !currentPlan.planType && (
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
