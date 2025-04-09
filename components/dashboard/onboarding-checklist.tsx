@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Check, Twitter, Zap, UserPlus, SendHorizontal } from "lucide-react";
+import { Check, Twitter, Zap, UserPlus, SendHorizontal, Info } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/contexts/user-context";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ChecklistItem {
   id: string;
@@ -21,10 +22,12 @@ interface ChecklistItem {
 
 export default function OnboardingChecklist() {
   const { userId } = useUser();
+  const { toast } = useToast();
   // Start with isVisible true for server rendering, then let useEffect determine the actual value
   const [isVisible, setIsVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasFreeAccount, setHasFreeAccount] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     {
       id: "connect-twitter",
@@ -38,7 +41,7 @@ export default function OnboardingChecklist() {
     {
       id: "import-leads",
       title: "Import leads",
-      description: "Add people you want to message we have pre-scraped leads for you",
+      description: "Add people you want to message we have leads for you",
       icon: UserPlus,
       href: "/leads",
       buttonText: "Import leads",
@@ -74,6 +77,22 @@ export default function OnboardingChecklist() {
     setIsInitialized(true);
   }, []);
 
+  // Show welcome toast for free users (only once)
+  useEffect(() => {
+    if (hasFreeAccount) {
+      const hasShownFreeWelcome = localStorage.getItem('shownFreeWelcome');
+      if (!hasShownFreeWelcome) {
+        toast({
+          title: "Welcome to XAutoDM!",
+          description: "You've been given 2,000 lead credits on our free plan to get started. Upgrade for more features!",
+          variant: "default",
+          duration: 6000,
+        });
+        localStorage.setItem('shownFreeWelcome', 'true');
+      }
+    }
+  }, [hasFreeAccount, toast]);
+
   // Fetch data for the checklist
   useEffect(() => {
     const fetchData = async () => {
@@ -104,6 +123,25 @@ export default function OnboardingChecklist() {
         const userResponse = await fetch("/api/user/credits");
         const userData = await userResponse.json();
         const hasSubscription = !!userData.planType;
+        const hasFree = userData.planType === "free";
+        
+        if (hasFree) {
+          setHasFreeAccount(true);
+          
+          // Update subscription description for free users
+          setChecklist(prev => 
+            prev.map(item => {
+              if (item.id === "subscription") {
+                return { 
+                  ...item, 
+                  description: "You have 2,000 lead credits on the free plan. Upgrade for more.",
+                  buttonText: "Upgrade plan"
+                };
+              }
+              return item;
+            })
+          );
+        }
         
         // Update checklist with completed items
         setChecklist(prev => 
@@ -187,6 +225,17 @@ export default function OnboardingChecklist() {
           Get Started
         </div>
       </div>
+      {hasFreeAccount && (
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 flex items-start gap-2">
+          <Info className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-green-700 dark:text-green-400 font-medium">Welcome to XAutoDM!</p>
+            <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+              You&apos;ve been given 2,000 lead credits on our free plan to get you started. Complete the checklist below to begin using XAutoDM.
+            </p>
+          </div>
+        </div>
+      )}
       <Card className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border dark:border-slate-700 rounded-xl shadow-sm overflow-hidden relative">
         {/* Subtle pattern overlay */}
         <div className="absolute inset-0 opacity-5 dark:opacity-10" 

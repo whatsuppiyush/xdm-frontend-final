@@ -179,6 +179,7 @@ export default function Dashboard() {
             >
               Tutorial Videos
             </motion.h2>
+            {/* Button temporarily disabled 
             <Button 
               variant="outline" 
               className="text-purple-600 border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 dark:border-purple-500 dark:text-purple-400"
@@ -186,6 +187,7 @@ export default function Dashboard() {
             >
               {showTutorialSection ? "Close Learning Center" : "Open Learning Center"}
             </Button>
+            */}
           </div>
 
           {/* Learning Center with Video Player and Sidebar */}
@@ -288,6 +290,7 @@ export default function Dashboard() {
                   {/* Resources section below video */}
                   <div className="mt-6 flex justify-between items-center">
                     <h4 className="text-lg font-semibold text-slate-800 dark:text-white">Resources</h4>
+                    {/* Resource buttons temporarily disabled
                     {selectedTutorial.id === 2 && (
                       <Button 
                         variant="outline" 
@@ -306,6 +309,7 @@ export default function Dashboard() {
                         Conversation Flow Doc
                       </Button>
                     )}
+                    */}
                   </div>
                   
                   {/* "Want alex to manage your twitter outbound?" CTA */}
@@ -313,6 +317,7 @@ export default function Dashboard() {
                     <p className="text-lg font-medium text-slate-800 dark:text-white">
                       Want alex to manage your twitter outbound?
                     </p>
+                    {/* Link button temporarily disabled
                     <Button 
                       variant="link" 
                       className="text-purple-600 dark:text-purple-400 pl-0 mt-1 hover:no-underline"
@@ -320,6 +325,7 @@ export default function Dashboard() {
                     >
                       Learn more about xAutoDM <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
+                    */}
                   </div>
                 </div>
               </div>

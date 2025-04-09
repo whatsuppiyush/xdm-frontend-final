@@ -11,6 +11,8 @@ export function calculateDailyMessageLimit(planType: string | null, quantity: nu
       limit = DAILY_MESSAGE_LIMIT * 3; // Fixed 3x multiplier for Growth plan
     } else if (planType === "Elite") {
       limit = DAILY_MESSAGE_LIMIT * 5; // Fixed 5x multiplier for Elite plan
+    } else if (planType === "free") {
+      limit = 50; // Free plan gets 50 messages per day
     }
   }
   

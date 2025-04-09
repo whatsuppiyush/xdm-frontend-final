@@ -354,6 +354,8 @@ export default function SubscriptionSettings() {
         return 75000;
       case "Elite":
         return 125000;
+      case "free":
+        return 2000;
       default:
         return 25000;
     }
@@ -395,7 +397,7 @@ export default function SubscriptionSettings() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xl font-semibold">
-                    {currentPlan.planType || "Free"}
+                    {currentPlan.planType === "free" ? "Free" : currentPlan.planType || "Free"}
                   </h3>
                   {currentPlan.planType ? (
                     <Badge variant="secondary" className="dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">Current Plan</Badge>
@@ -404,7 +406,7 @@ export default function SubscriptionSettings() {
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  {!currentPlan.planType && (
+                  {(!currentPlan.planType || currentPlan.planType === "free") && (
                     <div className="space-y-2">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
@@ -413,7 +415,7 @@ export default function SubscriptionSettings() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
-                          <span>50K leads</span>
+                          <span>2,000 Lead Credits</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
@@ -432,8 +434,6 @@ export default function SubscriptionSettings() {
                           <span>30 days message history</span>
                         </div>
                       </div>
-                      
-                      
                     </div>
                   )}
                   
@@ -443,7 +443,7 @@ export default function SubscriptionSettings() {
                         Active Subscription
                       </Badge>
                     </div>
-                  ) : currentPlan.planType ? (
+                  ) : currentPlan.planType && currentPlan.planType !== "free" ? (
                     <div className="mb-2">
                       <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 dark:hover:bg-red-900/50">
                         Cancelled
@@ -477,11 +477,11 @@ export default function SubscriptionSettings() {
                   
                   {!currentPlan.isMonthly && !currentPlan.planType && (
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-                      Subscribe to a plan to get lead credits for your campaigns.
+                      Subscribe to a plan to get more lead credits for your campaigns.
                     </p>
                   )}
                   
-                  {!currentPlan.isMonthly && currentPlan.planType && (
+                  {!currentPlan.isMonthly && currentPlan.planType && currentPlan.planType !== "free" && (
                     <p className="text-xs text-red-700 dark:text-red-400">
                       {getGracePeriodStatus() && getGracePeriodStatus()?.includes("expired") ? (
                         "Your subscription has been cancelled and the grace period has expired. Your campaigns have been stopped."
@@ -492,10 +492,16 @@ export default function SubscriptionSettings() {
                       )}
                     </p>
                   )}
+                  
+                  {currentPlan.planType === "free" && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+                      You&apos;re on the free plan with 2,000 lead credits. Upgrade to a paid plan for more features and credits.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap w-full gap-2">
-                {currentPlan.planType ? (
+                {currentPlan.planType && currentPlan.planType !== "free" ? (
                   <>
                     <Button 
                       size="sm"
@@ -556,7 +562,7 @@ export default function SubscriptionSettings() {
                     ) : (
                       <>
                         <Zap className="mr-1 sm:mr-2 h-3 sm:h-4 w-3 sm:w-4 text-white" />
-                        <span className="text-white">Get Started</span>
+                        <span className="text-white">{currentPlan.planType === "free" ? "Upgrade Plan" : "Get Started"}</span>
                       </>
                     )}
                   </Button>
