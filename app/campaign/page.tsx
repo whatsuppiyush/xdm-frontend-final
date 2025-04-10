@@ -22,6 +22,7 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 import { toast } from "@/components/ui/use-toast";
 import { getUserDailyMessageLimit } from "@/lib/planLimits";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import LeadFilters from "@/components/campaign/lead-filters";
 
 interface AutomatedLead {
   id: string;
@@ -105,9 +106,11 @@ export default function CampaignPage() {
     remaining: 0 
   });
   const [isRecovering, setIsRecovering] = useState(false);
+  const [filteredLeads, setFilteredLeads] = useState<any[]>([]);
   
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
+    { title: "Filter Leads", subtitle: "Refine your target audience" },
     { title: "Write Message", subtitle: "Craft your campaign message" },
     { title: "Configure Variants", subtitle: "Set up message variations" },
     { title: "Start Automation", subtitle: "Review and launch campaign" },
@@ -585,15 +588,13 @@ export default function CampaignPage() {
     try {
       setSendingDM(true);
       setError(null);
-      
       // Show initial notification
       toast({
         title: "Starting Campaign",
         description: "It takes upto 5 minutes to start the campaign be patient.",
         duration: 10000,
       });
-      
-      const recipientIds = selectedLeadList?.followers.map((follower) => follower.id);
+      const recipientIds = filteredLeads.map((follower) => follower.id);
       
       // Check if remaining daily limit is sufficient
       if (dailyLimit.remaining <= 0) {
@@ -641,7 +642,7 @@ export default function CampaignPage() {
         body: JSON.stringify({
           action: "start",
           campaignId,
-          recipients: selectedLeadList?.followers,
+          recipients: filteredLeads,
           message: messageTemplate,
           cookies: selectedAccount?.cookies,
           userId: userId
@@ -996,8 +997,23 @@ export default function CampaignPage() {
                 </div>
               )}
               
-              {/* Step 2: Write Message */}
+              {/* Step 2: Filter Leads */}
               {step === 2 && (
+                <LeadFilters
+                  selectedLeadList={selectedLeadList}
+                  onFiltersApplied={(filtered) => {
+                    console.log("Filtered leads received:", filtered.length);
+                    setFilteredLeads(filtered);
+                  }}
+                  onContinue={() => {
+                    console.log("Continuing to Write Message step with", filteredLeads.length, "leads");
+                    setStep(3);
+                  }}
+                />
+              )}
+              
+              {/* Step 3: Write Message */}
+              {step === 3 && (
                 <div className="w-full mx-auto space-y-4 sm:space-y-6">
                   {/* Header Section */}
                   <div className="text-center space-y-2 sm:space-y-3">
@@ -1263,8 +1279,8 @@ export default function CampaignPage() {
                 </div>
               )}
               
-              {/* Step 3: Configure Variants */}
-              {step === 3 && (
+              {/* Step 4: Configure Variants */}
+              {step === 4 && (
                 <div className="w-full mx-auto space-y-3 sm:space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
                     {/* Left Column - Generate Ideas */}
@@ -1396,7 +1412,7 @@ export default function CampaignPage() {
                             "px-5 sm:px-6 py-4 text-base sm:text-base flex-1 sm:flex-initial text-lg font-medium shadow-md rounded-xl",
                             isDark && "border-gray-700 text-gray-200 hover:bg-gray-700"
                           )}
-                          onClick={() => setStep(2)}
+                          onClick={() => setStep(3)}
                         >
                           <ArrowLeft className="w-5 h-5 mr-2 sm:hidden" />
                           Back
@@ -1408,7 +1424,7 @@ export default function CampaignPage() {
                               ? "bg-purple-600 hover:bg-purple-700"
                               : "bg-black hover:bg-gray-800"
                           )}
-                          onClick={() => setStep(4)}
+                          onClick={() => setStep(5)}
                           disabled={
                             !messageTemplate &&
                             messageVariants.every((v) => !v.content)
@@ -1423,8 +1439,8 @@ export default function CampaignPage() {
                 </div>
               )}
               
-              {/* Step 4: Start Automation */}
-              {step === 4 && (
+              {/* Step 5: Start Automation */}
+              {step === 5 && (
                 <div className="w-full mx-auto space-y-4 sm:space-y-6">
                   <h2 className={cn(
                     "text-2xl sm:text-3xl font-medium text-center mb-4 sm:mb-6",
@@ -1550,7 +1566,7 @@ export default function CampaignPage() {
                           "px-5 sm:px-8 py-3 sm:py-3 text-sm sm:text-base flex-1 sm:flex-initial text-lg font-medium",
                           isDark && "border-gray-700 text-gray-200 hover:bg-gray-800"
                         )}
-                        onClick={() => setStep(3)}
+                        onClick={() => setStep(4)}
                       >
                         Back
                       </Button>
@@ -1569,7 +1585,7 @@ export default function CampaignPage() {
                             setSendingDM(false);
                           }
                         }}
-                        disabled={!campaignName || !selectedAccount || !selectedLeadList || sendingDM}
+                        disabled={!campaignName || !selectedAccount || !filteredLeads || sendingDM}
                       >
                         {sendingDM ? (
                           <>
