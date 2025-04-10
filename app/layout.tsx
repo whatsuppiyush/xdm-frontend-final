@@ -88,6 +88,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning data-oid="xib.ut5">
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: `window.lemonSqueezyAffiliateConfig = { store: "xautodm" };` }}></script>
+        <script src="https://lmsqueezy.com/affiliate.js" defer></script>
       </head>
       <body className={`${inter.className} antialiased bg-white dark:bg-slate-950`} data-oid="o--xwzf">
         <SessionProvider data-oid="b8q5t3-">

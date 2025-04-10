@@ -10,7 +10,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Lead ID is required" }, { status: 400 });
     }
 
-    const leadDetails = await prisma.automatedLead.findUnique({
+    // First try to find in AutomatedLead table
+    let leadDetails = await prisma.automatedLead.findUnique({
       where: {
         id: id
       },
@@ -20,6 +21,20 @@ export async function GET(request: Request) {
         followers: true
       }
     });
+
+    // If not found in AutomatedLead, try PublicLeads
+    if (!leadDetails) {
+      leadDetails = await prisma.publicLeads.findUnique({
+        where: {
+          id: id
+        },
+        select: {
+          id: true,
+          leadName: true,
+          followers: true
+        }
+      });
+    }
 
     if (!leadDetails) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });

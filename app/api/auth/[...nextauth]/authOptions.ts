@@ -8,6 +8,7 @@ import { ObjectId } from 'mongodb';
 import { pushUserToGoogleSheet } from '@/lib/googleSheets';
 import { pushUserToInstantly } from '@/lib/instantlyApi';
 import { pushUserToBeehiiv } from '@/lib/beehiivApi';
+import { setupNewUser } from '@/lib/utils';
 
 declare module "next-auth" {
   interface Session {
@@ -136,6 +137,9 @@ export const authOptions: NextAuthOptions = {
               updatedAt: new Date(),
             },
           });
+          
+          // Setup initial credits for new user
+          await setupNewUser(newUser.id);
 
           // Send welcome email for new Google sign-ups
           try {

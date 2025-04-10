@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import redis from '@/lib/redis';
-import { DAILY_MESSAGE_LIMIT } from '@/lib/constants';
+import { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } from '@/lib/planLimits';
 import { createServer } from 'http';
 const prisma = new PrismaClient();
 const MAX_RETRIES = 2;
@@ -598,8 +598,14 @@ async function checkDailyLimit(userId) {
   const currentCount = await redis.get(dailyLimitKey);
   const parsedCount = currentCount ? parseInt(currentCount) : 0;
   
-  // For testing: use a very low limit in development
-  const effectiveLimit = process.env.NODE_ENV === 'development' ? 25 : DAILY_MESSAGE_LIMIT;
+  // Get user's plan type from database
+  const userCredits = await prisma.userCredits.findUnique({
+    where: { userId }
+  });
+  
+  // Use the utility functions to calculate the limit
+  const userLimit = getUserDailyMessageLimit(userCredits);
+  const effectiveLimit = getEnvironmentAdjustedLimit(userLimit);
   console.log(`Current count: ${parsedCount}, Limit: ${effectiveLimit}`);
   
   return {
@@ -703,7 +709,16 @@ async function recoverActiveCampaigns() {
           const dailyUsage = await redis.get(dailyLimitKey);
           const dailyUsageStr = typeof dailyUsage === 'string' ? dailyUsage : JSON.stringify(dailyUsage);
           console.log('Rate Limited campaign',recoveredCount);
-          if (!dailyUsageStr || parseInt(dailyUsageStr) < DAILY_MESSAGE_LIMIT) {
+          // Get user's plan type and calculate their limit
+          const userCredits = await prisma.userCredits.findUnique({
+            where: { userId }
+          });
+          
+          // Use utility function to get user's daily message limit
+          const userLimit = getUserDailyMessageLimit(userCredits);
+          const adjustedLimit = getEnvironmentAdjustedLimit(userLimit);
+          
+          if (!dailyUsageStr || parseInt(dailyUsageStr) < adjustedLimit) {
             // Resume campaign
             campaignQueue.status = 'Running';
             await campaignQueue.saveToRedis();
@@ -908,8 +923,17 @@ export default async function handler(req, res) {
                 const dailyUsage = await redis.get(dailyLimitKey);
                 console.log(`Checking rate limit for auto-resume: key=${dailyLimitKey}, value=${dailyUsage}`);
                 
+                // Get user's plan type and calculate their limit
+                const userCredits = await prisma.userCredits.findUnique({
+                  where: { userId }
+                });
+                
+                // Use utility function to get user's daily message limit
+                const userLimit = getUserDailyMessageLimit(userCredits);
+                const adjustedLimit = getEnvironmentAdjustedLimit(userLimit);
+                
                 // If the key doesn't exist or the value is below the limit, we can resume
-                if (!dailyUsage || parseInt(dailyUsage) < DAILY_MESSAGE_LIMIT) {
+                if (!dailyUsage || parseInt(dailyUsage) < adjustedLimit) {
                     console.log(`Auto-resuming rate-limited campaign ${campaignId} - limit reset detected`);
                     campaignQueue.status = 'Running';
                     await campaignQueue.saveToRedis();

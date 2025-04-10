@@ -1,15 +1,15 @@
 import * as React from 'react';
 
-interface CampaignLiveEmailTemplateProps {
+interface LeadScrapingCompleteEmailTemplateProps {
   firstName: string;
-  campaignName: string;
-  recipientCount: number;
+  leadCount: number;
+  listName: string;
 }
 
-export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTemplateProps>> = ({
+export const LeadScrapingCompleteEmailTemplate: React.FC<Readonly<LeadScrapingCompleteEmailTemplateProps>> = ({
   firstName,
-  campaignName,
-  recipientCount,
+  leadCount,
+  listName,
 }) => (
   <div style={{
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
@@ -21,7 +21,7 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
   }}>
     {/* Header */}
     <div style={{
-      background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)',
+      background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
       padding: '40px 20px',
       borderRadius: '8px 8px 0 0',
       textAlign: 'center' as const,
@@ -33,14 +33,14 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
         margin: '0',
         letterSpacing: '-0.5px',
       }}>
-        Your Campaign Is Live!
+        Your Leads Are Ready!
       </h1>
       <p style={{
-        color: '#d1fae5',
+        color: '#e0e7ff',
         fontSize: '16px',
         marginTop: '8px',
       }}>
-        {campaignName} is now reaching your audience
+        {listName} has been successfully created
       </p>
     </div>
 
@@ -63,46 +63,42 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
         color: '#374151',
         marginBottom: '24px',
       }}>
-        Great news! Your campaign <strong>{campaignName}</strong> is now live and running. Your message is being delivered to {recipientCount} recipients.
+        Great news! We&apos;ve successfully completed scraping leads for your list <strong>{listName}</strong>. Your new lead list is now ready for your campaigns.
       </p>
 
-      {/* Campaign Stats Section */}
+      {/* Lead Stats Section */}
       <div style={{
-        backgroundColor: '#f0fdfa',
+        backgroundColor: '#eef2ff',
         borderRadius: '8px',
         padding: '24px',
         marginBottom: '24px',
-        border: '1px solid #99f6e4',
+        border: '1px solid #c7d2fe',
       }}>
         <h2 style={{
           fontSize: '18px',
           fontWeight: '600',
-          color: '#0f766e',
+          color: '#4f46e5',
           marginBottom: '16px',
         }}>
-          Campaign Details:
+          Lead List Details:
         </h2>
         <div style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', color: '#374151' }}>Campaign Name:</span>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f766e' }}>{campaignName}</span>
+            <span style={{ fontSize: '14px', color: '#374151' }}>List Name:</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#4f46e5' }}>{listName}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', color: '#374151' }}>Recipients:</span>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f766e' }}>{recipientCount}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', color: '#374151' }}>Status:</span>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f766e' }}>Running</span>
+            <span style={{ fontSize: '14px', color: '#374151' }}>Total Leads:</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#4f46e5' }}>{leadCount}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '14px', color: '#374151' }}>Started:</span>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f766e' }}>{new Date().toLocaleDateString()}</span>
+            <span style={{ fontSize: '14px', color: '#374151' }}>Status:</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#4f46e5' }}>Ready to Use</span>
           </div>
         </div>
       </div>
 
-      {/* Tips Section */}
+      {/* Next Steps Section */}
       <div style={{
         backgroundColor: '#f9fafb',
         borderRadius: '8px',
@@ -115,23 +111,23 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
           color: '#111827',
           marginBottom: '16px',
         }}>
-          Tips for Campaign Success:
+          Next Steps:
         </h2>
         <div style={{ marginBottom: '16px' }}>
           {[
             {
-              title: '📊 Monitor Performance',
-              desc: 'Check your dashboard regularly to track engagement metrics'
+              title: '📋 Review Your Leads',
+              desc: 'Check your new leads and their profiles'
             },
             {
-              title: '⏱️ Be Patient',
-              desc: 'Messages are sent gradually to maintain natural engagement patterns'
+              title: '🎯 Create a Campaign',
+              desc: 'Start engaging with your new leads through a targeted campaign'
             },
             {
-              title: '🔄 Iterate & Improve',
-              desc: 'Use insights from this campaign to optimize future outreach'
+              title: '📊 Track Performance',
+              desc: 'Monitor your campaign engagement and results'
             }
-          ].map((tip, i) => (
+          ].map((step, i) => (
             <div key={i} style={{ marginBottom: '12px' }}>
               <p style={{
                 fontSize: '15px',
@@ -139,14 +135,14 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
                 color: '#111827',
                 marginBottom: '4px',
               }}>
-                {tip.title}
+                {step.title}
               </p>
               <p style={{
                 fontSize: '14px',
                 color: '#6b7280',
                 margin: '0',
               }}>
-                {tip.desc}
+                {step.desc}
               </p>
             </div>
           ))}
@@ -159,9 +155,9 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
         marginBottom: '32px',
       }}>
         <a
-          href="https://app.xautodm.com/campaign"
+          href="https://app.xautodm.com/leads"
           style={{
-            backgroundColor: '#0d9488',
+            backgroundColor: '#4f46e5',
             color: '#ffffff',
             padding: '12px 32px',
             borderRadius: '6px',
@@ -171,7 +167,7 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
             display: 'inline-block',
           }}
         >
-          View Campaign Dashboard →
+          View Lead List →
         </a>
       </div>
 
@@ -180,7 +176,7 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
         lineHeight: '24px',
         color: '#374151',
       }}>
-        Need help optimizing your campaign? Our support team is ready to assist you.
+        Need help creating your first campaign? Our support team is ready to assist you.
       </p>
       <p style={{
         fontSize: '16px',
@@ -211,7 +207,7 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
         color: '#6b7280',
         marginTop: '8px',
       }}>
-        You received this email because you have an active campaign with XAutoDM.
+        You received this email because you have an active account with XAutoDM.
       </p>
     </div>
   </div>

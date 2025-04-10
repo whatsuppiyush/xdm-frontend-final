@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
-import { DAILY_MESSAGE_LIMIT } from "@/lib/constants";
+import { getUserDailyMessageLimit } from "@/lib/planLimits";
 
 // This is a simplified version of the CampaignQueue class
 class CampaignQueue {
@@ -174,10 +174,20 @@ export async function GET(request: Request) {
           }
         }
         
-        console.log(`User ${userId} daily usage: ${currentUsage}/${DAILY_MESSAGE_LIMIT}`);
+        console.log(`User ${userId} daily usage: ${currentUsage}`);
+        
+        // Get user's plan type and calculate their limit
+        const userCredits = await prisma.userCredits.findUnique({
+          where: { userId }
+        });
+        
+        // Use the centralized utility function to get the limit
+        const userLimit = getUserDailyMessageLimit(userCredits);
+        
+        console.log(`User ${userId} daily usage: ${currentUsage}/${userLimit}`);
         
         // Check if we're below the limit (either key doesn't exist or count is below limit)
-        if (currentUsage < DAILY_MESSAGE_LIMIT) {
+        if (currentUsage < userLimit) {
           console.log(`Resuming rate-limited campaign ${campaignId} - under daily limit`);
           
           // Update campaign status in database
@@ -322,7 +332,15 @@ export async function POST(request: Request) {
           const dailyUsage = await redis.get(dailyLimitKey);
           const dailyUsageStr = typeof dailyUsage === 'string' ? dailyUsage : JSON.stringify(dailyUsage);
           
-          if (!dailyUsageStr || parseInt(dailyUsageStr) < DAILY_MESSAGE_LIMIT) {
+          // Get user's plan type and calculate their limit
+          const userCredits = await prisma.userCredits.findUnique({
+            where: { userId }
+          });
+          
+          // Use utility function to get user's daily message limit
+          const userLimit = getUserDailyMessageLimit(userCredits);
+          
+          if (!dailyUsageStr || parseInt(dailyUsageStr) < userLimit) {
             // Rate limit has reset, resume campaign
             campaignQueue.status = 'Running';
             await campaignQueue.saveToRedis();
