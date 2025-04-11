@@ -76,8 +76,9 @@ export default function LeadDetailsDialog({
 
   const handleDownloadCSV = () => {
     // Convert leads data to CSV format
-    const headers = ["Name", "Username", "Bio", "Followers", "Following", "Status"];
+    const headers = ["ID", "Name", "Username", "Bio", "Followers", "Following", "Status"];
     const csvData = leads.map((lead: any) => [
+      lead.id,
       lead.name,
       lead.username,
       `"${(lead.bio || "").replace(/"/g, '""')}"`, // Escape quotes in bio

@@ -40,8 +40,8 @@ const plans: Plan[] = [
       "Priority email support",
       "Unlimited message history"
     ],
-    variantId: "714799",
-    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/3295469d-2f93-4ebc-85d8-df07aebec36e",
+    variantId: "757154",
+    purchaseUrl: "https://aiblogsagent.lemonsqueezy.com/buy/da28881d-884b-451f-bdce-88b74757273c",
     quantity: 1
   },
   {
@@ -58,8 +58,8 @@ const plans: Plan[] = [
       "Unlimited message history"
     ],
     popular: true,
-    variantId: "726375",
-    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/fa5fdff6-31e0-49d7-8166-9d13e8e45205",
+    variantId: "757156",
+    purchaseUrl: "https://aiblogsagent.lemonsqueezy.com/buy/be8336c2-144a-4f04-b142-7cfa5604a3e3",
     quantity: 3,
     fixedQuantity: true
   },
@@ -76,8 +76,8 @@ const plans: Plan[] = [
       "Priority email support",
       "Unlimited message history"
     ],
-    variantId: "726377",
-    purchaseUrl: "https://xautodm.lemonsqueezy.com/buy/e8e0faaf-488d-4d9f-bb8e-c6a248917adb",
+    variantId: "757158",
+    purchaseUrl: "https://aiblogsagent.lemonsqueezy.com/buy/3e03a7d9-10ed-47a9-bcb7-7d4923ca1724",
     quantity: 5,
     fixedQuantity: true
   }
