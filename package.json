@@ -72,6 +72,7 @@
     "next": "latest",
     "next-auth": "^4.24.11",
     "next-themes": "^0.3.0",
+    "openai": "^4.93.0",
     "postcss": "8.4.30",
     "prisma": "latest",
     "puppeteer-core": "^21.7.0",
