@@ -7,9 +7,9 @@ const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
 
 // Define variant IDs from LemonSqueezy
 const VARIANT_IDS = {
-  STARTER: "757154", // Starter plan
-  GROWTH: "757156",  // Growth plan (fixed quantity: 3 accounts)
-  ELITE: "757158"    // Elite plan (fixed quantity: 5 accounts)
+  STARTER: "714799", // Starter plan
+  GROWTH: "726375",  // Growth plan (fixed quantity: 3 accounts)
+  ELITE: "726377"    // Elite plan (fixed quantity: 5 accounts)
 };
 
 // Define checkout options interface
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
             store: {
               data: {
                 type: 'stores',
-                id: '151834' // Your store ID
+                id: '156484' // Your store ID
               }
             },
             variant: {

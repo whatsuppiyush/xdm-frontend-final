@@ -5,16 +5,16 @@ import { formatSubscriptionId } from "@/lib/subscription-utils";
 
 // Define the plan IDs and their corresponding lead credits
 const PLAN_CREDITS = {
-  "757154": 25000,  // Starter plan
-  "757156": 75000,  // Growth plan - 25000 × 3 accounts
-  "757158": 125000  // Elite plan - 25000 × 5 accounts
+  "714799": 25000,  // Starter plan
+  "726375": 75000,  // Growth plan - 25000 × 3 accounts
+  "726377": 125000  // Elite plan - 25000 × 5 accounts
 };
 
 // Define the plan types
 const PLAN_TYPES = {
-  "757154": "Starter",
-  "757156": "Growth",
-  "757158": "Elite"
+  "714799": "Starter",
+  "726375": "Growth",
+  "726377": "Elite"
 };
 
 export async function POST(request: Request) {
@@ -170,9 +170,9 @@ async function handleOrderCreated(payload: any) {
   
   // For fixed-quantity plans, override with the correct value
   let finalQuantity = 1;
-  if (variantId === "757156") { // Growth plan
+  if (variantId === "726375") { // Growth plan
     finalQuantity = 3;
-  } else if (variantId === "757158") { // Elite plan
+  } else if (variantId === "726377") { // Elite plan
     finalQuantity = 5;
   }
   
@@ -265,9 +265,9 @@ async function handleSubscriptionCreated(payload: any) {
   
   // For fixed-quantity plans, override with the correct value
   let finalQuantity = 1;
-  if (variantId === "757156") { // Growth plan
+  if (variantId === "726375") { // Growth plan
     finalQuantity = 3;
-  } else if (variantId === "757158") { // Elite plan
+  } else if (variantId === "726377") { // Elite plan
     finalQuantity = 5;
   }
 

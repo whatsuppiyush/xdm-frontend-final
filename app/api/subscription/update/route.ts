@@ -10,23 +10,23 @@ const PRODUCT_ID = "64698"; // The main product ID for all variants
 
 // Define variant IDs from LemonSqueezy
 const VARIANT_IDS = {
-  STARTER: "757154", // Starter plan
-  GROWTH: "757156",  // Growth plan (fixed quantity: 3 accounts)
-  ELITE: "757158"    // Elite plan (fixed quantity: 5 accounts)
+  STARTER: "714799", // Starter plan
+  GROWTH: "726375",  // Growth plan (fixed quantity: 3 accounts)
+  ELITE: "726377"    // Elite plan (fixed quantity: 5 accounts)
 };
 
 // Define plan types
 const PLAN_TYPES = {
-  "757154": "Starter",
-  "757156": "Growth",
-  "757158": "Elite"
+  "714799": "Starter",
+  "726375": "Growth",
+  "726377": "Elite"
 };
 
 // Define lead credits for each plan
 const PLAN_CREDITS = {
-  "757154": 25000,  // Starter plan
-  "757156": 75000,  // Growth plan (25000 × 3 accounts)
-  "757158": 125000  // Elite plan (25000 × 5 accounts)
+  "714799": 25000,  // Starter plan
+  "726375": 75000,  // Growth plan (25000 × 3 accounts)
+  "726377": 125000  // Elite plan (25000 × 5 accounts)
 };
 
 export async function POST(request: Request) {
