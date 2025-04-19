@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -132,7 +132,7 @@ export default function CampaignPage() {
 
   const filteredCampaigns = filterCampaigns(activeTab);
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     if (!userId) return;
 
     try {
@@ -170,10 +170,11 @@ export default function CampaignPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
   useEffect(() => {
     fetchMessages();
-  }, [userId]);
+  }, [fetchMessages]);
 
   useEffect(() => {
     const fetchLeadLists = async () => {
@@ -215,7 +216,7 @@ export default function CampaignPage() {
     fetchTwitterAccounts();
   }, [userId]);
 
-  const fetchDailyUsage = async () => {
+  const fetchDailyUsage = useCallback(async () => {
     if (!userId) return;
     
     try {
@@ -231,13 +232,13 @@ export default function CampaignPage() {
     } catch (error) {
       console.error("Error fetching daily limit:", error);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchDailyUsage();
     const interval = setInterval(fetchDailyUsage, 90000);
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [fetchDailyUsage]);
 
   const handleDeleteCampaign = (campaignId: string) => {
     setCampaignToDelete(campaignId);
