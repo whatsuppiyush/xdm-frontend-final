@@ -234,7 +234,7 @@ class CampaignQueue {
         } else {
           // Ensure userId is defined before incrementing counter
           if (userId) {
-            // Removed pre incement logic
+            // Removed pre incement logic from here
           }
         }
         limitCheckCounter++;
