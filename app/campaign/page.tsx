@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -107,6 +107,7 @@ export default function CampaignPage() {
   });
   const [isRecovering, setIsRecovering] = useState(false);
   const [filteredLeads, setFilteredLeads] = useState<any[]>([]);
+  const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
@@ -131,7 +132,7 @@ export default function CampaignPage() {
 
   const filteredCampaigns = filterCampaigns(activeTab);
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     if (!userId) return;
 
     try {
@@ -169,10 +170,11 @@ export default function CampaignPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
   useEffect(() => {
     fetchMessages();
-  }, [userId]);
+  }, [fetchMessages]);
 
   useEffect(() => {
     const fetchLeadLists = async () => {
@@ -214,7 +216,7 @@ export default function CampaignPage() {
     fetchTwitterAccounts();
   }, [userId]);
 
-  const fetchDailyUsage = async () => {
+  const fetchDailyUsage = useCallback(async () => {
     if (!userId) return;
     
     try {
@@ -230,13 +232,13 @@ export default function CampaignPage() {
     } catch (error) {
       console.error("Error fetching daily limit:", error);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchDailyUsage();
     const interval = setInterval(fetchDailyUsage, 90000);
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [fetchDailyUsage]);
 
   const handleDeleteCampaign = (campaignId: string) => {
     setCampaignToDelete(campaignId);
@@ -746,6 +748,54 @@ export default function CampaignPage() {
     { value: "Paused", label: "Paused" },
     { value: "Completed", label: "Completed" }
   ];
+
+  const generateVariants = async () => {
+    if (!messageTemplate) {
+      toast({
+        title: "Error",
+        description: "Please write a primary message first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingVariants(true);
+    try {
+      const response = await fetch("/api/messages/generate-variants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          originalMessage: messageTemplate,
+          numVariants: 3
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate variants');
+
+      const data = await response.json();
+      
+      // Update message variants with generated content
+      setMessageVariants(data.variants.map((content: string, index: number) => ({
+        id: index + 1,
+        content,
+        isEnabled: true
+      })));
+
+      toast({
+        title: "Success",
+        description: "Generated message variants",
+      });
+    } catch (error) {
+      console.error('Error generating variants:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate message variants",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingVariants(false);
+    }
+  };
 
   return (
     <div className={cn(
@@ -1281,160 +1331,223 @@ export default function CampaignPage() {
               
               {/* Step 4: Configure Variants */}
               {step === 4 && (
-                <div className="w-full mx-auto space-y-3 sm:space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
-                    {/* Left Column - Generate Ideas */}
-                    <div className="space-y-4">
-                      <div className={cn(
-                        "rounded-lg p-4 sm:p-6",
-                        isDark ? "bg-gray-900" : "bg-[#111827]"
+                <div className="w-full mx-auto space-y-8">
+                  {/* Header Section */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-2">
+                      <h2 className={cn(
+                        "text-2xl font-semibold",
+                        isDark ? "text-gray-100" : "text-gray-900"
                       )}>
-                        <div className="flex justify-between items-center mb-3 sm:mb-6">
-                          <h3 className="text-xl text-gray-300">
-                            Generate Ideas
-                          </h3>
-                          <Button className={cn(
-                            "text-white gap-2",
-                            isDark ? "bg-gray-800 hover:bg-gray-700" : "bg-[#1F2937] hover:bg-[#374151]"
-                          )}>
-                            <span className="text-lg">⚡</span> Generate
-                          </Button>
-                        </div>
-                        <div className="flex flex-col items-center justify-center py-10 sm:py-16 text-center space-y-2">
-                          <div className={cn(
-                            "w-12 h-12 rounded-lg flex items-center justify-center mb-4",
-                            isDark ? "bg-gray-800" : "bg-[#1F2937]"
-                          )}>
-                            🧪
-                          </div>
-                          <h4 className="text-lg font-medium text-gray-300">
-                            Generate Variant Ideas
-                          </h4>
-                          <p className="text-gray-400 text-sm">
-                            Click the generate button <br /> create some variant
-                            ideas <br /> with AI
-                          </p>
-                          <div className="mt-2 px-3 py-1 rounded-full bg-yellow-900/30 text-yellow-400 font-medium text-sm">
-                            Coming Soon
-                          </div>
-                        </div>
-                      </div>
+                        Configure Message Variants
+                      </h2>
+                      <p className={cn(
+                        "text-sm",
+                        isDark ? "text-gray-400" : "text-gray-500"
+                      )}>
+                        Create multiple versions of your message to increase engagement
+                      </p>
                     </div>
-                    {/* Right Column - Selected Message Variants */}
-                    <div className="space-y-4">
-                      <div className={cn(
-                        "rounded-lg p-4 sm:p-6",
-                        isDark ? "bg-gray-900" : "bg-[#111827]"
-                      )}>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-xl text-gray-300 mb-1">
-                                Selected Message Variants
-                              </h3>
-                              <p className="text-sm text-gray-400">
-                                We recommend adding 5 or more variants.
-                              </p>
-                              <p className="text-sm text-gray-400 mt-1">
-                                Pro tip: Add spintax to your variants for even
-                                more randomization.
-                              </p>
-                            </div>
-                          </div>
-                          {/* Primary Variant */}
-                          <div className="space-y-4 mt-6">
-                            <div className="space-y-2">
-                              <Label className="text-gray-300">
-                                Primary Variant
-                              </Label>
-                              <Textarea
-                                value={messageTemplate}
-                                onChange={(e) => setMessageTemplate(e.target.value)}
-                                className={cn(
-                                  "min-h-[100px] sm:min-h-[120px] resize-none text-gray-300 border-0 w-full",
-                                  isDark ? "bg-gray-800" : "bg-[#1F2937]"
-                                )}
-                                placeholder="Hey [First Name]!"
-                              />
-                            </div>
-                            {/* Variant Messages */}
-                            {messageVariants.map((variant, index) => (
-                              <div key={variant.id} className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <Label className="text-gray-300">
-                                    Variant Idea {index + 1}
-                                  </Label>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-400 hover:text-gray-300"
-                                    onClick={() => {
-                                      const newVariants = messageVariants.filter(
-                                        (v) => v.id !== variant.id,
-                                      );
-                                      setMessageVariants(newVariants);
-                                    }}
-                                  >
-                                    Delete
-                                  </Button>
-                                </div>
-                                <Textarea
-                                  value={variant.content}
-                                  onChange={(e) => {
-                                    const newVariants = [...messageVariants];
-                                    newVariants[index].content = e.target.value;
-                                    setMessageVariants(newVariants);
-                                  }}
-                                  className={cn(
-                                    "min-h-[100px] sm:min-h-[120px] resize-none text-gray-300 border-0 w-full",
-                                    isDark ? "bg-gray-800" : "bg-[#1F2937]"
-                                  )}
-                                  placeholder="Write your variant here..."
-                                />
-                              </div>
-                            ))}
-                            {/* Add Variant Button */}
-                            <Button
-                              variant="outline"
-                              className="w-full py-4 text-gray-300 border-gray-600 hover:bg-gray-800"
-                              onClick={addMessageVariant}
-                            >
-                              + Add Variant
-                            </Button>
-                          </div>
+                    <Button
+                      onClick={generateVariants}
+                      disabled={isGeneratingVariants || !messageTemplate}
+                      className={cn(
+                        "gap-2 h-10",
+                        isDark ? "bg-purple-600 hover:bg-purple-700" : "bg-black hover:bg-gray-800"
+                      )}
+                    >
+                      {isGeneratingVariants ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-lg">⚡</span>
+                          Generate Variants
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Primary Message */}
+                    <div className={cn(
+                      "lg:col-span-3 p-6 rounded-xl border-2",
+                      isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                    )}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className={cn(
+                          "text-lg font-medium",
+                          isDark ? "text-gray-100" : "text-gray-900"
+                        )}>
+                          Primary Message
+                        </h3>
+                        <div className={cn(
+                          "text-sm px-3 py-1 rounded-full",
+                          isDark ? "bg-purple-900/30 text-purple-300" : "bg-purple-100 text-purple-600"
+                        )}>
+                          {messageTemplate.length} characters
                         </div>
                       </div>
-                      {/* Navigation Buttons */}
-                      <div className="flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900/90 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg backdrop-blur-sm sm:shadow-none">
+                      <Textarea
+                        value={messageTemplate}
+                        onChange={(e) => setMessageTemplate(e.target.value)}
+                        className={cn(
+                          "min-h-[120px] resize-none text-base",
+                          isDark ? "bg-gray-900 text-gray-100 border-gray-700" : "bg-gray-50 border-gray-200"
+                        )}
+                        placeholder="Enter your primary message here..."
+                      />
+                    </div>
+
+                    {/* Generated Variants */}
+                    <div className={cn(
+                      "lg:col-span-3 p-6 rounded-xl border-2",
+                      isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                    )}>
+                      <div className="flex justify-between items-center mb-6">
+                        <div className="space-y-1">
+                          <h3 className={cn(
+                            "text-lg font-medium",
+                            isDark ? "text-gray-100" : "text-gray-900"
+                          )}>
+                            Message Variants
+                          </h3>
+                          <p className={cn(
+                            "text-sm",
+                            isDark ? "text-gray-400" : "text-gray-500"
+                          )}>
+                            Add up to 5 variants for better engagement
+                          </p>
+                        </div>
                         <Button
                           variant="outline"
+                          onClick={addMessageVariant}
                           className={cn(
-                            "px-5 sm:px-6 py-4 text-base sm:text-base flex-1 sm:flex-initial text-lg font-medium shadow-md rounded-xl",
-                            isDark && "border-gray-700 text-gray-200 hover:bg-gray-700"
+                            "gap-2 h-10",
+                            isDark ? "border-gray-600 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-50"
                           )}
-                          onClick={() => setStep(3)}
+                          disabled={messageVariants.length >= 5}
                         >
-                          <ArrowLeft className="w-5 h-5 mr-2 sm:hidden" />
-                          Back
-                        </Button>
-                        <Button
-                          className={cn(
-                            "px-5 sm:px-8 py-4 rounded-xl text-base sm:text-base flex-1 sm:flex-initial text-white text-lg font-medium shadow-md",
-                            isDark
-                              ? "bg-purple-600 hover:bg-purple-700"
-                              : "bg-black hover:bg-gray-800"
-                          )}
-                          onClick={() => setStep(5)}
-                          disabled={
-                            !messageTemplate &&
-                            messageVariants.every((v) => !v.content)
-                          }
-                        >
-                          Next
-                          <ArrowRight className="w-5 h-5 ml-2 sm:hidden" />
+                          <span className="text-lg">+</span>
+                          Add Variant
                         </Button>
                       </div>
+
+                      <div className="space-y-6">
+                        {messageVariants.map((variant, index) => (
+                          <div key={variant.id} className={cn(
+                            "p-4 rounded-lg",
+                            isDark ? "bg-gray-900" : "bg-gray-50"
+                          )}>
+                            <div className="flex justify-between items-center mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium",
+                                  isDark ? "bg-purple-900/30 text-purple-300" : "bg-purple-100 text-purple-600"
+                                )}>
+                                  {index + 1}
+                                </div>
+                                <Label className={cn(
+                                  "text-sm font-medium",
+                                  isDark ? "text-gray-300" : "text-gray-700"
+                                )}>
+                                  Variant {index + 1}
+                                </Label>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                  "text-red-500 hover:text-red-600",
+                                  isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                                )}
+                                onClick={() => {
+                                  const newVariants = messageVariants.filter(
+                                    (v) => v.id !== variant.id
+                                  );
+                                  setMessageVariants(newVariants);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <Textarea
+                              value={variant.content}
+                              onChange={(e) => {
+                                const newVariants = [...messageVariants];
+                                newVariants[index].content = e.target.value;
+                                setMessageVariants(newVariants);
+                              }}
+                              className={cn(
+                                "min-h-[100px] resize-none text-base",
+                                isDark ? "bg-gray-800 text-gray-100 border-gray-700" : "bg-white border-gray-200"
+                              )}
+                              placeholder="Enter variant message here..."
+                            />
+                            <div className={cn(
+                              "text-sm mt-2 text-right",
+                              isDark ? "text-gray-400" : "text-gray-500"
+                            )}>
+                              {variant.content.length} characters
+                            </div>
+                          </div>
+                        ))}
+
+                        {messageVariants.length === 0 && (
+                          <div className={cn(
+                            "text-center py-8 rounded-lg border-2 border-dashed",
+                            isDark ? "border-gray-700" : "border-gray-200"
+                          )}>
+                            <div className={cn(
+                              "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4",
+                              isDark ? "bg-gray-700" : "bg-gray-100"
+                            )}>
+                              <span className="text-2xl">📝</span>
+                            </div>
+                            <h4 className={cn(
+                              "text-lg font-medium mb-2",
+                              isDark ? "text-gray-200" : "text-gray-900"
+                            )}>
+                              No variants added yet
+                            </h4>
+                            <p className={cn(
+                              "text-sm max-w-md mx-auto",
+                              isDark ? "text-gray-400" : "text-gray-500"
+                            )}>
+                              Click &quot;Add Variant&quot; or &quot;Generate Variants&quot; to create different versions of your message
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Navigation Buttons */}
+                  <div className="flex justify-between gap-4 mt-8">
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "px-6 h-10",
+                        isDark ? "border-gray-700 text-gray-200 hover:bg-gray-700" : ""
+                      )}
+                      onClick={() => setStep(3)}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back
+                    </Button>
+                    <Button
+                      className={cn(
+                        "px-6 h-10",
+                        isDark ? "bg-purple-600 hover:bg-purple-700" : "bg-black hover:bg-gray-800"
+                      )}
+                      onClick={() => setStep(5)}
+                      disabled={!messageTemplate && messageVariants.every((v) => !v.content)}
+                    >
+                      Next
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
                   </div>
                 </div>
               )}
