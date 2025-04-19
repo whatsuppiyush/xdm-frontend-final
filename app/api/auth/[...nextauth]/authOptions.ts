@@ -125,9 +125,9 @@ export const authOptions: NextAuthOptions = {
               queueOperation(async () => {
                 try {
                   await pushUserToGoogleSheet({
-                    email: user.email,
-                    name: user.name,
-                    provider: 'google (converted from credentials)'
+                    email: user.email || '',
+                    name: user.name || '',
+                    provider: 'google'
                   });
                 } catch (error) {
                   console.error('Error pushing converted user data to Google Sheet:', error);
@@ -137,8 +137,8 @@ export const authOptions: NextAuthOptions = {
               queueOperation(async () => {
                 try {
                   await pushUserToInstantly({
-                    email: user.email,
-                    name: user.name
+                    email: user.email || '',
+                    name: user.name || ''
                   });
                 } catch (error) {
                   console.error('Error pushing converted user data to Instantly.ai:', error);
@@ -148,9 +148,9 @@ export const authOptions: NextAuthOptions = {
               queueOperation(async () => {
                 try {
                   await pushUserToBeehiiv({
-                    email: user.email,
-                    name: user.name,
-                    provider: 'google (converted from credentials)'
+                    email: user.email || '',
+                    name: user.name || '',
+                    provider: 'google'
                   });
                 } catch (error) {
                   console.error('Error pushing converted user data to Beehiiv:', error);
@@ -187,7 +187,7 @@ export const authOptions: NextAuthOptions = {
                 },
                 body: JSON.stringify({
                   firstName: user.name?.split(' ')[0] || 'User',
-                  email: user.email,
+                  email: user.email || '',
                 }),
               });
             } catch (error) {
@@ -199,19 +199,19 @@ export const authOptions: NextAuthOptions = {
           queueOperation(async () => {
             const promises = [
               pushUserToGoogleSheet({
-                email: user.email,
-                name: user.name,
+                email: user.email || '',
+                name: user.name || '',
                 provider: 'google'
               }).catch(error => console.error('Error pushing Google user data to Google Sheet:', error)),
               
               pushUserToInstantly({
-                email: user.email,
-                name: user.name
+                email: user.email || '',
+                name: user.name || ''
               }).catch(error => console.error('Error pushing Google user data to Instantly.ai:', error)),
               
               pushUserToBeehiiv({
-                email: user.email,
-                name: user.name,
+                email: user.email || '',
+                name: user.name || '',
                 provider: 'google'
               }).catch(error => console.error('Error pushing Google user data to Beehiiv:', error))
             ];
