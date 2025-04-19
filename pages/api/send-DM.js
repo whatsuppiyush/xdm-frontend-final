@@ -234,8 +234,7 @@ class CampaignQueue {
         } else {
           // Ensure userId is defined before incrementing counter
           if (userId) {
-            // Still increment counter for each message, just don't check limit
-            await redis.incr(`user:${userId}:daily_messages:${new Date().toISOString().split('T')[0]}`);
+            // Removed pre incement logic
           }
         }
         limitCheckCounter++;
