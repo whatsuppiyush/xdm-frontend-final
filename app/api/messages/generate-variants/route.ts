@@ -33,7 +33,7 @@ Rules:
 Format each variation on a new line starting with "Variant:"`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
