@@ -203,11 +203,13 @@ export default function DashboardMetrics() {
           const messagesData = await messagesResponse.json();
           const totalMessages = messagesData.messages?.length || 0;
           
-          // Count total message items sent
+          // Count only successfully sent message items (where status is true)
           let totalMessageItems = 0;
           messagesData.messages?.forEach((message: MessageData) => {
-            totalMessageItems += message.messages?.length || 0;
-            console.log(message);
+            // Filtet the message that are sned on basis of status true or false 
+            const successfulMessages = message.messages?.filter((item: any) => item.status === true) || [];
+            totalMessageItems += successfulMessages.length;
+            console.log("Successful messages:", successfulMessages.length, "Total in campaign:", message.messages?.length);
           });
           
           setMetrics([

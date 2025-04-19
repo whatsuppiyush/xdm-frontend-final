@@ -155,7 +155,7 @@ export const LeadScrapingCompleteEmailTemplate: React.FC<Readonly<LeadScrapingCo
         marginBottom: '32px',
       }}>
         <a
-          href="https://app.xautodm.com/leads"
+          href="https://app.xautodm.com/campaigns"
           style={{
             backgroundColor: '#4f46e5',
             color: '#ffffff',
