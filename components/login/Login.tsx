@@ -226,6 +226,7 @@ export default function Login() {
             </>
           )}
 
+          {/* Commented out the signup/login toggle button
           <div className="text-center text-sm" data-oid="ap-xw7j">
             <button
               type="button"
@@ -238,6 +239,7 @@ export default function Login() {
                 : "Don't have an account? Sign up"}
             </button>
           </div>
+          */}
         </CardContent>
       </Card>
     </div>
