@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-console.log('openai key',process.env.OPENAI_API_KEY);
 export async function POST(req: Request) {
   try {
     const { originalMessage, numVariants = 3 } = await req.json();
@@ -15,6 +11,10 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const prompt = `Generate ${numVariants} unique, human-like variations of the following message while maintaining the same intent and tone. Each variation should be different but natural. Keep variables like {name}, {username}, {followers}, and {bio} intact.
 
