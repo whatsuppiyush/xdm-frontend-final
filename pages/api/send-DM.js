@@ -663,8 +663,8 @@ async function checkAndIncrementDailyLimit(userId) {
     };
   }
   
-  // Only increment if we're going to send
-  const incrementResult = await incrementDailyLimit(userId);
+  // Remove the incrementDailyLimit call to prevent double counting
+  // Only return the check result, increment will happen after successful send
   
   return {
     canSend: true,
