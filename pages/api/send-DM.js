@@ -288,8 +288,13 @@ class CampaignQueue {
             
             // Add current recipient to retry list
             const currentRecipient = this.queue[0];
-            recipientsToRetry.push(currentRecipient);
-            console.log("recipientsToRetry", recipientsToRetry);
+            if (!this.processedRecipients.has(currentRecipient.recipientId)) {
+              console.log(`Adding recipient ${currentRecipient.recipientId} to retry queue - not previously processed`);
+              recipientsToRetry.push(currentRecipient);
+            } else {
+              console.log(`Skipping retry for recipient ${currentRecipient.recipientId} - already processed`);
+            }
+            
             // Remove from current queue to avoid duplicate processing
             this.queue.shift();
             await this.saveToRedis();
@@ -339,7 +344,11 @@ class CampaignQueue {
               
               console.log("Browser restarted successfully after cooldown");
               
-              // Add failed recipients back to the beginning of the queue
+              // Filter out any recipients that have been processed while we were cooling down
+              recipientsToRetry = recipientsToRetry.filter(recipient => !this.processedRecipients.has(recipient.recipientId));
+              console.log(`Adding ${recipientsToRetry.length} unprocessed recipients back to queue`);
+              
+              // Add unprocessed recipients back to the beginning of the queue
               this.queue = [...recipientsToRetry, ...this.queue];
               recipientsToRetry = [];
               await this.saveToRedis();
