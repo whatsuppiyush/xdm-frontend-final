@@ -668,7 +668,7 @@ async function checkAndIncrementDailyLimit(userId) {
   
   return {
     canSend: true,
-    currentCount: incrementResult.currentCount
+    currentCount: checkResult.currentCount
   };
 }
 
