@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import {
   Table,
   TableBody,
@@ -58,7 +58,7 @@ interface LeadsListProps {
   leads?: Lead[];
 }
 
-export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
+function LeadsList({ leads = defaultLeads }: LeadsListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const leadsPerPage = 15;
   
@@ -165,3 +165,5 @@ export default function LeadsList({ leads = defaultLeads }: LeadsListProps) {
     </div>
   );
 }
+
+export default memo(LeadsList);

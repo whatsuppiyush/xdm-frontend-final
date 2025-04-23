@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { useUser } from "@/contexts/user-context";
 
 interface MessageList {
@@ -14,7 +14,7 @@ interface MessageList {
   createdAt: string;
 }
 
-export default function LeadLists() {
+function LeadLists() {
   const [loading, setLoading] = useState(true);
   const [messageLists, setMessageLists] = useState<MessageList[]>([]);
   const { userId } = useUser();
@@ -175,3 +175,5 @@ export default function LeadLists() {
     </Card>
   );
 }
+
+export default memo(LeadLists);

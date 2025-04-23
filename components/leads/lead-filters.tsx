@@ -5,9 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useState } from "react";
+import { useState, memo } from "react";
 
-export default function LeadFilters() {
+function LeadFilters() {
   const [followerRange, setFollowerRange] = useState([0, 100000]);
   const [followingRange, setFollowingRange] = useState([0, 100000]);
 
@@ -76,3 +76,5 @@ export default function LeadFilters() {
     </Card>
   );
 }
+
+export default memo(LeadFilters);
