@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Heading } from "@/components/heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import { toast } from "@/components/ui/use-toast";
 import { getUserDailyMessageLimit } from "@/lib/planLimits";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import LeadFilters from "@/components/campaign/lead-filters";
+import useSWR, { useSWRConfig } from "swr";
 
 interface AutomatedLead {
   id: string;
@@ -65,6 +66,15 @@ interface CampaignProgress {
   failedCount: number;
 }
 
+// SWR fetcher function
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error('Failed to fetch');
+  }
+  return res.json();
+};
+
 export default function CampaignPage() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -85,7 +95,6 @@ export default function CampaignPage() {
     { id: 1, content: "", isEnabled: true },
   ]);
   const [selectedAccount, setSelectedAccount] = useState<TwitterAccount | null>(null);
-  const [leadLists, setLeadLists] = useState<AutomatedLead[]>([]);
   const [loading, setLoading] = useState(true);
   const { userId } = useUser();
   const [twitterAccounts, setTwitterAccounts] = useState<TwitterAccount[]>([]);
@@ -108,7 +117,24 @@ export default function CampaignPage() {
   const [isRecovering, setIsRecovering] = useState(false);
   const [filteredLeads, setFilteredLeads] = useState<any[]>([]);
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  const { mutate } = useSWRConfig();
+  const [loadingLeadDetails, setLoadingLeadDetails] = useState(false);
   
+  // Use SWR for lead lists
+  const { data: leadListsData, error: leadListsError, isValidating: leadListsLoading } = useSWR(
+    userId ? `/api/leads?userId=${userId}&page=1&limit=10` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      onSuccess: () => {
+        setLoading(false);
+      }
+    }
+  );
+  
+  // Derive leadLists from SWR data
+  const leadLists = leadListsData?.leads || [];
+
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
     { title: "Filter Leads", subtitle: "Refine your target audience" },
@@ -132,11 +158,11 @@ export default function CampaignPage() {
 
   const filteredCampaigns = filterCampaigns(activeTab);
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = useCallback(async (limit = 10) => {
     if (!userId) return;
 
     try {
-      const response = await fetch(`/api/messages?userId=${userId}`);
+      const response = await fetch(`/api/messages?userId=${userId}&limit=${limit}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -175,26 +201,6 @@ export default function CampaignPage() {
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
-
-  useEffect(() => {
-    const fetchLeadLists = async () => {
-      if (!userId) return;
-      
-      try {
-        const response = await fetch(`/api/leads?userId=${userId}`);
-        if (!response.ok) throw new Error('Failed to fetch lead lists');
-        
-        const data = await response.json();
-        setLeadLists(data.leads);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching lead lists:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchLeadLists();
-  }, [userId]);
 
   useEffect(() => {
     const fetchTwitterAccounts = async () => {
@@ -562,16 +568,16 @@ export default function CampaignPage() {
         setIsCreating(true);
         
         // Set the selected lead
-        setSelectedLeadList({
+        const lead = {
           id: leadData.id,
           leadName: leadData.name,
           totalLeads: 0,
           createdAt: new Date().toISOString(),
           followers: []
-        });
+        };
+        setSelectedLeadList(lead);
         
-        // Skip to step 2
-        setStep(2);
+        // Note: We don't set step yet, we'll wait for the lead details to load
         
         // Clear the stored data
         localStorage.removeItem('automationLead');
@@ -580,6 +586,49 @@ export default function CampaignPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const fetchLeadDetails = async () => {
+      if (!selectedLeadList) return;
+      
+      try {
+        setLoadingLeadDetails(true);
+        console.log(`Fetching details for lead ${selectedLeadList.id}`);
+        
+        const response = await fetch(`/api/leads/details?id=${selectedLeadList.id}`);
+        if (!response.ok) throw new Error('Failed to fetch lead details');
+        
+        const data = await response.json();
+        
+        // Update selectedLeadList with followers data
+        setSelectedLeadList(prev => {
+          if (!prev) return null;
+          return {
+            id: prev.id,
+            leadName: prev.leadName,
+            totalLeads: prev.totalLeads,
+            createdAt: prev.createdAt,
+            followers: data.followers || []
+          };
+        });
+        
+        console.log(`Fetched ${data.followers?.length || 0} followers for lead ${selectedLeadList.id}`);
+      } catch (error) {
+        console.error('Error fetching lead details:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load lead details. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingLeadDetails(false);
+      }
+    };
+
+    if (selectedLeadList && !selectedLeadList.followers) {
+      fetchLeadDetails();
+    }
+  }, [selectedLeadList?.id]);
 
   const sendDM = async () => {
     if (!selectedAccount?.cookies) {
@@ -980,7 +1029,7 @@ export default function CampaignPage() {
                     `}</style>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 w-full px-1 py-2 -mx-2 sm:-mx-4">
-                      {leadLists.map((list) => (
+                      {leadLists.map((list: AutomatedLead) => (
                         <div
                           key={list.id}
                           className={cn(
@@ -1035,10 +1084,17 @@ export default function CampaignPage() {
                       )}
                       onClick={() => {
                         if (selectedLeadList) {
+                          if (selectedLeadList.followers || loadingLeadDetails) {
                           setStep(step + 1);
+                          } else {
+                            toast({
+                              title: "Loading lead data",
+                              description: "Please wait while we load your lead data",
+                            });
+                          }
                         }
                       }}
-                      disabled={!selectedLeadList}
+                      disabled={!selectedLeadList || (loadingLeadDetails && !selectedLeadList.followers)}
                     >
                       Next
                       <ArrowRight className="w-5 h-5 ml-2 sm:hidden" />
@@ -1316,10 +1372,17 @@ export default function CampaignPage() {
                         )}
                         onClick={() => {
                           if (selectedLeadList) {
+                            if (selectedLeadList.followers || loadingLeadDetails) {
                             setStep(step + 1);
+                            } else {
+                              toast({
+                                title: "Loading lead data",
+                                description: "Please wait while we load your lead data",
+                              });
+                            }
                           }
                         }}
-                        disabled={!selectedLeadList}
+                        disabled={!selectedLeadList || (loadingLeadDetails && !selectedLeadList.followers)}
                       >
                         Next
                         <ArrowRight className="w-5 h-5 ml-2 sm:hidden" />

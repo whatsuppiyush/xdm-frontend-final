@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import ImportLeads from "@/components/leads/import-leads";
 import LeadListCard from "@/components/leads/lead-list-card";
 import { useUser } from "@/contexts/user-context";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
@@ -11,8 +10,12 @@ import { useRouter } from "next/navigation";
 import { CookieRefreshDialog } from "@/components/ui/cookie-refresh-dialog";
 import LeadDetailsDialog from "@/components/leads/lead-details-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Database, PlusCircle, Search } from "lucide-react";
+import { Database, PlusCircle, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import useSWR, { useSWRConfig } from "swr";
+
+// Lazy load the ImportLeads component
+const ImportLeads = lazy(() => import("@/components/leads/import-leads"));
 
 interface LeadList {
   id: string;
@@ -26,122 +29,101 @@ interface LeadList {
 // Add these type declarations at the top of the file, outside your component
 declare global {
   interface Window {
-    leadPollingInterval: NodeJS.Timeout;
+    leadPollingInterval: ReturnType<typeof setInterval> | undefined;
     leadPollingActive: boolean;
   }
 }
 
+// SWR fetcher function
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error('Failed to fetch');
+  }
+  return res.json();
+};
+
 export default function LeadsPage() {
   const [isImporting, setIsImporting] = useState(false);
-  const [leadLists, setLeadLists] = useState<LeadList[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPage, setLoadingPage] = useState(true);
   const { userId } = useUser();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const [cookieErrorDialogOpen, setCookieErrorDialogOpen] = useState(false);
-  const [refreshCounter, setRefreshCounter] = useState(0);
   const [selectedLead, setSelectedLead] = useState<{ id: string; name: string } | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [leadCredits, setLeadCredits] = useState({
-    credits: 0,
-    planType: null as string | null,
-    loading: true,
-  });
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout | undefined;
-    
-    const fetchLeads = async () => {
-      console.log('Fetching leads', refreshCounter);
-      if (!userId) return;
-      
-      try {
-        const response = await fetch(`/api/leads?userId=${userId}`);
-        if (!response.ok) throw new Error('Failed to fetch lead lists');
-        
-        const data = await response.json();
-        console.log('API response data:', data);
-        
-        const formattedLeads = data.leads.map((lead: any) => ({
-          id: lead.id,
-          leadName: lead.leadName,
-          totalLeads: lead.totalLeads,
-          createdAt: lead.createdAt,
-          status: lead.status,
-          errorType: lead.errorType
-        }));
-        
-        console.log('Formatted leads with error types:', formattedLeads);
+  const { mutate } = useSWRConfig();
+  
+  // Use SWR for data fetching with stale-while-revalidate strategy
+  const { data, error, isValidating } = useSWR(
+    userId ? `/api/leads?userId=${userId}&page=1&limit=100` : null, 
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 0, // We'll handle polling manually below
+      onSuccess: (data) => {
+        setLoadingPage(false);
         
         // Check for auth errors in any lead
-        const authErrorLead = formattedLeads.find((lead: LeadList) => 
+        const authErrorLead = data?.leads?.find((lead: LeadList) => 
           lead.errorType === 'auth_error'
         );
         
-        console.log('Auth error lead found:', authErrorLead);
-        
         if (authErrorLead) {
-          console.log('Auth error detected, showing dialog');
           setCookieErrorDialogOpen(true);
         }
-        
-        setLeadLists(formattedLeads);
-        
-        // Check if any leads are still in progress
-        const hasInProgressLeads = formattedLeads.some(
-          (lead: LeadList) => lead.status === 'in_progress'
-        );
-        
-        // Actually stop polling when complete
-        if (!hasInProgressLeads && intervalId) {
-          console.log('All leads complete, stopping polling');
-          clearInterval(intervalId);
-          intervalId = undefined;
-        } else if (hasInProgressLeads) {
-          console.log('In progress leads found, continuing to poll...');
-        }
-      } catch (error) {
-        console.error('Error fetching leads:', error);
-      } finally {
-        setLoading(false);
       }
-    };
+    }
+  );
+  
+  // Credits data
+  const { data: creditsData } = useSWR(
+    userId ? "/api/user/credits" : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  const leadCredits = {
+    credits: creditsData?.leadCredits || 0,
+    planType: creditsData?.planType || null,
+    loading: !creditsData
+  };
+  
+  // Set up polling only for in-progress leads
+  useEffect(() => {
+    // Clear any existing polling interval
+    if (window.leadPollingInterval) {
+      clearInterval(window.leadPollingInterval);
+      window.leadPollingInterval = undefined;
+      window.leadPollingActive = false;
+    }
     
-    // Initial fetch
-    fetchLeads();
+    // Check if there are any in-progress leads
+    const hasInProgressLeads = data?.leads?.some(
+      (lead: LeadList) => lead.status === 'in_progress'
+    );
     
-    // Set up polling every 10 seconds
-    intervalId = setInterval(fetchLeads, 10000);
+    if (hasInProgressLeads && !window.leadPollingActive) {
+      // Set up polling every 10 seconds for in-progress leads
+      window.leadPollingActive = true;
+      window.leadPollingInterval = setInterval(() => {
+        mutate(`/api/leads?userId=${userId}&page=1&limit=100`);
+      }, 10000);
+      
+      console.log('Started polling for in-progress leads');
+    }
     
     return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [userId, refreshCounter]);
-
-  useEffect(() => {
-    const fetchUserCredits = async () => {
-      if (!userId) return;
-      
-      try {
-        const creditsResponse = await fetch("/api/user/credits");
-        const creditsData = await creditsResponse.json();
-        
-        setLeadCredits({
-          credits: creditsData.leadCredits || 0,
-          planType: creditsData.planType,
-          loading: false,
-        });
-      } catch (error) {
-        console.error("Error fetching lead credits:", error);
-        setLeadCredits(prev => ({ ...prev, loading: false }));
+      if (window.leadPollingInterval) {
+        clearInterval(window.leadPollingInterval);
+        window.leadPollingInterval = undefined;
+        window.leadPollingActive = false;
       }
     };
-
-    fetchUserCredits();
-  }, [userId]);
+  }, [data, userId, mutate]);
 
   const handleDeleteLead = async (leadId: string) => {
     try {
@@ -152,9 +134,9 @@ export default function LeadsPage() {
       });
 
       if (!response.ok) throw new Error('Failed to delete lead list');
-
-      // Update the state to remove the deleted lead
-      setLeadLists(prev => prev.filter(lead => lead.id !== leadId));
+      
+      // Revalidate data after deletion
+      mutate(`/api/leads?userId=${userId}&page=1&limit=100`);
       
       toast({
         title: "Lead list deleted",
@@ -169,15 +151,6 @@ export default function LeadsPage() {
       });
     } finally {
       setIsDeleting(false);
-    }
-  };
-
-  const refreshLeads = async () => {
-    try {
-      setRefreshCounter(prev => prev + 1);
-      console.log('Refresh counter incremented, polling should start');
-    } catch (error) {
-      console.error('Error refreshing leads:', error);
     }
   };
 
@@ -202,7 +175,7 @@ export default function LeadsPage() {
     
     try {
       // Find the lead with auth error
-      const authErrorLead = leadLists.find(lead => lead.errorType === 'auth_error');
+      const authErrorLead = data?.leads?.find((lead: LeadList) => lead.errorType === 'auth_error');
       
       if (authErrorLead) {
         // Clear the error status in Redis
@@ -231,13 +204,26 @@ export default function LeadsPage() {
     setDetailsDialogOpen(true);
   };
 
+  const refreshLeads = () => {
+    mutate(`/api/leads?userId=${userId}&page=1&limit=100`);
+  };
+
   // Filter leads based on search query
-  const filteredLeads = leadLists.filter(lead => 
+  const leadLists = data?.leads || [];
+  const filteredLeads = leadLists.filter((lead: LeadList) => 
     lead.leadName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (isImporting) {
-    return <ImportLeads onBack={() => setIsImporting(false)} refreshLeads={refreshLeads} />;
+    return (
+      <Suspense fallback={
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        </div>
+      }>
+        <ImportLeads onBack={() => setIsImporting(false)} refreshLeads={refreshLeads} />
+      </Suspense>
+    );
   }
 
   return (
@@ -285,7 +271,7 @@ export default function LeadsPage() {
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {loading ? (
+        {loadingPage || isValidating && !data ? (
           // Loading state
           Array.from({ length: 3 }).map((_, index) => (
             <Card key={`skeleton-${index}`} className="border border-gray-100 dark:border-gray-700 h-[150px] animate-pulse bg-gray-50 dark:bg-gray-800">
@@ -333,7 +319,7 @@ export default function LeadsPage() {
           </div>
         ) : (
           // Lead list cards
-          filteredLeads.map((lead) => (
+          filteredLeads.map((lead: LeadList) => (
             <LeadListCard
               key={lead.id}
               id={lead.id}

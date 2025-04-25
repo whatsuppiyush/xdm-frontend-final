@@ -9,7 +9,7 @@ import {
 import LeadsGrid from "@/components/leads/leads-grid";
 import { Button } from "@/components/ui/button";
 import { Loader2, Download, Play, X, DatabaseIcon, XIcon } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -32,7 +32,7 @@ interface LeadDetailsDialogProps {
   onCreateAutomation: () => void;
 }
 
-export default function LeadDetailsDialog({
+function LeadDetailsDialog({
   isOpen,
   onClose,
   leadId,
@@ -385,4 +385,6 @@ export default function LeadDetailsDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}
+
+export default memo(LeadDetailsDialog); 

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Play, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Trash2, Play, Loader2, Calendar } from "lucide-react";
+import { useState, memo } from "react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 interface LeadListCardProps {
@@ -15,7 +15,7 @@ interface LeadListCardProps {
   onViewDetails: (id: string, name: string) => void;
 }
 
-export default function LeadListCard({
+function LeadListCard({
   id,
   name,
   leadCount,
@@ -40,29 +40,34 @@ export default function LeadListCard({
 
   return (
     <>
-      <Card 
-        className="border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm transition-all cursor-pointer h-full hover:shadow-md"
+      <div 
+        className="relative overflow-hidden rounded-xl border border-white/20 dark:border-white/10 backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 shadow-[0_4px_15px_rgb(0,0,0,0.04)] dark:shadow-[0_4px_15px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_8px_25px_rgba(0,0,0,0.3)] transition-all cursor-pointer h-full"
         onClick={() => onViewDetails(id, name)}
       >
-        <CardContent className="p-4 sm:p-6 h-full flex flex-col">
+        {/* Decorative elements */}
+        <div className="absolute -right-12 -top-12 w-24 h-24 bg-purple-400/5 dark:bg-purple-400/10 rounded-full blur-xl pointer-events-none"></div>
+        <div className="absolute -left-12 -bottom-12 w-24 h-24 bg-blue-400/5 dark:bg-blue-400/10 rounded-full blur-xl pointer-events-none"></div>
+        
+        <div className="p-4 sm:p-6 h-full flex flex-col relative z-10">
           {/* Name and creation date */}
-          <div className="mb-3">
-            <h3 className="text-base sm:text-lg font-semibold mb-1 text-gray-900 dark:text-gray-100 break-words line-clamp-2">{name}</h3>
-            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              Created {formatDate(createdAt)}
+          <div className="mb-4">
+            <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900 dark:text-white break-words line-clamp-2">{name}</h3>
+            <div className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              <Calendar className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+              {formatDate(createdAt)}
             </div>
           </div>
           
           {/* Status indicator */}
-          <div className="mb-3">
+          <div className="mb-5">
             {isLoading ? (
-              <div className="flex items-center text-purple-400">
+              <div className="flex items-center text-purple-500 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-1.5 rounded-full">
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                <span className="text-sm">Scraping in progress...</span>
+                <span className="text-xs sm:text-sm">Scraping in progress...</span>
               </div>
             ) : (
-              <div className="bg-purple-50 dark:bg-purple-900/30 text-purple-500 dark:text-purple-300 px-3 py-1 rounded-full text-xs sm:text-sm inline-flex">
-                {leadCount.toLocaleString()} leads
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 text-purple-600 dark:text-purple-300 px-3 py-1.5 rounded-full text-xs sm:text-sm inline-flex items-center">
+                <span className="font-medium mr-1">{leadCount.toLocaleString()}</span> leads
               </div>
             )}
           </div>
@@ -72,17 +77,17 @@ export default function LeadListCard({
             <Button
               variant="outline"
               size="sm"
-              className="border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 flex-1 min-w-[80px] h-9 text-gray-700 dark:text-gray-300"
+              className="border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 flex-1 min-w-[80px] h-9 transition-all duration-200 shadow-sm hover:shadow"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click
                 setIsConfirmOpen(true);
               }}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
               Delete
             </Button>
             <Button 
-              className="bg-purple-500 hover:bg-purple-600 text-white flex-1 min-w-[80px] h-9 transition-colors duration-200" 
+              className="bg-purple-600 hover:bg-purple-700 text-white flex-1 min-w-[80px] h-9 transition-all duration-200 shadow-sm hover:shadow-md" 
               size="sm"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click
@@ -93,8 +98,8 @@ export default function LeadListCard({
               Automate
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <DeleteConfirmationDialog
         isOpen={isConfirmOpen}
@@ -109,3 +114,5 @@ export default function LeadListCard({
     </>
   );
 }
+
+export default memo(LeadListCard);

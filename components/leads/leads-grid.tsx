@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ interface LeadsGridProps {
   leads: Lead[];
 }
 
-export default function LeadsGrid({ leads }: LeadsGridProps) {
+function LeadsGrid({ leads }: LeadsGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoaded, setIsLoaded] = useState(false);
   const leadsPerPage = 12;
@@ -163,4 +163,6 @@ export default function LeadsGrid({ leads }: LeadsGridProps) {
       )}
     </div>
   );
-} 
+}
+
+export default memo(LeadsGrid); 

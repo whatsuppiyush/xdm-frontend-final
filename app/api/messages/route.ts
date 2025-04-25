@@ -5,11 +5,22 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') as string) : 10;
+    const page = searchParams.get('page') ? parseInt(searchParams.get('page') as string) : 1;
+    const skip = (page - 1) * limit;
 
     if (!userId) {
       return NextResponse.json({ messages: [] });
     }
 
+    // Get total count for pagination info
+    const totalCount = await prisma.message.count({
+      where: {
+        userId: userId
+      }
+    });
+
+    // Get paginated messages
     const messages = await prisma.message.findMany({
       where: {
         userId: userId
@@ -19,7 +30,9 @@ export async function GET(request: Request) {
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      take: limit,
+      skip: skip
     });
 
     // Transform messages to ensure proper JSON serialization
@@ -29,7 +42,13 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json({ 
-      messages: serializedMessages 
+      messages: serializedMessages,
+      pagination: {
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit),
+        current: page,
+        limit
+      }
     });
 
   } catch (error) {
