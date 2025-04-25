@@ -122,7 +122,7 @@ export default function CampaignPage() {
   
   // Use SWR for lead lists
   const { data: leadListsData, error: leadListsError, isValidating: leadListsLoading } = useSWR(
-    userId ? `/api/leads?userId=${userId}&page=1&limit=100` : null,
+    userId ? `/api/leads?userId=${userId}&page=1&limit=10` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -1085,7 +1085,7 @@ export default function CampaignPage() {
                       onClick={() => {
                         if (selectedLeadList) {
                           if (selectedLeadList.followers || loadingLeadDetails) {
-                            setStep(step + 1);
+                          setStep(step + 1);
                           } else {
                             toast({
                               title: "Loading lead data",
@@ -1373,7 +1373,7 @@ export default function CampaignPage() {
                         onClick={() => {
                           if (selectedLeadList) {
                             if (selectedLeadList.followers || loadingLeadDetails) {
-                              setStep(step + 1);
+                            setStep(step + 1);
                             } else {
                               toast({
                                 title: "Loading lead data",
