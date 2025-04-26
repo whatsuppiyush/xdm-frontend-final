@@ -1,0 +1,18 @@
+{
+  "name": "message-worker",
+  "version": "1.0.0",
+  "description": "Worker service for handling Twitter DM campaigns",
+  "main": "message-worker.js",
+  "scripts": {
+    "start": "node message-worker.js",
+    "start:prod": "NODE_ENV=production node message-worker.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0",
+    "@sparticuz/chromium": "^119.0.0",
+    "bull": "^4.12.0",
+    "express": "^4.18.2",
+    "puppeteer-core": "^21.0.0",
+    "redis": "^4.6.0"
+  }
+} 

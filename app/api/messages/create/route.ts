@@ -1,28 +1,31 @@
-import { NextResponse } from 'next/server';
-import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { messages } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { messageSent, recipients, campaignName, userId } = await request.json();
+    const body = await req.json();
+    const { messageSent, variants, recipients, campaignName, userId } = body;
 
-    const message = await prisma.message.create({
-      data: {
-        messageSent,
-        campaignName,
-        messages: recipients.map((recipientId: string) => ({
-          recipientId,
-          status: false
-        })),
-        userId
-      }
-    });
+    if (!messageSent || !recipients || !campaignName || !userId) {
+      return new NextResponse("Missing required fields", { status: 400 });
+    }
 
-    return NextResponse.json({ message });
+    // Create message record with variants
+    const message = await db.insert(messages).values({
+      messageSent,
+      variants: variants || [], // Store variants array
+      recipients,
+      campaignName,
+      userId,
+      status: "In Progress",
+      createdAt: new Date(),
+    }).returning();
+
+    return NextResponse.json({ message: message[0] });
   } catch (error) {
-    console.error('Failed to create message:', error);
-    return NextResponse.json({ 
-      error: 'Failed to create message',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error("[MESSAGES_CREATE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 } 

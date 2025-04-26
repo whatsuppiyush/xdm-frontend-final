@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: message-worker
+    env: node
+    buildCommand: npm install
+    startCommand: npm start:prod
+    healthCheckPath: /health
+    autoDeploy: true
+    scaling:
+      minInstances: 3
+      maxInstances: 15
+      targetMemoryPercent: 80
+      targetCPUPercent: 80
+      scalingRules:
+        - ruleType: queue_length
+          metric: waiting
+          operator: greater_than
+          value: 50
+          cooldownPeriod: 300
+        - ruleType: processing_rate
+          metric: processingRate
+          operator: less_than
+          value: 20
+          cooldownPeriod: 300
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        sync: false
+      - key: REDIS_PASSWORD
+        sync: false
+      - key: PORT
+        value: 3000
+      - key: MAX_CONCURRENT_CAMPAIGNS
+        value: "10"
+      - key: MESSAGES_PER_CAMPAIGN
+        value: "400" 
