@@ -2,7 +2,7 @@ const Queue = require('bull');
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 const { PrismaClient } = require('@prisma/client');
-const redis = require('../lib/redis');
+const Redis = require('ioredis');
 const express = require('express');
 const app = express();
 
@@ -289,6 +289,13 @@ app.listen(PORT, async () => {
   console.log(`Worker service running on port ${PORT}`);
   console.log(`Configured for ${MAX_CONCURRENT_CAMPAIGNS} concurrent campaigns`);
   console.log(`Target: ${MESSAGES_PER_CAMPAIGN} messages per campaign`);
+});
+
+const redis = new Redis({
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT,
+  password: process.env.REDIS_PASSWORD,
+  tls: true
 });
 
 async function sendDM(recipientId, message, cookies) {
