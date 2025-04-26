@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/use-toast";
 
 interface TwitterProfile {
   handle: string;
@@ -135,6 +136,13 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
     try {
       setLoading(true);
       
+      // Show initial notification
+      toast({
+        title: "Starting Lead Import",
+        description: "It takes 2-10 minutes on average depending on the number of followers to scrape leads. We'll notify you via email once the process is complete.",
+        duration: 10000,
+      });
+      
       // Check user credits before proceeding
       const creditsResponse = await fetch("/api/user/credits");
       const creditsData = await creditsResponse.json();
@@ -186,8 +194,13 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
       console.error('Error saving leads:', error);
       setError(error instanceof Error ? error.message : "Failed to save leads");
       setLoading(false);
-    } finally {
-      // Don't set loading to false here if successful - we're navigating away
+      
+      // Show error notification
+      toast({
+        title: "Error",
+        description: "Failed to start lead import. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -532,13 +545,7 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                       Select criteria to refine your leads list
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="text-gray-700 dark:text-gray-300 dark:border-[#30394d] hover:bg-purple-50 dark:hover:bg-purple-900/20 text-sm md:text-base w-full md:w-auto mt-2 md:mt-0"
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> Watch Tutorial
-                  </Button>
+                 
                 </div>
                 
                 {/* Move Leads Name Input to the top */}

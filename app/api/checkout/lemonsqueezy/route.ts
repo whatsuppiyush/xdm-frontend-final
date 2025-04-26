@@ -3,17 +3,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions';
 import prisma from '@/lib/prisma';
 
-const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY as string;
+const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
 
 // Define variant IDs from LemonSqueezy
 const VARIANT_IDS = {
-  STARTER: "714800", // $87 plan with 3-day trial (1500 credits during trial, 25000 after)
-  GROWTH: "726375",  // $67 per account plan (fixed quantity: 3 accounts)
-  ELITE: "726377"    // $57 per account plan (fixed quantity: 5 accounts)
+  STARTER: "714799", // Starter plan
+  GROWTH: "726375",  // Growth plan (fixed quantity: 3 accounts)
+  ELITE: "726377"    // Elite plan (fixed quantity: 5 accounts)
 };
-
-// Define lead credits for trial
-const TRIAL_CREDITS = 1500; // Limited credits during trial period
 
 // Define checkout options interface
 interface CheckoutOptions {
@@ -24,7 +21,6 @@ interface CheckoutOptions {
   discount: boolean;
   subscription_preview: boolean;
   quantity: any;
-  skip_trial?: boolean;
 }
 
 export async function POST(request: Request) {
@@ -53,20 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check if user has had a previous trial
-    const userCredits = await prisma.userCredits.findUnique({
-      where: { userId: user.id },
-    });
-
-    // If userCredits doesn't exist, this is definitely a new user
-    // Only consider user as having had a previous trial if specific trial fields are set
-    const hadPreviousTrial = userCredits ? (
-      userCredits.hadPreviousTrial === true || 
-      userCredits.trialStartDate !== null ||
-      (userCredits.subscriptionId !== null && userCredits.isTrialActive === false)
-    ) : false;
-
-    console.log(`Creating checkout for user ${user.id}, hadPreviousTrial: ${hadPreviousTrial}`);
+    console.log(`Creating checkout for user ${user.id}`);
 
     // Determine correct quantity based on plan type
     let finalQuantity = quantity;
@@ -80,7 +63,6 @@ export async function POST(request: Request) {
     const customData = {
       user_id: user.id,
       timestamp: Date.now().toString(),
-      had_trial: hadPreviousTrial ? 'true' : 'false',
       plan_id: planId,
       quantity: finalQuantity.toString() // Convert to string to ensure it's passed correctly
     };
@@ -93,16 +75,8 @@ export async function POST(request: Request) {
       desc: true,
       discount: true,
       subscription_preview: true,
-      quantity: finalQuantity,
+      quantity: finalQuantity
     };
-
-    // If user has had a previous trial, skip the trial period
-    if (hadPreviousTrial && planId === VARIANT_IDS.STARTER) {
-      console.log('User previously had a trial, forcing immediate payment with skip_trial');
-      checkoutOptions.skip_trial = true;
-    } else if (planId === VARIANT_IDS.STARTER) {
-      console.log('First time user, offering 3-day free trial');
-    }
 
     // Create checkout data
     const checkoutData = {

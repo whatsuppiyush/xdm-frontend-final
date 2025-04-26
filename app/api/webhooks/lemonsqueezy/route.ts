@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
+import { formatSubscriptionId } from "@/lib/subscription-utils";
 
 // Define the plan IDs and their corresponding lead credits
 const PLAN_CREDITS = {
-  "714800": 25000,  // Starter plan - $87 with 3-day free trial
-  "726375": 25000,  // Growth plan - $67 per account (3 accounts)
-  "726377": 25000   // Elite plan - $57 per account (5 accounts)
-};
-
-// Define the trial credits (limited credits during trial period)
-const TRIAL_CREDITS = {
-  "714800": 1500,   // Starter plan trial - limited to 1,500 lead credits
+  "714799": 25000,  // Starter plan
+  "726375": 75000,  // Growth plan - 25000 × 3 accounts
+  "726377": 125000  // Elite plan - 25000 × 5 accounts
 };
 
 // Define the plan types
 const PLAN_TYPES = {
-  "714800": "Starter",
+  "714799": "Starter",
   "726375": "Growth",
   "726377": "Elite"
 };
@@ -40,6 +36,28 @@ export async function POST(request: Request) {
     const payload = JSON.parse(rawBody);
     const eventName = payload.meta.event_name;
     
+    // Log the incoming webhook
+    console.log(`Received webhook: ${eventName}`, {
+      event: eventName,
+      id: payload.data?.id,
+      attributes: {
+        status: payload.data?.attributes?.status,
+        variantId: payload.data?.attributes?.variant_id,
+        isRenewal: payload.meta?.custom_data?.is_renewal,
+        eventType: payload.meta?.custom_data?.event_type,
+        renewsAt: payload.data?.attributes?.renews_at,
+      }
+    });
+    
+    // Check if this is specifically a subscription renewal event
+    const isRenewal = isSubscriptionRenewal(payload);
+    if (isRenewal) {
+      console.log('Subscription renewal detected! Processing...');
+      // Process renewal as subscription update
+      await handleSubscriptionUpdated(payload);
+      return NextResponse.json({ success: true, message: 'Renewal processed' });
+    }
+    
     // Handle different webhook events
     switch (eventName) {
       case 'order_created':
@@ -53,6 +71,27 @@ export async function POST(request: Request) {
         break;
       case 'subscription_cancelled':
         await handleSubscriptionCancelled(payload);
+        break;
+      case 'subscription_resumed':
+        // Handle resumed subscriptions like updates
+        await handleSubscriptionUpdated(payload);
+        break;
+      case 'subscription_expired':
+        // Handle expired as cancelled but with no grace period
+        await handleSubscriptionCancelled(payload);
+        break;
+      case 'subscription_payment_success':
+        // This might be a renewal payment - process as update
+        await handleSubscriptionUpdated({
+          ...payload,
+          meta: {
+            ...payload.meta,
+            custom_data: {
+              ...payload.meta.custom_data,
+              is_renewal: true
+            }
+          }
+        });
         break;
       default:
         console.log(`Unhandled event: ${eventName}`);
@@ -94,15 +133,6 @@ async function handleOrderCreated(payload: any) {
   // Check if custom data with user_id is available
   const customUserId = meta?.custom_data?.user_id;
   
-  // Check if the customer has already had a trial (from custom data)
-  const hadTrialFromMeta = meta?.custom_data?.had_trial === "true";
-  
-  // Extract custom quantity if provided
-  const customQuantity = meta?.custom_data?.quantity ? parseInt(meta.custom_data.quantity) : null;
-  
-  console.log(`Order created with custom data:`, meta?.custom_data);
-  console.log(`Had trial from meta: ${hadTrialFromMeta}, Custom quantity: ${customQuantity}`);
-  
   // Get the customer email from the order
   const customerEmail = orderData.user_email;
   
@@ -127,45 +157,7 @@ async function handleOrderCreated(payload: any) {
     return;
   }
   
-  // Check if this user has had a previous trial by checking their userCredits record
-  const existingCredits = await prisma.userCredits.findUnique({
-    where: { userId: user.id }
-  });
-  
-  // Check for any previous subscriptions (excluding this new one)
-  const previousSubscriptions = await prisma.userCredits.findMany({
-    where: {
-      userId: user.id,
-      OR: [
-        { hadPreviousTrial: true }, // Check if had trial flag is set
-        { trialStartDate: { not: null } }, // Check if trial date is set
-        { 
-          subscriptionId: { 
-            not: null,
-          },
-          AND: {
-            subscriptionId: {
-              not: orderId.toString()
-            }
-          }
-        } // Check if they had a DIFFERENT subscription
-      ]
-    }
-  });
-  
-  // Log detailed information
-  console.log(`Order: Previous subscriptions query results:`, previousSubscriptions);
-  
-  // Determine if they've already had a trial based on multiple conditions
-  // Be more careful with hadPreviousTrial determination - exclude the current order
-  const hadPreviousTrial = hadTrialFromMeta || 
-                          (existingCredits?.hadPreviousTrial === true && existingCredits?.trialStartDate !== null) || 
-                          previousSubscriptions.length > 0;
-  
-  console.log(`User had previous trial according to combined checks: ${hadPreviousTrial}`);
-  console.log(`Previous subscriptions found count: ${previousSubscriptions.length}`);
-  
-  // Get the first order item from the first_order_item field
+  // Get the first order item
   const firstOrderItem = orderData.first_order_item;
   
   if (!firstOrderItem) {
@@ -173,156 +165,76 @@ async function handleOrderCreated(payload: any) {
     return;
   }
   
-  // Get the variant ID from the first order item
+  // Get the variant ID
   const variantId = firstOrderItem.variant_id.toString();
   
-  // Use custom quantity from custom_data if available, otherwise from order item
-  const quantity = customQuantity || firstOrderItem.quantity || 1;
-  
-  // For fixed-quantity plans, override with the correct value regardless of order data
-  let finalQuantity = quantity;
+  // For fixed-quantity plans, override with the correct value
+  let finalQuantity = 1;
   if (variantId === "726375") { // Growth plan
-    finalQuantity = 3; // Growth plan always has 3 accounts
+    finalQuantity = 3;
   } else if (variantId === "726377") { // Elite plan
-    finalQuantity = 5; // Elite plan always has 5 accounts
+    finalQuantity = 5;
   }
   
-  console.log(`Processing order with variantId: ${variantId}, requested quantity: ${quantity}, final quantity: ${finalQuantity}, hadPreviousTrial: ${hadPreviousTrial}`);
+  console.log(`Processing order with variantId: ${variantId}, final quantity: ${finalQuantity}`);
   
-  // Get the lead credits for this plan
-  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
+  // Get the plan type
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
   
-  // Calculate total lead credits based on the plan type and quantity
-  let leadCredits = baseLeadCredits;
-  
-  // If it's a multi-account plan, multiply by quantity
-  if (variantId === "726375" || variantId === "726377") {
-    // Calculate total lead credits based on quantity
-    leadCredits = baseLeadCredits * finalQuantity;
-    console.log(`Multi-account plan detected: ${planType}. Base credits: ${baseLeadCredits}, Quantity: ${finalQuantity}, Total credits: ${leadCredits}`);
-  } else {
-    console.log(`Standard plan detected: ${planType}. Credits: ${leadCredits}`);
-  }
-  
-  // Check if this is a Starter plan which might be on trial
-  const isStarterPlan = variantId === "714800";
-  
-  // Special case for Growth plan (variant 726375) - 3 accounts
-  if (variantId === "726375") {
-    leadCredits = 3 * 25000; // Fixed at 3 accounts
-  }
-  // Special case for Elite plan (variant 726377) - 5 accounts
-  else if (variantId === "726377") {
-    leadCredits = 5 * 25000; // Fixed at 5 accounts
-  }
-  // For Starter plan, use the trial credits if it's a trial and not a previous trial user
-  else if (isStarterPlan && !hadPreviousTrial) {
-    // We'll let the subscription webhook determine if it's actually a trial or not
-    leadCredits = baseLeadCredits;
-  }
-  
-  console.log(`Calculated lead credits: ${leadCredits} for plan type ${planType}`);
-  
-  // Check for existing user credits
+  // Only update the orderId in userCredits
+  // Let the subscription webhook handle the credit updates
   try {
-    // If there's an existing subscription, preserve it
-    if (existingCredits && existingCredits.subscriptionId) {
-      console.log(`User has existing subscription ID: ${existingCredits.subscriptionId}, preserving it`);
-      
-      // CRITICAL FIX: Don't overwrite trial credits
-      // Only update credits if the user doesn't already have trial credits assigned
-      if (existingCredits.isTrialActive && existingCredits.leadCredits === TRIAL_CREDITS["714800"]) {
-        console.log(`User already has ${existingCredits.leadCredits} trial credits, preserving them`);
-      } else {
-        // Add existing credits to the new order's credits
-        if (existingCredits.leadCredits > 0) {
-          // Check if user is upgrading to a new plan
-          if (existingCredits.planType !== planType) {
-            console.log(`User is upgrading from ${existingCredits.planType} to ${planType} via order`);
-            console.log(`Adding remaining credits: ${existingCredits.leadCredits} to new plan credits: ${leadCredits}`);
-            leadCredits += existingCredits.leadCredits;
-            console.log(`Total credits after upgrade: ${leadCredits}`);
-          }
-        }
-        
-        await prisma.userCredits.update({
-          where: { userId: user.id },
-          data: {
-            leadCredits: leadCredits,
-            planType,
-            orderId,
-            quantity: finalQuantity, // Save the quantity from the order
-            // Important: Preserve the hadPreviousTrial flag
-            hadPreviousTrial: hadPreviousTrial,
-            updatedAt: new Date()
-            // Note: We don't update subscriptionId to preserve the existing subscription
-          }
-        });
-      }
-    } else {
-      // No existing subscription, do a regular upsert
-      await prisma.userCredits.upsert({
+    const existingCredits = await prisma.userCredits.findUnique({
+      where: { userId: user.id }
+    });
+    
+    if (existingCredits) {
+      await prisma.userCredits.update({
         where: { userId: user.id },
-        update: {
-          leadCredits: existingCredits && existingCredits.planType !== planType && existingCredits.leadCredits > 0
-            ? leadCredits + existingCredits.leadCredits // Add existing credits to new credits when changing plans
-            : leadCredits, // Otherwise just use the calculated lead credits
-          planType,
+        data: {
           orderId,
-          quantity: finalQuantity, // Save the quantity from the order
-          // We'll set isTrialActive to false initially, the subscription webhook will update it if needed
-          isTrialActive: false,
-          trialStartDate: null,
-          trialEndDate: null,
-          hadPreviousTrial: hadPreviousTrial, // Use our combined flag
           updatedAt: new Date()
-        },
-        create: {
+        }
+      });
+    } else {
+      // If no credits record exists yet, create a minimal one
+      await prisma.userCredits.create({
+        data: {
           userId: user.id,
-          leadCredits,
-          planType,
           orderId,
-          quantity: finalQuantity, // Save the quantity from the order
-          // We'll set isTrialActive to false initially, the subscription webhook will update it if needed
-          isTrialActive: false,
-          trialStartDate: null,
-          trialEndDate: null,
-          hadPreviousTrial: hadPreviousTrial, // Use our combined flag
+          leadCredits: 0,
+          planType,
+          quantity: finalQuantity,
+          isMonthly: false,
           createdAt: new Date(),
           updatedAt: new Date()
         }
       });
-      
-      // Log if credits were transferred  
-      if (existingCredits && existingCredits.planType !== planType && existingCredits.leadCredits > 0) {
-        console.log(`Credits transferred: ${existingCredits.leadCredits} credits from ${existingCredits.planType} plan to ${planType} plan, new total: ${leadCredits + existingCredits.leadCredits}`);
-      }
     }
     
-    console.log(`Successfully updated user credits for user ${user.id} with ${leadCredits} lead credits, plan type ${planType}, and quantity ${finalQuantity}`);
+    console.log(`Updated order ID for user ${user.id} to ${orderId}`);
   } catch (error) {
-    console.error('Error updating user credits:', error);
+    console.error('Error updating order ID:', error);
   }
 }
 
 // Handle subscription_created event
 async function handleSubscriptionCreated(payload: any) {
   const { data, meta } = payload;
-  const subscriptionId = data.id;
+  const subscriptionId = data.id.toString();
   const subscriptionData = data.attributes;
   
+  console.log(`Processing new subscription ${subscriptionId} with status ${subscriptionData.status}`);
+  
+  // Check subscription status first
+  const status = subscriptionData.status;
+  if (status !== 'active') {
+    console.log(`New subscription ${subscriptionId} is not active (status: ${status}). Waiting for activation before proceeding.`);
+    return;
+  }
+
   // Check if custom data with user_id is available
   const customUserId = meta?.custom_data?.user_id;
-  
-  // Check if the customer has already had a trial (from custom data)
-  const hadTrialFromMeta = meta?.custom_data?.had_trial === "true";
-  
-  // Extract custom quantity if provided
-  const customQuantity = meta?.custom_data?.quantity ? parseInt(meta.custom_data.quantity) : null;
-  
-  console.log(`Subscription created with custom data:`, meta?.custom_data);
-  console.log(`Had trial from meta: ${hadTrialFromMeta}, Custom quantity: ${customQuantity}`);
   
   // Get the customer email from the subscription
   const customerEmail = subscriptionData.user_email;
@@ -347,309 +259,187 @@ async function handleSubscriptionCreated(payload: any) {
     console.error(`User not found. Email: ${customerEmail}, Custom ID: ${customUserId}`);
     return;
   }
-  
+
   // Get the variant ID from the subscription
   const variantId = subscriptionData.variant_id.toString();
   
-  // Use custom quantity from custom_data if available, otherwise from subscription
-  const quantity = customQuantity || subscriptionData.quantity || 1;
-  
-  // For fixed-quantity plans, override with the correct value regardless of subscription data
-  let finalQuantity = quantity;
+  // For fixed-quantity plans, override with the correct value
+  let finalQuantity = 1;
   if (variantId === "726375") { // Growth plan
-    finalQuantity = 3; // Growth plan always has 3 accounts
+    finalQuantity = 3;
   } else if (variantId === "726377") { // Elite plan
-    finalQuantity = 5; // Elite plan always has 5 accounts
+    finalQuantity = 5;
   }
-  
-  console.log(`Processing subscription with variantId: ${variantId}, requested quantity: ${quantity}, final quantity: ${finalQuantity}`);
-  
-  // Check if this is a trial subscription
-  const isOnTrial = subscriptionData.status === 'on_trial';
-  const trialEndsAt = subscriptionData.trial_ends_at ? new Date(subscriptionData.trial_ends_at) : null;
-  
-  // Check if subscription is active (monthly)
-  const isMonthly = subscriptionData.status === 'active';
-  
-  console.log(`Subscription status: ${subscriptionData.status}, Is on trial: ${isOnTrial}, Is monthly: ${isMonthly}`);
-  if (trialEndsAt) {
-    console.log(`Trial ends at: ${trialEndsAt.toISOString()}`);
-  }
-  
-  // Get the lead credits for this plan
+
+  // Get the plan type and base credits
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
-  
-  // Check if user has had a previous trial by checking their userCredits record
+  const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
+
+  // Check for existing subscription and credits
   const existingCredits = await prisma.userCredits.findUnique({
     where: { userId: user.id }
   });
-  
-  // Additional safety check: Query for ANY previous subscriptions for this user
-  const previousSubscriptions = await prisma.userCredits.findMany({
-    where: {
-      userId: user.id,
-      OR: [
-        { hadPreviousTrial: true }, // Check if had trial flag is set
-        { trialStartDate: { not: null } }, // Check if trial date is set
-        { 
-          subscriptionId: { 
-            not: null,
-          },
-          AND: {
-            subscriptionId: {
-              not: subscriptionId.toString()
-            }
-          }
-        } // Check if they had a DIFFERENT subscription
-      ]
-    }
-  });
-  
-  // Log more detailed information for debugging
-  console.log(`Previous subscriptions query results:`, previousSubscriptions);
-  console.log(`User ID: ${user.id}, Subscription ID: ${subscriptionId.toString()}`);
-  
-  // Determine if they've already had a trial based on multiple conditions
-  // Be more cautious with hadPreviousTrial determination
-  const hadPreviousTrial = hadTrialFromMeta || 
-                        (existingCredits?.hadPreviousTrial === true && existingCredits?.trialStartDate !== null) || 
-                        previousSubscriptions.length > 0; 
-  
-  console.log(`User had previous trial based on combined checks: ${hadPreviousTrial}`);
-  console.log(`Previous subscriptions found count: ${previousSubscriptions.length}`);
 
-  // Special handling for new trials on Starter plan
-  if (isOnTrial && variantId === "714800") {
-    console.log('User is on trial, checking if this is first time:');
-    console.log(`- hadTrialFromMeta: ${hadTrialFromMeta}`);
-    console.log(`- existingCredits: ${Boolean(existingCredits)}`);
-    if (existingCredits) {
-      console.log(`  - hadPreviousTrial: ${existingCredits.hadPreviousTrial}`);
-      console.log(`  - trialStartDate: ${existingCredits.trialStartDate}`);
-      console.log(`  - subscriptionId: ${existingCredits.subscriptionId}`);
-      console.log(`  - leadCredits: ${existingCredits.leadCredits}`);
-      console.log(`  - isTrialActive: ${existingCredits.isTrialActive}`);
-    }
-    console.log(`- previousSubscriptions.length: ${previousSubscriptions.length}`);
-    
-    // More accurate check to determine if this is a first-time trial user:
-    // Simplify logic to be more reliable
-    const isFirstTimeTrial = !hadTrialFromMeta && previousSubscriptions.length === 0;
-    
-    console.log(`Final determination - Is first time trial: ${isFirstTimeTrial}`);
-    
-    // Important! Check if an existing credit record already has the trial credits correctly setup
-    // This prevents webhook race conditions from downgrading the credits
-    if (existingCredits && 
-        existingCredits.subscriptionId === subscriptionId.toString() && 
-        existingCredits.isTrialActive === true && 
-        existingCredits.leadCredits === TRIAL_CREDITS["714800"]) {
-      console.log(`Trial has already been set up correctly with ${existingCredits.leadCredits} credits. Skipping update.`);
-      return;
-    }
-    
-    let leadCreditsToAssign = isFirstTimeTrial ? TRIAL_CREDITS["714800"] : 0;
-    
-    // If user already has credits from subscription, don't downgrade them to 0
-    if (!isFirstTimeTrial && existingCredits && existingCredits.leadCredits > 0) {
-      console.log(`User already has ${existingCredits.leadCredits} credits, not downgrading to 0`);
-      return;
-    }
-    
-    // CRITICAL FIX: Don't downgrade if we already have the same subscription and credits are correct
-    if (existingCredits?.subscriptionId === subscriptionId.toString() && 
-        typeof existingCredits?.leadCredits === 'number' && 
-        existingCredits.leadCredits >= leadCreditsToAssign) {
-      console.log(`Skipping update: Subscription ${subscriptionId} already processed with ${existingCredits?.leadCredits} credits`);
-      return;
-    }
-    
-    if (isFirstTimeTrial) {
-      console.log(`First-time trial: Setting trial credits to ${leadCreditsToAssign}`);
-    } else {
-      console.log(`User had previous trial, setting trial credits to 0`);
-    }
-    
-    // Extract URLs from the subscription data if available
-    const urls = subscriptionData.urls || {};
-    const customerPortalUrl = urls.customer_portal || null;
-    const updatePaymentMethodUrl = urls.update_payment_method || null;
-    
-    try {
-      // Create or update user credits for trial
-      if (existingCredits) {
-        await prisma.userCredits.update({
-          where: { userId: user.id },
-          data: {
-            subscriptionId: subscriptionId.toString(),
-            leadCredits: leadCreditsToAssign,
-            planType,
-            quantity: finalQuantity,
-            isTrialActive: true,
-            isMonthly: false,
-            hadPreviousTrial: true, // Mark that they've had a trial
-            trialStartDate: new Date(),
-            trialEndDate: trialEndsAt,
-            updatedAt: new Date(),
-            customerPortalUrl,
-            updatePaymentMethodUrl
-          }
-        });
-      } else {
-        // First time user with no records - create a new entry
-        await prisma.userCredits.create({
-          data: {
-            userId: user.id,
-            subscriptionId: subscriptionId.toString(),
-            leadCredits: leadCreditsToAssign,
-            planType,
-            quantity: finalQuantity,
-            isTrialActive: true,
-            isMonthly: false,
-            hadPreviousTrial: true, // Mark that they've had a trial
-            trialStartDate: new Date(),
-            trialEndDate: trialEndsAt,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            customerPortalUrl,
-            updatePaymentMethodUrl
-          }
-        });
-      }
-      
-      console.log(`Successfully updated subscription for trial user ${user.id} with ${leadCreditsToAssign} credits`);
-      return; // Exit early after handling trial
-    } catch (error) {
-      console.error('Error updating user credits for trial user:', error);
-      return;
-    }
-  }
+  // Determine if this is an upgrade/plan change
+  const isUpgrade = existingCredits?.planType !== planType && existingCredits?.planType !== null;
+  const isNewSubscription = !existingCredits?.subscriptionId || existingCredits.subscriptionId === null;
+
+  // Always use the base credits for the new plan - don't add to existing credits
+  // This fixes the credit doubling issues
+  let finalCredits = baseLeadCredits;
   
-  // Calculate lead credits based on plan type, trial status, and whether it's a resubscription
-  let leadCredits = 0;
-  
-  // If this is a new regular subscription (not on trial), use regular credits
-  if (isMonthly || (isOnTrial && hadPreviousTrial)) {
-    // Use regular credits for paid subscription
-    const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
-    
-    // Special case for Growth plan (variant 726375) - 3 accounts
-    if (variantId === "726375") {
-      leadCredits = 3 * 25000; // Fixed at 3 accounts
-    }
-    // Special case for Elite plan (variant 726377) - 5 accounts
-    else if (variantId === "726377") {
-      leadCredits = 5 * 25000; // Fixed at 5 accounts
-    }
-    // For Starter plan, keep the base lead credits (25000)
-    else if (isOnTrial && hadPreviousTrial) {
-      // If user had a previous trial but is on trial again, they should get 0 credits
-      leadCredits = 0;
-      console.log(`User had previous trial but is on trial again, setting trial credits to 0`);
-    } else {
-      leadCredits = baseLeadCredits;
-      console.log(`Regular subscription: Setting credits to ${leadCredits}`);
-    }
-  }
-  
-  console.log(`Calculated lead credits: ${leadCredits} for plan type ${planType}`);
-  
-  // Extract URLs from the subscription data if available
+  console.log(`Setting credits for new subscription: ${baseLeadCredits} (not adding to existing)`);
+
+  console.log(`Final credit calculation for new subscription: `, {
+    planType,
+    baseCredits: baseLeadCredits,
+    existingCredits: existingCredits?.leadCredits || 0,
+    finalCredits,
+    previousSubscriptionId: existingCredits?.subscriptionId,
+    newSubscriptionId: subscriptionId,
+    isUpgrade,
+    isNewSubscription
+  });
+
+  // Extract URLs from the subscription data
   const urls = subscriptionData.urls || {};
   const customerPortalUrl = urls.customer_portal || null;
   const updatePaymentMethodUrl = urls.update_payment_method || null;
-  
-  try {
-    if (existingCredits) {
-      // Set the appropriate quantity based on plan type
-      let finalUpdateQuantity = finalQuantity;
-      
-      // For Growth plan, always set quantity to 3
-      if (planType === "Growth") {
-        finalUpdateQuantity = 3;
-      }
-      // For Elite plan, always set quantity to 5
-      else if (planType === "Elite") {
-        finalUpdateQuantity = 5;
-      }
-      
-      // When creating a new subscription, add any existing credits to the new plan's credits
-      if (existingCredits.leadCredits > 0 && !isOnTrial) {
-        // Check if user is subscribing to a new/different plan
-        if (existingCredits.planType !== planType) {
-          console.log(`User is subscribing to a new plan: ${planType}`);
-          console.log(`Adding remaining credits: ${existingCredits.leadCredits} to new plan credits: ${leadCredits}`);
-          leadCredits += existingCredits.leadCredits;
-          console.log(`Total credits after subscription: ${leadCredits}`);
-        }
-      }
-      
-      console.log(`Final update quantity: ${finalUpdateQuantity}, Final lead credits: ${leadCredits}`);
-      
-      // Update existing credits
-      await prisma.userCredits.update({
-        where: { userId: user.id },
-        data: {
-          subscriptionId: subscriptionId.toString(),
-          leadCredits: leadCredits,
-          planType,
-          quantity: finalUpdateQuantity,
-          isTrialActive: isOnTrial,
-          isMonthly: isMonthly,
-          trialStartDate: isOnTrial && !hadPreviousTrial ? new Date() : existingCredits.trialStartDate, // Only update trialStartDate for first-time trial users
-          trialEndDate: isOnTrial && !hadPreviousTrial ? trialEndsAt : existingCredits.trialEndDate, // Only update trialEndDate for first-time trial users
-          hadPreviousTrial: true, // Always mark as having had a trial if they're on a trial now or had one before
-          updatedAt: new Date(),
-          // Store the portal URLs
-          customerPortalUrl,
-          updatePaymentMethodUrl
-        }
-      });
-      
-      // Log if credits were transferred  
-      if (existingCredits.planType !== planType && existingCredits.leadCredits > 0 && !isOnTrial) {
-        console.log(`Credits transferred: ${existingCredits.leadCredits} credits from ${existingCredits.planType} plan to ${planType} plan for subscription ${subscriptionId}`);
-      }
-      
-      console.log(`Successfully updated subscription for user ${user.id} with ${leadCredits} credits for plan type ${planType}`);
-    } else {
-      // Create new credits - for new users on trial (who've never had a trial before), set to 1500 lead credits
-      const finalLeadCredits = isOnTrial && variantId === "714800" && !hadPreviousTrial ? TRIAL_CREDITS["714800"] : leadCredits;
-      
-      await prisma.userCredits.create({
-        data: {
-          userId: user.id,
-          subscriptionId: subscriptionId.toString(),
-          leadCredits: finalLeadCredits,
-          planType,
-          quantity: finalQuantity,
-          isTrialActive: isOnTrial,
-          isMonthly: isMonthly,
-          trialStartDate: isOnTrial ? new Date() : null,
-          trialEndDate: trialEndsAt,
-          hadPreviousTrial: true, // Always mark as having had a trial if they're on a trial
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          // Store the portal URLs
-          customerPortalUrl,
-          updatePaymentMethodUrl
-        }
-      });
-      
-      console.log(`Created new user credits with ${finalLeadCredits} lead credits, isOnTrial: ${isOnTrial}`);
+
+  // First update the user credits with the new subscription
+  const updatedCredits = await prisma.userCredits.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      subscriptionId: subscriptionId.toString(),
+      leadCredits: finalCredits,
+      planType,
+      quantity: finalQuantity,
+      customerPortalUrl,
+      updatePaymentMethodUrl,
+      isMonthly: true, // Always true for new active subscriptions
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    update: {
+      subscriptionId: subscriptionId.toString(),
+      leadCredits: finalCredits,
+      planType,
+      quantity: finalQuantity,
+      customerPortalUrl,
+      updatePaymentMethodUrl,
+      isMonthly: true, // Always true for new active subscriptions
+      updatedAt: new Date()
     }
-    
-    console.log(`Successfully created/updated subscription for user ${user.id} with plan type ${planType}, trial status: ${isOnTrial}, monthly status: ${isMonthly}, and quantity ${finalQuantity}`);
-  } catch (error) {
-    console.error('Error updating user credits:', error);
+  });
+
+  // Now that the new subscription is confirmed active and credits are updated,
+  // we can safely cancel the old subscription if it exists
+  if (existingCredits?.subscriptionId && existingCredits.subscriptionId !== subscriptionId) {
+    try {
+      const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
+      
+      console.log(`Attempting to cancel previous subscription ${existingCredits.subscriptionId}`);
+      
+      // Try to cancel the old subscription
+      const cancelResponse = await fetch(`https://api.lemonsqueezy.com/v1/subscriptions/${existingCredits.subscriptionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/vnd.api+json',
+          'Content-Type': 'application/vnd.api+json',
+          'Authorization': `Bearer ${LEMON_SQUEEZY_API_KEY}`
+        },
+        body: JSON.stringify({
+          data: {
+            type: 'subscriptions',
+            id: existingCredits.subscriptionId,
+            attributes: {
+              cancelled: true
+            }
+          }
+        })
+      });
+
+      if (!cancelResponse.ok) {
+        console.error(`Failed to cancel previous subscription: ${existingCredits.subscriptionId}`);
+        const errorData = await cancelResponse.json();
+        console.error('Error details:', errorData);
+      } else {
+        console.log(`Successfully cancelled previous subscription ${existingCredits.subscriptionId}`);
+      }
+    } catch (error) {
+      console.error(`Error handling previous subscription:`, error);
+    }
   }
+
+  // Log the final status
+  console.log(`Updated subscription for user ${user.id}:`, {
+    planType,
+    finalCredits,
+    finalQuantity,
+    previousCredits: existingCredits?.leadCredits || 0,
+    newSubscriptionId: subscriptionId,
+    oldSubscriptionId: existingCredits?.subscriptionId
+  });
+
+  return updatedCredits;
+}
+
+// Helper function to determine if this is an upgrade
+function determineIfUpgrade(currentPlanType: string | null, newPlanType: string): boolean {
+  if (!currentPlanType) return true;
+
+  const planValues = {
+    "Starter": 1,
+    "Growth": 2,
+    "Elite": 3
+  };
+
+  const currentValue = planValues[currentPlanType as keyof typeof planValues] || 0;
+  const newValue = planValues[newPlanType as keyof typeof planValues] || 0;
+
+  // Added logging to help debug
+  console.log(`Plan comparison: ${currentPlanType}(${currentValue}) -> ${newPlanType}(${newValue})`);
+
+  return newValue >= currentValue; // Changed to >= to ensure same plan is considered an upgrade
+}
+
+// Add this function to detect subscription renewals
+function isSubscriptionRenewal(payload: any): boolean {
+  const { data, meta } = payload;
+  const eventName = meta.event_name;
+  const subscriptionData = data.attributes;
+  
+  // Check if this is a subscription_updated event for an active subscription
+  if (eventName === 'subscription_updated' && subscriptionData.status === 'active') {
+    // A renewal occurs when the renews_at date is updated
+    // We can also look at the meta.event_name for specific renewal events
+    const isRenewalEvent = meta.custom_data?.is_renewal === true || 
+                          meta.custom_data?.event_type === 'renewal';
+    
+    return isRenewalEvent;
+  }
+  
+  return false;
 }
 
 // Handle subscription_updated event
 async function handleSubscriptionUpdated(payload: any) {
   const { data, meta } = payload;
-  const subscriptionId = data.id;
+  const subscriptionId = data.id.toString();
   const subscriptionData = data.attributes;
+  
+  console.log(`Processing subscription update for user ${meta?.custom_data?.user_id}: `, {
+    subscriptionId,
+    status: subscriptionData.status,
+    variantId: subscriptionData.variant_id
+  });
+  
+  // Check if this is a renewal event
+  const isRenewal = isSubscriptionRenewal(payload);
+  if (isRenewal) {
+    console.log(`Detected subscription renewal for subscription ${subscriptionId}`);
+  }
   
   // Check if custom data with user_id is available
   const customUserId = meta?.custom_data?.user_id;
@@ -681,242 +471,174 @@ async function handleSubscriptionUpdated(payload: any) {
   // Get the variant ID from the subscription
   const variantId = subscriptionData.variant_id.toString();
   
-  // Get the quantity from the subscription
-  const quantity = subscriptionData.quantity || 1;
-  
-  console.log(`Processing subscription update with variantId: ${variantId}, quantity: ${quantity}`);
-  
-  // Check if this is a trial subscription or if trial has ended
-  const isOnTrial = subscriptionData.status === 'on_trial';
-  const trialEndsAt = subscriptionData.trial_ends_at ? new Date(subscriptionData.trial_ends_at) : null;
+  // Check subscription status
   const status = subscriptionData.status;
   const isCancelled = status === 'cancelled';
   const isMonthly = status === 'active';
+  const isPastDue = status === 'past_due';
+  const isExpired = status === 'expired';
   
-  console.log(`Subscription status: ${status}, Is on trial: ${isOnTrial}, Is cancelled: ${isCancelled}, Is monthly: ${isMonthly}`);
-  if (trialEndsAt) {
-    console.log(`Trial ends at: ${trialEndsAt.toISOString()}`);
-  }
-  
-  // Get the lead credits for this plan
+  // Get the plan type
   const planType = PLAN_TYPES[variantId as keyof typeof PLAN_TYPES] || 'Unknown';
   
-  // First try to find existing user credits
+  // Get existing record first
   const existingCredits = await prisma.userCredits.findUnique({
     where: { userId: user.id }
   });
   
-  // Determine if they've already had a trial or subscription
-  // Check for trialStartDate to see if they ever had a trial
-  // Also check if current subscription isn't the same as this one (previous subscription)
-  const hadPreviousTrial = existingCredits?.trialStartDate !== null || 
-                         existingCredits?.hadPreviousTrial === true ||
-                         (existingCredits?.subscriptionId !== null && existingCredits.subscriptionId !== subscriptionId.toString());
+  // IMPORTANT: We need to determine if this is a reprocessing of the same subscription
+  // If the subscriptionId matches our existing record, don't add credits again
+  const isExistingSubscription = existingCredits?.subscriptionId === subscriptionId;
   
-  console.log(`User had previous trial or subscription: ${hadPreviousTrial}`);
-  
-  // Check if this is a new subscription on trial
-  // IMPORTANT: Only give trial credits if the user hasn't had a previous trial
-  if (isOnTrial) {
-    console.log('User is on trial, checking if it should be a limited trial');
+  // If this is a cancelled subscription, check if user has any other active subscriptions 
+  // before proceeding with the cancellation logic
+  if (isCancelled) {
+    const otherActiveSubscription = await prisma.userCredits.findFirst({
+      where: {
+        userId: user.id,
+        AND: [
+          { subscriptionId: { not: subscriptionId } },
+          { subscriptionId: { not: null } }
+        ],
+        isMonthly: true
+      }
+    });
     
-    // For Starter plan on trial, only give trial credits if they haven't had a trial before
-    if (variantId === "714800") {
-      // Extract URLs from the subscription data if available
-      const urls = subscriptionData.urls || {};
-      const customerPortalUrl = urls.customer_portal || null;
-      const updatePaymentMethodUrl = urls.update_payment_method || null;
-
-      // Check previous subscriptions to verify if this user has had a trial before
-      const previousSubscriptions = await prisma.userCredits.findMany({
-        where: {
-          userId: user.id,
-          hadPreviousTrial: true
-        }
-      });
-      
-      console.log(`Previous subscriptions found: ${previousSubscriptions.length}`);
-      
-      // Determine if this is really a first-time trial
-      // CRITICAL FIX: Don't consider existing credits as a previous trial if it was just created
-      // in a previous webhook from this same subscription flow
-      const isFirstTimeTrial = (!hadPreviousTrial && previousSubscriptions.length === 0) || 
-                             (existingCredits?.subscriptionId === subscriptionId.toString());
-      
-      let leadCreditsToAssign = 0;
-      if (isFirstTimeTrial) {
-        leadCreditsToAssign = TRIAL_CREDITS["714800"];
-        console.log(`First-time trial: Setting trial credits to ${leadCreditsToAssign}`);
-      } else {
-        console.log(`Repeat trial detected: Setting lead credits to 0`);
-      }
-      
-      // CRITICAL FIX: Don't update if we already have the same subscription ID and sufficient credits
-      if (existingCredits?.subscriptionId === subscriptionId.toString() && 
-          typeof existingCredits?.leadCredits === 'number' && 
-          existingCredits.leadCredits >= leadCreditsToAssign) {
-        console.log(`Skipping update: Subscription ${subscriptionId} already processed with ${existingCredits?.leadCredits} credits`);
-        return;
-      }
-      
-      try {
-        // Update existing credits with appropriate credits based on trial history
-        await prisma.userCredits.update({
-          where: { userId: user.id },
-          data: {
-            subscriptionId: subscriptionId.toString(),
-            leadCredits: leadCreditsToAssign,
-            planType,
-            quantity: quantity,
-            isTrialActive: true,
-            isMonthly: false,
-            hadPreviousTrial: true, // Always mark that they've had a trial, regardless
-            trialStartDate: new Date(),
-            trialEndDate: trialEndsAt,
-            updatedAt: new Date(),
-            // Store the portal URLs
-            customerPortalUrl,
-            updatePaymentMethodUrl
-          }
-        });
-        
-        console.log(`Successfully updated subscription for trial user ${user.id} with ${leadCreditsToAssign} credits`);
-        return;
-      } catch (error) {
-        console.error('Error updating user credits for trial user:', error);
-        return;
-      }
+    if (otherActiveSubscription) {
+      console.log(`User ${user.id} has another active subscription (${otherActiveSubscription.subscriptionId}). Not updating subscription status for cancelled subscription ${subscriptionId}.`);
+      return; // Skip further processing as there's an active subscription
     }
-    // For other plans, continue with normal processing
   }
   
-  // Calculate lead credits based on plan type and trial status
+  // Calculate lead credits based on plan type and status
   let leadCredits = 0;
   
-  // If this is a trial for the Starter plan AND they've never had a trial before, use trial credits
-  if (isOnTrial && variantId === "714800" && !hadPreviousTrial) {
-    leadCredits = TRIAL_CREDITS["714800"]; // Explicitly set to 1500 lead credits during trial
-    console.log(`Assigning trial credits: ${leadCredits} for Starter plan - first time trial user`);
-  } else if (isOnTrial && variantId === "714800" && hadPreviousTrial) {
-    // If user had a previous trial, they should get 0 credits for another trial
+  if (isPastDue || isExpired) {
+    // For past due or expired subscriptions, zero out credits
     leadCredits = 0;
-    console.log(`User had previous trial, setting trial credits to 0`);
+    console.log(`Subscription is ${status}, setting credits to 0`);
   } else if (isCancelled) {
-    // If subscription is cancelled and was on trial, set credits to 0
-    // If regular subscription cancellation, keep existing credits
-    if (existingCredits?.isTrialActive) {
-      leadCredits = 0;
-      console.log(`Trial subscription cancelled: setting credits to 0`);
-    } else {
-      leadCredits = existingCredits?.leadCredits || 0;
-      console.log(`Regular subscription cancelled: retaining existing credits: ${leadCredits}`);
-    }
-  } else {
-    // Not on trial and not cancelled, use regular credits
+    // For cancelled subscriptions, simply maintain existing credits (don't add new ones)
+    leadCredits = existingCredits?.leadCredits || 0;
+    console.log(`Subscription cancelled: maintaining existing credits ${leadCredits}`);
+  } else if (isMonthly) {
+    // For active subscriptions
     const baseLeadCredits = PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0;
     
-    // Special case for Growth plan (variant 726375) - 3 accounts
-    if (variantId === "726375") {
-      leadCredits = 3 * 25000; // Fixed at 3 accounts
-    }
-    // Special case for Elite plan (variant 726377) - 5 accounts
-    else if (variantId === "726377") {
-      leadCredits = 5 * 25000; // Fixed at 5 accounts
-    }
-    // For Starter plan, keep the base lead credits (25000)
-    else {
+    // Check if this is a brand new subscription (no subscription ID in existing credits)
+    const isNewSubscription = !existingCredits?.subscriptionId;
+    
+    // Look for upgrade scenario - when changing from one plan to another
+    const isPlanChange = existingCredits?.planType !== planType && existingCredits?.planType !== null;
+    
+    // Check if the plan has been updated outside of the webhook
+    // If the planType matches but it's not from a renewal
+    const isPlanAlreadyUpdated = existingCredits?.planType === planType && !isRenewal && !isNewSubscription;
+    
+    if (isRenewal && isExistingSubscription) {
+      // For subscription renewals, reset credits to monthly base amount instead of adding
       leadCredits = baseLeadCredits;
+      console.log(`Monthly renewal detected! Resetting credits to ${baseLeadCredits} (not adding to existing ${existingCredits?.leadCredits || 0})`);
+    } else if (isExistingSubscription && isPlanAlreadyUpdated) {
+      // If this is a reprocessing of a plan change that was already processed by the API,
+      // just keep existing credits to prevent double-counting
+      leadCredits = existingCredits?.leadCredits || baseLeadCredits;
+      console.log(`Plan already updated via API for subscription ${subscriptionId}, keeping existing credits: ${leadCredits}`);
+    } else if (isExistingSubscription) {
+      // If this is a reprocessing of the same subscription, don't double-count
+      leadCredits = existingCredits?.leadCredits || baseLeadCredits;
+      console.log(`Reprocessing same subscription ${subscriptionId}, keeping existing credits: ${leadCredits}`);
+    } else if (isNewSubscription) {
+      // If this is the first subscription, just use base credits
+      leadCredits = baseLeadCredits;
+      console.log(`New subscription (first time), setting base credits: ${baseLeadCredits}`);
+    } else if (isPlanChange) {
+      // For plan changes (upgrades/downgrades), set credits to just the new plan amount - not additive
+      leadCredits = baseLeadCredits;
+      console.log(`Plan change detected from ${existingCredits?.planType} to ${planType}. Setting to new plan credits: ${baseLeadCredits} (not adding to existing ${existingCredits?.leadCredits || 0})`);
+    } else {
+      // No existing credits
+      leadCredits = baseLeadCredits;
+      console.log(`No existing credits, setting base credits: ${baseLeadCredits}`);
     }
   }
   
-  console.log(`Calculated lead credits: ${leadCredits} for plan type ${planType}`);
+  console.log(`Final credit calculation for ${planType}: `, {
+    planType,
+    baseCredits: PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0,
+    existingCredits: existingCredits?.leadCredits || 0,
+    finalCredits: leadCredits,
+    status,
+    isMonthly,
+    isCancelled,
+    isExistingSubscription
+  });
   
-  // Extract URLs from the subscription data if available
+  // Extract URLs from the subscription data
   const urls = subscriptionData.urls || {};
   const customerPortalUrl = urls.customer_portal || null;
   const updatePaymentMethodUrl = urls.update_payment_method || null;
   
   try {
     // Set the appropriate quantity based on plan type
-    let finalQuantity = quantity;
-    
-    // For Growth plan, always set quantity to 3
+    let finalQuantity = 1;
     if (planType === "Growth") {
       finalQuantity = 3;
-    }
-    // For Elite plan, always set quantity to 5
-    else if (planType === "Elite") {
+    } else if (planType === "Elite") {
       finalQuantity = 5;
     }
     
-    console.log(`Final quantity: ${finalQuantity}, Final lead credits: ${leadCredits}`);
-    
-    // Check if trial has converted to active subscription
-    const trialConverted = existingCredits?.isTrialActive && status === 'active';
-    if (trialConverted) {
-      console.log('Trial has converted to active subscription, updating lead credits to full amount');
-      // When trial converts to active, update to full credits
-      if (variantId === "714800") { // Starter plan
-        leadCredits = PLAN_CREDITS["714800"] || 25000;
-        console.log(`Updating from trial credits to full credits: ${leadCredits}`);
-      }
-    }
-    
-    // When updating plan, add any existing credits to the new plan's credits
-    if (existingCredits && existingCredits.leadCredits > 0 && !isOnTrial) {
-      // Check if user is upgrading their plan from a different plan
-      if (existingCredits.planType !== planType && existingCredits.planType) {
-        console.log(`User is upgrading from ${existingCredits.planType} to ${planType}`);
-        console.log(`Adding remaining credits: ${existingCredits.leadCredits} to new plan credits: ${leadCredits}`);
-        leadCredits += existingCredits.leadCredits;
-        console.log(`Total credits after upgrade: ${leadCredits}`);
-      }
-    }
-    
-    // Update or create user credits
+    // Update user credits
     await prisma.userCredits.upsert({
       where: { userId: user.id },
       update: {
-        leadCredits: leadCredits,
+        leadCredits,
         planType,
-        subscriptionId: subscriptionId.toString(),
+        subscriptionId: isMonthly ? subscriptionId.toString() : existingCredits?.subscriptionId, // Only update if active
         quantity: finalQuantity,
-        isTrialActive: isOnTrial,
-        isMonthly: isMonthly,
-        trialEndDate: trialEndsAt,
+        isMonthly, // This will be true for active subscriptions, false for cancelled
         updatedAt: new Date(),
-        // Store the portal URLs
         customerPortalUrl,
-        updatePaymentMethodUrl,
-        // If they are or were on a trial, mark that they've had one
-        hadPreviousTrial: isOnTrial || existingCredits?.hadPreviousTrial || false
+        updatePaymentMethodUrl
       },
       create: {
         userId: user.id,
-        leadCredits: leadCredits,
+        leadCredits,
         planType,
-        subscriptionId: subscriptionId.toString(),
-        quantity,
-        isTrialActive: isOnTrial,
-        isMonthly: isMonthly,
-        trialStartDate: isOnTrial ? new Date() : null,
-        trialEndDate: trialEndsAt,
+        subscriptionId: isMonthly ? subscriptionId.toString() : null, // Only set if active
+        quantity: finalQuantity,
+        isMonthly,
         createdAt: new Date(),
         updatedAt: new Date(),
-        // Store the portal URLs
         customerPortalUrl,
-        updatePaymentMethodUrl,
-        // If they are on a trial, mark that they've had one
-        hadPreviousTrial: isOnTrial
+        updatePaymentMethodUrl
       }
     });
     
-    // Log if credits were transferred
-    if (existingCredits && existingCredits.planType !== planType && existingCredits.leadCredits > 0 && !isOnTrial) {
-      console.log(`Credits transferred: ${existingCredits.leadCredits} credits from ${existingCredits.planType} plan to ${planType} plan for subscription update ${subscriptionId}`);
+    // If this subscription is active, ensure all other subscriptions are marked as inactive
+    if (isMonthly) {
+      await prisma.userCredits.updateMany({
+        where: {
+          userId: user.id,
+          AND: [
+            { subscriptionId: { not: subscriptionId } }
+          ]
+        },
+        data: {
+          isMonthly: false
+        }
+      });
     }
     
-    console.log(`Successfully updated subscription for user ${user.id} with plan type ${planType}, trial status: ${isOnTrial}, monthly status: ${isMonthly}, and quantity ${finalQuantity}`);
+    console.log(`Successfully updated subscription for user ${user.id}: `, {
+      planType,
+      baseCredits: PLAN_CREDITS[variantId as keyof typeof PLAN_CREDITS] || 0,
+      existingCredits: existingCredits?.leadCredits || 0,
+      finalCredits: leadCredits,
+      finalQuantity,
+      isMonthly,
+      status
+    });
   } catch (error) {
     console.error('Error updating user credits:', error);
   }
@@ -925,7 +647,7 @@ async function handleSubscriptionUpdated(payload: any) {
 // Handle subscription_cancelled event
 async function handleSubscriptionCancelled(payload: any) {
   const { data, meta } = payload;
-  const subscriptionId = data.id;
+  const subscriptionId = data.id.toString();
   const subscriptionData = data.attributes;
   
   // Check if custom data with user_id is available
@@ -956,38 +678,79 @@ async function handleSubscriptionCancelled(payload: any) {
   }
   
   try {
-    // Check if this was a trial cancellation
+    // Get the user's current credits
     const userCredits = await prisma.userCredits.findUnique({
       where: { userId: user.id }
     });
     
-    const wasOnTrial = userCredits?.isTrialActive || false;
-    console.log(`Cancelling subscription for user ${user.id}, was on trial: ${wasOnTrial}`);
+    console.log(`Cancelling subscription for user ${user.id}`);
     
-    // If it was a trial, set credits to 0 immediately
-    // If it was a regular subscription, keep the credits (they'll expire 30 days from creation)
-    const shouldResetCredits = wasOnTrial;
+    // Simply keep the existing credits without any logic - don't add or adjust them
+    // This fixes credit duplication issues
+    const currentCredits = userCredits?.leadCredits || 0;
     
-    // Preserve existing credits for regular subscription cancellations
-    // Only set credits to 0 for trial cancellations
-    const updatedLeadCredits = shouldResetCredits ? 0 : userCredits?.leadCredits || 0;
+    console.log(`Cancellation: Keeping existing credits: ${currentCredits} (no adjustments)`);
     
-    console.log(`Cancellation: ${shouldResetCredits ? 'Resetting credits to 0 (trial)' : 'Keeping existing credits: ' + updatedLeadCredits + ' (regular subscription)'}`);
+    // Calculate the grace period for reference only (not used in credit calculations)
+    const currentRenewalDate = new Date(userCredits?.updatedAt ?? userCredits?.createdAt ?? new Date());
+    const nextRenewalDate = new Date(currentRenewalDate);
+    nextRenewalDate.setMonth(nextRenewalDate.getMonth() + 1);
     
-    await prisma.userCredits.update({
-      where: { userId: user.id },
-      data: {
-        subscriptionId: null,
-        isTrialActive: false,
-        isMonthly: false,
-        leadCredits: updatedLeadCredits,
-        trialEndDate: wasOnTrial ? new Date() : userCredits?.trialEndDate,
-        hadPreviousTrial: true, // Always true after any subscription or trial
-        updatedAt: new Date()
+    const today = new Date();
+    const daysUntilNextRenewal = Math.ceil((nextRenewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    console.log(`Current renewal period started: ${currentRenewalDate}`);
+    console.log(`Next renewal would have been: ${nextRenewalDate}`);
+    console.log(`Grace period (days until next renewal): ${daysUntilNextRenewal}`);
+    
+    // IMPORTANT: Check for other active subscriptions before updating
+    // Find if the user has any other active subscriptions
+    const otherActiveSubscription = await prisma.userCredits.findFirst({
+      where: {
+        userId: user.id,
+        AND: [
+          { subscriptionId: { not: subscriptionId } },
+          { subscriptionId: { not: null } }
+        ],
+        isMonthly: true
       }
     });
     
-    console.log(`Successfully cancelled subscription for user ${user.id}. Credits ${shouldResetCredits ? 'reset to 0' : 'retained until grace period expires'}`);
+    if (otherActiveSubscription) {
+      console.log(`User ${user.id} has another active subscription. Not updating subscription status.`);
+      
+      // Only update this specific subscription record if needed
+      if (userCredits && userCredits.subscriptionId === subscriptionId) {
+        await prisma.userCredits.update({
+          where: { userId: user.id },
+          data: {
+            subscriptionId: null
+            // Do NOT change isMonthly or leadCredits as user has another active subscription
+          }
+        });
+      }
+    } else {
+      // Add a safety check to make sure we're not storing a timestamp in the subscription ID
+      if (userCredits && userCredits.subscriptionId === subscriptionId) {
+        // Update user credits - simply set the subscription to inactive, keep credits unchanged
+        await prisma.userCredits.update({
+          where: { userId: user.id },
+          data: {
+            subscriptionId: null,
+            isMonthly: false
+            // No changes to leadCredits - keeps whatever is currently in the database
+            // Important: We don't update the updatedAt timestamp for cancellations
+            // This preserves the original renewal date for grace period calculations
+          }
+        });
+      } else {
+        console.log(`Subscription ID mismatch during cancellation: Expected ${subscriptionId}, found ${userCredits?.subscriptionId}`);
+      }
+      
+      console.log(`Regular subscription cancelled for user ${user.id}. Campaigns will continue during the grace period until ${nextRenewalDate}.`);
+    }
+    
+    console.log(`Successfully handled cancellation event for user ${user.id}. Credits maintained at ${currentCredits} until next renewal date: ${nextRenewalDate}`);
   } catch (error) {
     console.error('Error cancelling subscription:', error);
   }

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import prisma from "@/lib/prisma";
+import { formatSubscriptionId } from "@/lib/subscription-utils";
 
-const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY as string;
+const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
 
 export async function POST(request: Request) {
   try {
@@ -21,31 +22,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Subscription ID is required' }, { status: 400 });
     }
 
-    // Get user ID
+    // Ensure subscription ID is a string
+    const safeSubscriptionId = subscriptionId.toString();
+
+    // Get user from session
     const user = await prisma.user.findUnique({
       where: { email: session.user.email as string },
-      select: { id: true },
+      select: { id: true, email: true }
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check if user has the subscription
+    // Get user credits to check if the subscription belongs to this user
     const userCredits = await prisma.userCredits.findUnique({
-      where: { userId: user.id },
+      where: { userId: user.id }
     });
 
-    if (!userCredits || userCredits.subscriptionId !== subscriptionId) {
-      return NextResponse.json({ 
-        error: 'Subscription not found for this user' 
-      }, { status: 404 });
+    if (!userCredits || userCredits.subscriptionId !== safeSubscriptionId) {
+      return NextResponse.json({ error: 'Subscription not found or does not belong to this user' }, { status: 404 });
     }
 
-    console.log(`Cancelling subscription ${subscriptionId} for user ${user.id}, as part of upgrade: ${isUpgrade}`);
+    console.log(`Cancelling subscription ${safeSubscriptionId} for user ${user.id}, as part of upgrade: ${isUpgrade}`);
 
-    // Make request to LemonSqueezy API to cancel the subscription
-    const response = await fetch(`https://api.lemonsqueezy.com/v1/subscriptions/${subscriptionId}`, {
+    // Make request to Lemon Squeezy API to cancel the subscription
+    const response = await fetch(`https://api.lemonsqueezy.com/v1/subscriptions/${safeSubscriptionId}`, {
       method: 'PATCH',
       headers: {
         'Accept': 'application/vnd.api+json',
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         data: {
           type: 'subscriptions',
-          id: subscriptionId,
+          id: safeSubscriptionId,
           attributes: {
             cancelled: true
           }
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
       }, { status: response.status });
     }
 
+    // Update user credits to mark subscription as cancelled
     // If this is part of an upgrade, don't update the database as the webhook will handle it
     // This prevents the user from losing credits during the upgrade process
     if (!isUpgrade) {
@@ -80,12 +83,13 @@ export async function POST(request: Request) {
         where: { userId: user.id },
         data: {
           isMonthly: false,
-          isTrialActive: false,
           // Don't reset subscriptionId or leadCredits here - the webhook will handle that
           // This allows the user to keep using their credits until the grace period expires
           updatedAt: new Date()
         }
       });
+    } else {
+      console.log(`Cancellation is part of an upgrade process for user ${user.id}. Not modifying isMonthly status.`);
     }
 
     return NextResponse.json({ 

@@ -16,4 +16,12 @@ services:
       - key: GOOGLE_CLIENT_ID
         sync: false # User needs to add their Google OAuth client ID
       - key: GOOGLE_CLIENT_SECRET
-        sync: false # User needs to add their Google OAuth client secret 
+        sync: false # User needs to add their Google OAuth client secret
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false # User needs to add their Upstash Redis URL
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false # User needs to add their Upstash Redis token
+      - key: OPENAI_API_KEY
+        sync: false # User needs to add their OpenAI API key
+      - key: RESEND_API_KEY
+        sync: false # User needs to add their Resend API key 

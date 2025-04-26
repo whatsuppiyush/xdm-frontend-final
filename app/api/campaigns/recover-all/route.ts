@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
-import { DAILY_MESSAGE_LIMIT } from "@/lib/constants";
+import { getUserDailyMessageLimit } from "@/lib/planLimits";
 
 // This is a simplified version of the CampaignQueue class
 // You should extract this to a shared file to avoid duplication
@@ -94,7 +94,15 @@ export async function POST(request: Request) {
           const dailyUsage = await redis.get(dailyLimitKey);
           const dailyUsageStr = typeof dailyUsage === 'string' ? dailyUsage : JSON.stringify(dailyUsage);
           
-          if (!dailyUsageStr || parseInt(dailyUsageStr) < DAILY_MESSAGE_LIMIT) {
+          // Get user's plan type and calculate their limit
+          const userCredits = await prisma.userCredits.findUnique({
+            where: { userId }
+          });
+          
+          // Use the centralized utility function to get the limit
+          const userLimit = getUserDailyMessageLimit(userCredits);
+          
+          if (!dailyUsageStr || parseInt(dailyUsageStr) < userLimit) {
             // Rate limit has reset, resume campaign
             campaignQueue.status = 'Running';
             await campaignQueue.saveToRedis();

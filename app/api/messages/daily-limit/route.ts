@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import redis from "@/lib/redis";
 import { DAILY_MESSAGE_LIMIT } from "@/lib/constants";
+import prisma from "@/lib/prisma";
+import { getUserDailyMessageLimit } from "@/lib/planLimits";
 
 export async function GET(request: Request) {
   try {
@@ -19,11 +21,20 @@ export async function GET(request: Request) {
     
     // Convert currentCount to string before parsing
     const countValue = typeof currentCount === 'object' ? JSON.stringify(currentCount) : String(currentCount);
+    const usedCount = parseInt(countValue);
+
+    // Get user's plan type from database
+    const userCredits = await prisma.userCredits.findUnique({
+      where: { userId }
+    });
+
+    // Calculate daily limit based on plan type
+    const totalLimit = getUserDailyMessageLimit(userCredits);
 
     return NextResponse.json({ 
-      used: parseInt(countValue), 
-      total: DAILY_MESSAGE_LIMIT,
-      remaining: DAILY_MESSAGE_LIMIT - parseInt(countValue)
+      used: usedCount, 
+      total: totalLimit,
+      remaining: totalLimit - usedCount
     });
   } catch (error) {
     console.error('Failed to fetch daily limit:', error);

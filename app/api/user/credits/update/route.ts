@@ -24,15 +24,19 @@ export async function POST(request: Request) {
         success: false
       }, { status: 404 });
     }
-
-    // Check if user is on a free trial
-    if (userCredits.isTrialActive) {
-      // Check if trial has ended
-      if (userCredits.trialEndDate && new Date() > new Date(userCredits.trialEndDate)) {
-        return NextResponse.json({ 
-          error: "Your free trial has ended. Please upgrade to continue using the service.",
+    
+    // Check if the subscription has been cancelled and the grace period has expired
+    // Grace period is 30 days from last renewal (updatedAt timestamp)
+    if (!userCredits.isMonthly && userCredits.subscriptionId === null) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // If last renewal was more than 30 days ago, grace period has expired
+      if (new Date(userCredits.updatedAt) < thirtyDaysAgo) {
+        return NextResponse.json({
+          error: "Your subscription grace period has expired. Please subscribe again to continue using the service.",
           success: false,
-          trialEnded: true,
+          gracePeriodExpired: true,
           remainingCredits: userCredits.leadCredits
         }, { status: 403 });
       }
@@ -62,7 +66,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true,
       remainingCredits: updatedCredits.leadCredits,
-      isTrialActive: updatedCredits.isTrialActive,
       isMonthly: updatedCredits.isMonthly,
       wasLimited
     });

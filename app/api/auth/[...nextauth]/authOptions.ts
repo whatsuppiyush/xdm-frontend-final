@@ -8,6 +8,7 @@ import { ObjectId } from 'mongodb';
 import { pushUserToGoogleSheet } from '@/lib/googleSheets';
 import { pushUserToInstantly } from '@/lib/instantlyApi';
 import { pushUserToBeehiiv } from '@/lib/beehiivApi';
+import { setupNewUser } from '@/lib/utils';
 
 declare module "next-auth" {
   interface Session {
@@ -20,6 +21,40 @@ declare module "next-auth" {
     }
   }
 }
+
+// Queue for processing non-critical operations after login completes
+type QueuedOperation = () => Promise<void>;
+const operationQueue: QueuedOperation[] = [];
+
+// Process operations in the background
+const processQueue = async () => {
+  if (operationQueue.length === 0) return;
+  
+  console.log(`Processing ${operationQueue.length} queued operations`);
+  
+  // Take the first operation and process it
+  const operation = operationQueue.shift();
+  if (operation) {
+    try {
+      await operation();
+    } catch (error) {
+      console.error('Error processing queued operation:', error);
+    }
+    
+    // Process the next operation with a small delay to prevent resource contention
+    setTimeout(processQueue, 100);
+  }
+};
+
+// Add operation to queue and trigger processing if not already running
+const queueOperation = (operation: QueuedOperation) => {
+  operationQueue.push(operation);
+  
+  // Start processing if this is the only item
+  if (operationQueue.length === 1) {
+    processQueue();
+  }
+};
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -86,39 +121,41 @@ export const authOptions: NextAuthOptions = {
             
             // If this is the first time the user is logging in with Google (previously used credentials)
             if (existingUser.provider !== 'google') {
-              try {
-                await pushUserToGoogleSheet({
-                  email: user.email,
-                  name: user.name,
-                  provider: 'google (converted from credentials)'
-                });
-              } catch (sheetError) {
-                console.error('Error pushing converted user data to Google Sheet:', sheetError);
-                // Continue with sign-in even if Google Sheet push fails
-              }
+              // Queue external API operations instead of awaiting them
+              queueOperation(async () => {
+                try {
+                  await pushUserToGoogleSheet({
+                    email: user.email || '',
+                    name: user.name || '',
+                    provider: 'google'
+                  });
+                } catch (error) {
+                  console.error('Error pushing converted user data to Google Sheet:', error);
+                }
+              });
               
-              // Also push to Instantly.ai when user converts from credentials to Google
-              try {
-                await pushUserToInstantly({
-                  email: user.email,
-                  name: user.name
-                });
-              } catch (instantlyError) {
-                console.error('Error pushing converted user data to Instantly.ai:', instantlyError);
-                // Continue with sign-in even if Instantly.ai push fails
-              }
+              queueOperation(async () => {
+                try {
+                  await pushUserToInstantly({
+                    email: user.email || '',
+                    name: user.name || ''
+                  });
+                } catch (error) {
+                  console.error('Error pushing converted user data to Instantly.ai:', error);
+                }
+              });
               
-              // Also push to Beehiiv when user converts from credentials to Google
-              try {
-                await pushUserToBeehiiv({
-                  email: user.email,
-                  name: user.name,
-                  provider: 'google (converted from credentials)'
-                });
-              } catch (beehiivError) {
-                console.error('Error pushing converted user data to Beehiiv:', beehiivError);
-                // Continue with sign-in even if Beehiiv push fails
-              }
+              queueOperation(async () => {
+                try {
+                  await pushUserToBeehiiv({
+                    email: user.email || '',
+                    name: user.name || '',
+                    provider: 'google'
+                  });
+                } catch (error) {
+                  console.error('Error pushing converted user data to Beehiiv:', error);
+                }
+              });
             }
             
             return true;
@@ -136,58 +173,52 @@ export const authOptions: NextAuthOptions = {
               updatedAt: new Date(),
             },
           });
+          
+          // Setup initial credits for new user - this is critical, so we await it
+          await setupNewUser(newUser.id);
 
-          // Send welcome email for new Google sign-ups
-          try {
-            await fetch(`${process.env.NEXTAUTH_URL}/api/send`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                firstName: user.name?.split(' ')[0] || 'User',
-                email: user.email,
-              }),
-            });
-          } catch (emailError) {
-            console.error('Error sending welcome email:', emailError);
-            // Continue with sign-in even if email fails
-          }
+          // Queue welcome email and external API integrations
+          queueOperation(async () => {
+            try {
+              await fetch(`${process.env.NEXTAUTH_URL}/api/send`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  firstName: user.name?.split(' ')[0] || 'User',
+                  email: user.email || '',
+                }),
+              });
+            } catch (error) {
+              console.error('Error sending welcome email:', error);
+            }
+          });
           
-          // Push new Google user data to Google Sheet
-          try {
-            await pushUserToGoogleSheet({
-              email: user.email,
-              name: user.name,
-              provider: 'google'
-            });
-          } catch (sheetError) {
-            console.error('Error pushing Google user data to Google Sheet:', sheetError);
-            // Continue with sign-in even if Google Sheet push fails
-          }
-          
-          // Push new Google user data to Instantly.ai
-          try {
-            await pushUserToInstantly({
-              email: user.email,
-              name: user.name
-            });
-          } catch (instantlyError) {
-            console.error('Error pushing Google user data to Instantly.ai:', instantlyError);
-            // Continue with sign-in even if Instantly.ai push fails
-          }
-          
-          // Push new Google user data to Beehiiv
-          try {
-            await pushUserToBeehiiv({
-              email: user.email,
-              name: user.name,
-              provider: 'google'
-            });
-          } catch (beehiivError) {
-            console.error('Error pushing Google user data to Beehiiv:', beehiivError);
-            // Continue with sign-in even if Beehiiv push fails
-          }
+          // Batch all external API calls into a single queued operation to reduce overhead
+          queueOperation(async () => {
+            const promises = [
+              pushUserToGoogleSheet({
+                email: user.email || '',
+                name: user.name || '',
+                provider: 'google'
+              }).catch(error => console.error('Error pushing Google user data to Google Sheet:', error)),
+              
+              pushUserToInstantly({
+                email: user.email || '',
+                name: user.name || ''
+              }).catch(error => console.error('Error pushing Google user data to Instantly.ai:', error)),
+              
+              pushUserToBeehiiv({
+                email: user.email || '',
+                name: user.name || '',
+                provider: 'google'
+              }).catch(error => console.error('Error pushing Google user data to Beehiiv:', error))
+            ];
+            
+            // Run all in parallel but don't fail if one fails
+            await Promise.allSettled(promises);
+          });
 
           return true;
         }
