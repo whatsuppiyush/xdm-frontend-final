@@ -2,7 +2,7 @@ const Queue = require('bull');
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 const { PrismaClient } = require('@prisma/client');
-const Redis = require('ioredis');
+const { Redis } = require('@upstash/redis');
 const express = require('express');
 const app = express();
 
@@ -21,13 +21,7 @@ async function initializeCampaignQueues() {
   });
   
   for (const campaign of campaigns) {
-    const queue = new Queue(`campaign-${campaign.id}`, {
-      redis: {
-        host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT,
-        password: process.env.REDIS_PASSWORD
-      }
-    });
+    const queue = new Queue(`campaign-${campaign.id}`, process.env.UPSTASH_REDIS_URL);
     campaignQueues.set(campaign.id, queue);
   }
 }
@@ -292,10 +286,8 @@ app.listen(PORT, async () => {
 });
 
 const redis = new Redis({
-  host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT,
-  password: process.env.REDIS_PASSWORD,
-  tls: true
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
 async function sendDM(recipientId, message, cookies) {
