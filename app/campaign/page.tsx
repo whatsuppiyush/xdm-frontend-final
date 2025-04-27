@@ -1364,7 +1364,7 @@ export default function CampaignPage() {
                                 "text-sm max-w-md mx-auto",
                                 isDark ? "text-gray-400" : "text-gray-500"
                               )}>
-                                Click "Add Variant" or "Generate Variants" to create different versions of your message
+                                Click &quot;Add Variant&quot; or &quot;Generate Variants&quot; to create different versions of your message
                               </p>
                             </div>
                           )}
