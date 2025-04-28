@@ -11,23 +11,10 @@ const MAX_CONCURRENT_CAMPAIGNS = parseInt(process.env.MAX_CONCURRENT_CAMPAIGNS) 
 const MESSAGES_PER_CAMPAIGN = parseInt(process.env.MESSAGES_PER_CAMPAIGN) || 400;
 const MAX_RETRIES = 2;
 
-// Create separate queues for each campaign
-const campaignQueues = new Map();
+// Use a single Bull queue for all jobs
+const messageQueue = new Queue('message-queue', process.env.UPSTASH_REDIS_URL);
 
-// Initialize queues for each campaign
-async function initializeCampaignQueues() {
-  const campaigns = await prisma.message.findMany({
-    where: { status: 'In Progress' }
-  });
-  
-  for (const campaign of campaigns) {
-    const queue = new Queue(`campaign-${campaign.id}`, process.env.UPSTASH_REDIS_URL);
-    campaignQueues.set(campaign.id, queue);
-    // Register processor and seed running state
-    setupQueueProcessing(campaign.id, queue);
-    await redis.set(`queue:${campaign.id}`, JSON.stringify({ status: 'Running' }));
-  }
-}
+// No need to initialize per-campaign queues. All jobs go to 'message-queue'.
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -184,21 +171,16 @@ app.post('/campaign/:campaignId/stop', async (req, res) => {
   }
 });
 
-// Helper to set up queue processing for a campaign
-function setupQueueProcessing(campaignId, queue) {
-  queue.process(1, async (job) => {
-    const { recipientId, message, cookies, userId } = job.data;
-    console.log(`[PROCESS] Campaign ${campaignId}: Processing job for recipient ${recipientId}`);
-    try {
-      const campaignState = await redis.get(`queue:${campaignId}`);
-      const state = campaignState ? JSON.parse(campaignState) : {};
-      if (state.status === 'Paused' || state.status === 'Stopped' || state.status === 'Rate Limited') {
-        console.log(`[SKIP] Campaign ${campaignId}: Status is ${state.status}, skipping job for recipient ${recipientId}`);
-        throw new Error(`Campaign is ${state.status}`);
-      }
-      const today = new Date().toISOString().split('T')[0];
-      const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
-      const currentCount = await redis.get(dailyLimitKey);
+// Register a single processor for the global message-queue
+messageQueue.process(async (job) => {
+  const { recipientId, message, campaignId, userId, cookies } = job.data;
+  console.log(`[PROCESS] Processing job for recipient ${recipientId} in campaign ${campaignId}`);
+  try {
+    // (Optional) Add any campaign status checks here if needed
+    // Daily limit logic (if required)
+    const today = new Date().toISOString().split('T')[0];
+    const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
+    const currentCount = await redis.get(dailyLimitKey);
       const parsedCount = currentCount ? parseInt(currentCount) : 0;
       const userCredits = await prisma.userCredits.findUnique({ where: { userId } });
       const userLimit = getUserDailyMessageLimit(userCredits);
@@ -256,7 +238,7 @@ function setupQueueProcessing(campaignId, queue) {
       console.log(`[RETRY] Campaign ${campaignId}: Retrying job ${job.id}`);
     }
   });
-}
+
 
 // Polling function to check for new campaigns
 async function pollForNewCampaigns() {
