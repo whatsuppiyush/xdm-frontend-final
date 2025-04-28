@@ -8,6 +8,7 @@ import { PrismaClient } from '@prisma/client';
 import redis from '@/lib/redis';
 import { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } from '@/lib/planLimits';
 import { createServer } from 'http';
+import Queue from 'bull';
 const prisma = new PrismaClient();
 const MAX_RETRIES = 2;
 
@@ -49,15 +50,28 @@ class CampaignQueue {
 
   async addRecipients(recipients, message, cookies, userId) {
     await this.loadFromRedis();
-    recipients.forEach(recipient => {
-      let transformedMessage = messageTransformFunction(message, recipient);
-      this.queue.push({ 
-        recipientId: recipient.id, 
-        message: transformedMessage, 
-        cookies,
-        userId  // Add userId to each queue item
-      });
-    });
+    
+    // Add jobs to the queue for each recipient
+    for (const recipient of recipients) {
+      if (!this.processedRecipients.has(recipient.id)) {
+        await messageQueue.add({
+          recipientId: recipient.id,
+          message: messageTransformFunction(message, recipient),
+          cookies,
+          campaignId: this.campaignId,
+          userId
+        }, {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 60000 // 1 minute
+          }
+        });
+        
+        this.queue.push(recipient.id);
+      }
+    }
+    
     await this.saveToRedis();
   }
 
@@ -400,6 +414,11 @@ class CampaignQueue {
         }
       }
     }
+
+    // The actual processing is now handled by the worker service
+    // We just need to monitor the queue status
+    const queueCount = await messageQueue.count();
+    console.log(`Campaign ${this.campaignId} has ${queueCount} messages in queue`);
   }
 
   handleFailedAttempt(recipientId) {
@@ -414,9 +433,16 @@ class CampaignQueue {
 
   async stop() {
     this.status = 'Stopped';
-    this.queue = []; // Clear the queue
+    this.queue = [];
     await this.saveToRedis();
-    console.log(`Campaign ${this.campaignId} stopped and Redis state updated`);
+    
+    // Remove all jobs for this campaign from the queue
+    const jobs = await messageQueue.getJobs(['waiting', 'active', 'delayed']);
+    for (const job of jobs) {
+      if (job.data.campaignId === this.campaignId) {
+        await job.remove();
+      }
+    }
   }
 
   async pause() {
@@ -429,11 +455,9 @@ class CampaignQueue {
     this.status = 'Running';
     await this.saveToRedis();
     
-    // Restart processing only if we have items in the queue
     if (this.queue.length > 0) {
       this.process().catch(console.error);
     }
-    console.log(`Campaign ${this.campaignId} resumed and items in queue`,this.queue.length);
   }
 
   async updateQueueWithUserId(userId) {
@@ -762,6 +786,14 @@ if (process.env.NODE_ENV !== 'development') {
   console.log("Waiting 5 seconds for development recovery");
   //setTimeout(recoverActiveCampaigns, 5000);
 }
+
+const messageQueue = new Queue('message-queue', {
+  redis: {
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+    password: process.env.REDIS_PASSWORD
+  }
+});
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
