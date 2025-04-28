@@ -5,11 +5,45 @@ const { PrismaClient } = require('@prisma/client');
 const { Redis } = require('@upstash/redis');
 const express = require('express');
 const app = express();
+const path = require('path');
+
+// Define utility functions directly since the import path is problematic with the Render configuration
+function getUserDailyMessageLimit(userCredits, defaultLimit = 50) {
+  if (!userCredits) {
+    return defaultLimit;
+  }
+  
+  const { planType } = userCredits;
+  
+  // Use plan-based limits
+  switch(planType) {
+    case 'Starter': return 100;
+    case 'Growth': return 150;
+    case 'Elite': 
+    case 'ENTERPRISE': return 450;
+    case 'free': 
+    case 'FREE': return 50;
+    default: return defaultLimit;
+  }
+}
+
+function getEnvironmentAdjustedLimit(limit) {
+  if (process.env.NODE_ENV === 'development') {
+    return 25; // Lower limit for development
+  }
+  return limit;
+}
 
 const prisma = new PrismaClient();
 const MAX_CONCURRENT_CAMPAIGNS = parseInt(process.env.MAX_CONCURRENT_CAMPAIGNS) || 10;
 const MESSAGES_PER_CAMPAIGN = parseInt(process.env.MESSAGES_PER_CAMPAIGN) || 400;
 const MAX_RETRIES = 2;
+
+// Initialize Redis client early
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 // Create separate queues for each campaign
 const campaignQueues = new Map();
@@ -287,11 +321,6 @@ app.listen(PORT, async () => {
   console.log(`Worker service running on port ${PORT}`);
   console.log(`Configured for ${MAX_CONCURRENT_CAMPAIGNS} concurrent campaigns`);
   console.log(`Target: ${MESSAGES_PER_CAMPAIGN} messages per campaign`);
-});
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
 async function sendDM(recipientId, message, cookies) {
