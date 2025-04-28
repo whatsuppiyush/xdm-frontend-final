@@ -181,49 +181,31 @@ app.post('/campaign/:campaignId/stop', async (req, res) => {
   }
 });
 
-// Process jobs with campaign-specific concurrency
-for (const [campaignId, queue] of campaignQueues) {
+// Helper to set up queue processing for a campaign
+function setupQueueProcessing(campaignId, queue) {
   queue.process(1, async (job) => {
     const { recipientId, message, cookies, userId } = job.data;
-    
     try {
-      // Check campaign status
       const campaignState = await redis.get(`queue:${campaignId}`);
       const state = campaignState ? JSON.parse(campaignState) : {};
-      
       if (state.status !== 'Running') {
         throw new Error(`Campaign is ${state.status}`);
       }
-
-      // Check daily limit before processing
       const today = new Date().toISOString().split('T')[0];
       const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
       const currentCount = await redis.get(dailyLimitKey);
       const parsedCount = currentCount ? parseInt(currentCount) : 0;
-      
-      // Get user's plan type and calculate limit
-      const userCredits = await prisma.userCredits.findUnique({
-        where: { userId }
-      });
-      
+      const userCredits = await prisma.userCredits.findUnique({ where: { userId } });
       const userLimit = getUserDailyMessageLimit(userCredits);
       const effectiveLimit = getEnvironmentAdjustedLimit(userLimit);
-      
       if (parsedCount >= effectiveLimit) {
-        // Update campaign status to Rate Limited
         state.status = 'Rate Limited';
         await redis.set(`queue:${campaignId}`, JSON.stringify(state));
         throw new Error('Daily limit reached');
       }
-      
-      // Send the message
       const success = await sendDM(recipientId, message, cookies);
-      
       if (success) {
-        // Increment daily count
         await redis.incr(dailyLimitKey);
-        
-        // Update message status in database
         await prisma.message.update({
           where: { id: campaignId },
           data: {
@@ -235,46 +217,57 @@ for (const [campaignId, queue] of campaignQueues) {
             }
           }
         });
-
-        // Update processed recipients in Redis
         if (!state.processedRecipients) {
           state.processedRecipients = [];
         }
         state.processedRecipients.push(recipientId);
         await redis.set(`queue:${campaignId}`, JSON.stringify(state));
       }
-      
       return { success };
     } catch (error) {
       console.error('Job failed:', error);
       throw error;
     }
   });
-
-  // Handle failed jobs with retry logic
   queue.on('failed', async (job, error) => {
     console.error(`Job ${job.id} failed in campaign ${campaignId}:`, error);
-    
-    // Get campaign state
     const campaignState = await redis.get(`queue:${campaignId}`);
     const state = campaignState ? JSON.parse(campaignState) : {};
-    
-    // Handle retries
     if (!state.totalAttempts) {
       state.totalAttempts = 0;
     }
     state.totalAttempts++;
-    
     if (state.totalAttempts >= MAX_RETRIES) {
-      // Max retries reached, mark as failed
       state.totalAttempts = 0;
       await redis.set(`queue:${campaignId}`, JSON.stringify(state));
     } else {
-      // Retry the job
       await job.retry();
     }
   });
 }
+
+// Polling function to check for new campaigns
+async function pollForNewCampaigns() {
+  try {
+    const campaigns = await prisma.message.findMany({
+      where: {
+        status: 'In Progress',
+        id: { notIn: Array.from(campaignQueues.keys()) }
+      }
+    });
+    for (const campaign of campaigns) {
+      const queue = new Queue(`campaign-${campaign.id}`, process.env.UPSTASH_REDIS_URL);
+      campaignQueues.set(campaign.id, queue);
+      setupQueueProcessing(campaign.id, queue);
+      console.log(`Created queue for new campaign: ${campaign.id}`);
+    }
+  } catch (err) {
+    console.error('Error polling for new campaigns:', err);
+  }
+}
+
+// Start polling every 30 seconds
+setInterval(pollForNewCampaigns, 30000);
 
 // Start the server
 const PORT = process.env.PORT || 3000;
