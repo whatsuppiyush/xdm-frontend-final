@@ -11,6 +11,8 @@ const MAX_CONCURRENT_CAMPAIGNS = parseInt(process.env.MAX_CONCURRENT_CAMPAIGNS) 
 const MESSAGES_PER_CAMPAIGN = parseInt(process.env.MESSAGES_PER_CAMPAIGN) || 400;
 const MAX_RETRIES = 2;
 
+const campaignQueues = new Map();
+
 // Use a single Bull queue for all jobs
 const messageQueue = new Queue('message-queue', process.env.UPSTASH_REDIS_URL);
 
