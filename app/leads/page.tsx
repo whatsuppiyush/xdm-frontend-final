@@ -34,9 +34,6 @@ declare global {
 export default function LeadsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [leadLists, setLeadLists] = useState<LeadList[]>([]);
-  const [leadPage, setLeadPage] = useState(1);
-  const [leadTotalPages, setLeadTotalPages] = useState(1);
-  const [leadPaginationLoading, setLeadPaginationLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const { userId } = useUser();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -62,7 +59,7 @@ export default function LeadsPage() {
       if (!userId) return;
       
       try {
-        const response = await fetch(`/api/leads?userId=${userId}&page=${leadPage}&limit=5`);
+        const response = await fetch(`/api/leads?userId=${userId}`);
         if (!response.ok) throw new Error('Failed to fetch lead lists');
         
         const data = await response.json();
@@ -92,9 +89,6 @@ export default function LeadsPage() {
         }
         
         setLeadLists(formattedLeads);
-        setLeadPage(data.page || 1);
-        setLeadTotalPages(data.totalPages || 1);
-        setLeadPaginationLoading(false);
         
         // Check if any leads are still in progress
         const hasInProgressLeads = formattedLeads.some(
@@ -113,7 +107,6 @@ export default function LeadsPage() {
         console.error('Error fetching leads:', error);
       } finally {
         setLoading(false);
-        setLeadPaginationLoading(false);
       }
     };
     
@@ -126,7 +119,7 @@ export default function LeadsPage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [userId, leadPage, refreshCounter]);
+  }, [userId, refreshCounter]);
 
   useEffect(() => {
     const fetchUserCredits = async () => {
@@ -357,33 +350,6 @@ export default function LeadsPage() {
             />
           ))
         )}
-      </div>
-
-      {/* Pagination controls for leads */}
-      <div className="flex justify-center items-center gap-2 mt-4">
-        <Button
-          variant="outline"
-          disabled={leadPage <= 1 || leadPaginationLoading}
-          onClick={() => {
-            setLeadPaginationLoading(true);
-            setLeadPage((p) => Math.max(1, p - 1));
-          }}
-        >
-          {leadPaginationLoading ? <span className="animate-spin mr-2">⏳</span> : null}
-          Prev
-        </Button>
-        <span>Page {leadPage} of {leadTotalPages}</span>
-        <Button
-          variant="outline"
-          disabled={leadPage >= leadTotalPages || leadPaginationLoading}
-          onClick={() => {
-            setLeadPaginationLoading(true);
-            setLeadPage((p) => Math.min(leadTotalPages, p + 1));
-          }}
-        >
-          {leadPaginationLoading ? <span className="animate-spin mr-2">⏳</span> : null}
-          Next
-        </Button>
       </div>
 
       {/* Delete Confirmation Dialog */}

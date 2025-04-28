@@ -11,29 +11,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ leads: [] });
     }
 
-    // Pagination logic
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '5', 10);
-    const skip = (page - 1) * limit;
-
-    // Get paginated leads from database
-    const [leads, total] = await Promise.all([
-      prisma.automatedLead.findMany({
-        where: {
-          userId: userId
-        },
-        orderBy: {
-          createdAt: 'desc'
-        },
-        skip,
-        take: limit
-      }),
-      prisma.automatedLead.count({
-        where: {
-          userId: userId
-        }
-      })
-    ]);
+    // Get leads from database
+    const leads = await prisma.automatedLead.findMany({
+      where: {
+        userId: userId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     // Enhance leads with status from Redis
     const enhancedLeads = await Promise.all(leads.map(async (lead) => {
@@ -64,13 +50,7 @@ export async function GET(request: Request) {
       };
     }));
 
-    return NextResponse.json({ 
-      leads: enhancedLeads,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit)
-    });
+    return NextResponse.json({ leads: enhancedLeads });
   } catch (error) {
     console.error('Failed to fetch leads:', error);
     return NextResponse.json({ 
