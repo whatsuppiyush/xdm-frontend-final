@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Heading } from "@/components/heading";
@@ -113,7 +114,6 @@ export default function CampaignPage() {
     { title: "Select Source", subtitle: "Choose your campaign data source" },
     { title: "Filter Leads", subtitle: "Refine your target audience" },
     { title: "Write Message", subtitle: "Craft your campaign message" },
-    { title: "Configure Variants", subtitle: "Set up message variations" },
     { title: "Start Automation", subtitle: "Review and launch campaign" },
   ];
 
@@ -609,22 +609,12 @@ export default function CampaignPage() {
         return;
       }
       
-      // Check if campaign size exceeds remaining limit
-      // if (recipientIds && dailyLimit.remaining < recipientIds.length) {
-      //   toast({
-      //     variant: "destructive",
-      //     title: "Daily limit exceeded",
-      //     description: `You have ${dailyLimit.remaining} messages left today, but this campaign requires ${recipientIds.length}. Please try a smaller campaign or wait until tomorrow.`
-      //   });
-      //   setSendingDM(false);
-      //   return;
-      // }
-
       const messageResponse = await fetch("/api/messages/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messageSent: messageTemplate,
+          variants: messageVariants.map(v => v.content),
           recipients: recipientIds,
           campaignName: campaignName,
           userId: userId
@@ -1062,275 +1052,8 @@ export default function CampaignPage() {
                 />
               )}
               
-              {/* Step 3: Write Message */}
+              {/* Step 3: Write Message & Configure Variants */}
               {step === 3 && (
-                <div className="w-full mx-auto space-y-4 sm:space-y-6">
-                  {/* Header Section */}
-                  <div className="text-center space-y-2 sm:space-y-3">
-                    <h2 className={cn(
-                      "text-3xl sm:text-4xl font-bold",
-                      isDark 
-                        ? "bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent" 
-                        : "bg-gradient-to-r from-purple-600 to-purple-900 bg-clip-text text-transparent"
-                    )}>
-                      Write Your Message
-                    </h2>
-                    <p className={cn(
-                      "text-base sm:text-lg max-w-lg mx-auto",
-                      isDark ? "text-gray-300" : "text-gray-600"
-                    )}>
-                      Craft a personalized message that resonates with your audience
-                    </p>
-                  </div>
-                  <div className="w-full mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-6 w-full">
-                      {/* Left Column - Context and Variables */}
-                      <div className="col-span-1 md:col-span-2 space-y-3 md:space-y-4">
-                        {/* Context Section */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <Label className={cn(
-                              "text-lg font-semibold",
-                              isDark ? "text-gray-200" : "text-gray-900"
-                            )}>
-                              Lead Context
-                            </Label>
-                            <span className={cn(
-                              "px-3 py-1 rounded-full text-sm font-medium",
-                              isDark ? "bg-purple-900/60 text-purple-300" : "bg-purple-100 text-purple-600"
-                            )}>
-                              Sample Lead
-                            </span>
-                          </div>
-                          <Card className={cn(
-                            "border-2 rounded-xl p-6 hover:shadow-lg transition-all duration-300 w-full",
-                            isDark 
-                              ? "bg-gray-800 border-gray-700 hover:border-purple-800" 
-                              : "bg-white hover:border-purple-300"
-                          )}>
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-4">
-                                <div className={cn(
-                                  "w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center",
-                                  isDark ? "bg-gradient-to-br from-gray-700 to-gray-900" : "bg-gradient-to-br from-purple-100 to-pink-100"
-                                )}>
-                                  <span className="text-2xl">👩🏻‍💻</span>
-                                </div>
-                                <div>
-                                  <div className={cn(
-                                    "font-semibold text-lg",
-                                    isDark ? "text-gray-100" : "text-gray-900"
-                                  )}>
-                                    Sarah Smith
-                                  </div>
-                                  <div className={cn(
-                                    "font-medium",
-                                    isDark ? "text-purple-400" : "text-purple-600"
-                                  )}>
-                                    @sarahsmith
-                                  </div>
-                                </div>
-                              </div>
-                              <div className={cn(
-                                "leading-relaxed",
-                                isDark ? "text-gray-300" : "text-gray-700"
-                              )}>
-                                Tech Founder | SaaS Expert | Building the future of work | Previously @bigtech
-                              </div>
-                              <div className={cn(
-                                "flex items-center gap-6",
-                                isDark ? "text-gray-400" : "text-gray-600"
-                              )}>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                  <span>12.5k followers</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                                  <span>1.1k following</span>
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        </div>
-                        {/* Variables Section */}
-                        <div className="space-y-4">
-                          <Label className={cn(
-                            "text-lg font-semibold",
-                            isDark ? "text-gray-200" : "text-gray-900"
-                          )}>
-                            Available Variables
-                          </Label>
-                          <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3 w-full">
-                            {[
-                              { name: "{name}", desc: "Full Name" },
-                              { name: "{username}", desc: "Twitter Handle" },
-                              { name: "{followers}", desc: "Follower Count" },
-                              { name: "{bio}", desc: "Bio Excerpt" },
-                            ].map((variable) => (
-                              <div
-                                key={variable.name}
-                                className={cn(
-                                  "p-3 rounded-lg border cursor-pointer transition-all",
-                                  isDark 
-                                    ? "bg-gray-800 border-gray-700 hover:border-purple-700" 
-                                    : "bg-gray-50 border-gray-200 hover:border-purple-300"
-                                )}
-                                onClick={() => {
-                                  const textarea = document.querySelector("textarea");
-                                  if (textarea) {
-                                    const start = textarea.selectionStart;
-                                    const end = textarea.selectionEnd;
-                                    const newValue =
-                                      messageTemplate.substring(0, start) +
-                                      variable.name +
-                                      messageTemplate.substring(end);
-                                    setMessageTemplate(newValue);
-                                  }
-                                }}
-                              >
-                                <div className={cn(
-                                  "font-mono",
-                                  isDark ? "text-purple-400" : "text-purple-600"
-                                )}>
-                                  {variable.name}
-                                </div>
-                                <div className={cn(
-                                  "text-sm",
-                                  isDark ? "text-gray-400" : "text-gray-600"
-                                )}>
-                                  {variable.desc}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Right Column - Message Editor and Preview */}
-                      <div className="col-span-1 md:col-span-3 space-y-3 md:space-y-4 mt-3 md:mt-0">
-                        {/* Message Template Section */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <Label className={cn(
-                              "text-lg font-semibold",
-                              isDark ? "text-gray-200" : "text-gray-900"
-                            )}>
-                              Message Template
-                            </Label>
-                            <div className="flex items-center gap-2">
-                              <button className={cn(
-                                "p-2 rounded-lg transition-colors",
-                                isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                              )}>
-                                <span className="text-xl">✨</span>
-                              </button>
-                              <button className={cn(
-                                "p-2 rounded-lg transition-colors",
-                                isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                              )}>
-                                <span className="text-xl">🎯</span>
-                              </button>
-                            </div>
-                          </div>
-                          <div className="relative">
-                            <Textarea
-                              placeholder="Hi {name}, I noticed you're..."
-                              value={messageTemplate}
-                              onChange={(e) => setMessageTemplate(e.target.value)}
-                              className={cn(
-                                "min-h-[200px] text-base border-2 rounded-xl resize-none p-4 shadow-sm w-full",
-                                isDark 
-                                  ? "bg-gray-800 border-gray-700 text-gray-100 focus:border-purple-600 focus:ring-purple-800" 
-                                  : "focus:border-purple-400 focus:ring-purple-200"
-                              )}
-                            />
-                            <div className={cn(
-                              "absolute bottom-4 right-4 text-sm",
-                              isDark ? "text-gray-500" : "text-gray-400"
-                            )}>
-                              {messageTemplate.length} characters
-                            </div>
-                          </div>
-                        </div>
-                        {/* Preview Section */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <Label className={cn(
-                              "text-lg font-semibold",
-                              isDark ? "text-gray-200" : "text-gray-900"
-                            )}>
-                              Live Preview
-                            </Label>
-                            <span className={cn(
-                              "px-3 py-1 rounded-full text-sm font-medium",
-                              isDark ? "bg-green-900/60 text-green-300" : "bg-green-100 text-green-600"
-                            )}>
-                              Looking Good! 👍
-                            </span>
-                          </div>
-                          <Card className={cn(
-                            "border-2 rounded-xl p-6 shadow-sm w-full",
-                            isDark 
-                              ? "bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700" 
-                              : "bg-gradient-to-br from-gray-50 to-white"
-                          )}>
-                            <div className={cn(
-                              "leading-relaxed",
-                              isDark ? "text-gray-300" : "text-gray-700"
-                            )}>
-                              {messageTemplate
-                                .replace("{name}", "Sarah")
-                                .replace("{username}", "@sarahsmith")
-                                .replace("{followers}", "12.5k")
-                                .replace("{bio}", "Tech Founder | SaaS Expert",)}
-                            </div>
-                          </Card>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Navigation Buttons */}
-                    <div className={cn(
-                      "flex justify-between sm:justify-end gap-4 sm:gap-4 mt-4 mb-2 sm:mb-0 fixed bottom-0 left-0 right-0 p-5 sm:p-0 sm:static bg-gray-900/90 sm:bg-transparent z-[100] border-t border-gray-800 sm:border-0 shadow-lg backdrop-blur-sm sm:shadow-none"
-                    )}>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "px-5 sm:px-6 py-4 text-base sm:text-base flex-1 sm:flex-initial text-lg font-medium shadow-md rounded-xl",
-                          isDark && "border-gray-700 text-gray-200 hover:bg-gray-700"
-                        )}
-                        onClick={() => {
-                          if (step > 1) {
-                            setStep(step - 1);
-                          }
-                        }}
-                      >
-                        <ArrowLeft className="w-5 h-5 mr-2 sm:hidden" />
-                        Back
-                      </Button>
-                      <Button
-                        className={cn(
-                          "px-5 sm:px-8 py-4 rounded-xl text-base sm:text-base flex-1 sm:flex-initial text-white text-lg font-medium shadow-md",
-                          isDark
-                            ? "bg-purple-600 hover:bg-purple-700"
-                            : "bg-black hover:bg-gray-800"
-                        )}
-                        onClick={() => {
-                          if (selectedLeadList) {
-                            setStep(step + 1);
-                          }
-                        }}
-                        disabled={!selectedLeadList}
-                      >
-                        Next
-                        <ArrowRight className="w-5 h-5 ml-2 sm:hidden" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Step 4: Configure Variants */}
-              {step === 4 && (
                 <div className="w-full mx-auto space-y-8">
                   {/* Header Section */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1339,13 +1062,13 @@ export default function CampaignPage() {
                         "text-2xl font-semibold",
                         isDark ? "text-gray-100" : "text-gray-900"
                       )}>
-                        Configure Message Variants
+                        Write Your Message
                       </h2>
                       <p className={cn(
                         "text-sm",
                         isDark ? "text-gray-400" : "text-gray-500"
                       )}>
-                        Create multiple versions of your message to increase engagement
+                        Create your primary message and add variants for better engagement
                       </p>
                     </div>
                     <Button
@@ -1370,156 +1093,283 @@ export default function CampaignPage() {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Primary Message */}
-                    <div className={cn(
-                      "lg:col-span-3 p-6 rounded-xl border-2",
-                      isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                    )}>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className={cn(
-                          "text-lg font-medium",
-                          isDark ? "text-gray-100" : "text-gray-900"
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    {/* Left Column - Context and Variables */}
+                    <div className="col-span-1 lg:col-span-2 space-y-6">
+                      {/* Context Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label className={cn(
+                            "text-lg font-semibold",
+                            isDark ? "text-gray-200" : "text-gray-900"
+                          )}>
+                            Lead Context
+                          </Label>
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-sm font-medium",
+                            isDark ? "bg-purple-900/60 text-purple-300" : "bg-purple-100 text-purple-600"
+                          )}>
+                            Sample Lead
+                          </span>
+                        </div>
+                        <Card className={cn(
+                          "border-2 rounded-xl p-6 hover:shadow-lg transition-all duration-300 w-full",
+                          isDark 
+                            ? "bg-gray-800 border-gray-700 hover:border-purple-800" 
+                            : "bg-white hover:border-purple-300"
                         )}>
-                          Primary Message
-                        </h3>
-                        <div className={cn(
-                          "text-sm px-3 py-1 rounded-full",
-                          isDark ? "bg-purple-900/30 text-purple-300" : "bg-purple-100 text-purple-600"
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                              <div className={cn(
+                                "w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center",
+                                isDark ? "bg-gradient-to-br from-gray-700 to-gray-900" : "bg-gradient-to-br from-purple-100 to-pink-100"
+                              )}>
+                                <span className="text-2xl">👩🏻‍💻</span>
+                              </div>
+                              <div>
+                                <div className={cn(
+                                  "font-semibold text-lg",
+                                  isDark ? "text-gray-100" : "text-gray-900"
+                                )}>
+                                  Sarah Smith
+                                </div>
+                                <div className={cn(
+                                  "font-medium",
+                                  isDark ? "text-purple-400" : "text-purple-600"
+                                )}>
+                                  @sarahsmith
+                                </div>
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "leading-relaxed",
+                              isDark ? "text-gray-300" : "text-gray-700"
+                            )}>
+                              Tech Founder | SaaS Expert | Building the future of work | Previously @bigtech
+                            </div>
+                            <div className={cn(
+                              "flex items-center gap-6",
+                              isDark ? "text-gray-400" : "text-gray-600"
+                            )}>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                <span>12.5k followers</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                <span>1.1k following</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+
+                      {/* Variables Section */}
+                      <div className="space-y-4">
+                        <Label className={cn(
+                          "text-lg font-semibold",
+                          isDark ? "text-gray-200" : "text-gray-900"
                         )}>
-                          {messageTemplate.length} characters
+                          Available Variables
+                        </Label>
+                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3 w-full">
+                          {[
+                            { name: "{name}", desc: "Full Name" },
+                            { name: "{username}", desc: "Twitter Handle" },
+                            { name: "{followers}", desc: "Follower Count" },
+                            { name: "{bio}", desc: "Bio Excerpt" },
+                          ].map((variable) => (
+                            <div
+                              key={variable.name}
+                              className={cn(
+                                "p-3 rounded-lg border cursor-pointer transition-all",
+                                isDark 
+                                  ? "bg-gray-800 border-gray-700 hover:border-purple-700" 
+                                  : "bg-gray-50 border-gray-200 hover:border-purple-300"
+                              )}
+                              onClick={() => {
+                                const textarea = document.querySelector("textarea");
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const end = textarea.selectionEnd;
+                                  const newValue =
+                                    messageTemplate.substring(0, start) +
+                                    variable.name +
+                                    messageTemplate.substring(end);
+                                  setMessageTemplate(newValue);
+                                }
+                              }}
+                            >
+                              <div className={cn(
+                                "font-mono",
+                                isDark ? "text-purple-400" : "text-purple-600"
+                              )}>
+                                {variable.name}
+                              </div>
+                              <div className={cn(
+                                "text-sm",
+                                isDark ? "text-gray-400" : "text-gray-500"
+                              )}>
+                                {variable.desc}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <Textarea
-                        value={messageTemplate}
-                        onChange={(e) => setMessageTemplate(e.target.value)}
-                        className={cn(
-                          "min-h-[120px] resize-none text-base",
-                          isDark ? "bg-gray-900 text-gray-100 border-gray-700" : "bg-gray-50 border-gray-200"
-                        )}
-                        placeholder="Enter your primary message here..."
-                      />
                     </div>
 
-                    {/* Generated Variants */}
-                    <div className={cn(
-                      "lg:col-span-3 p-6 rounded-xl border-2",
-                      isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                    )}>
-                      <div className="flex justify-between items-center mb-6">
-                        <div className="space-y-1">
+                    {/* Right Column - Message Editor and Variants */}
+                    <div className="col-span-1 lg:col-span-3 space-y-6">
+                      {/* Primary Message */}
+                      <div className={cn(
+                        "p-6 rounded-xl border-2",
+                        isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                      )}>
+                        <div className="flex items-center justify-between mb-4">
                           <h3 className={cn(
                             "text-lg font-medium",
                             isDark ? "text-gray-100" : "text-gray-900"
                           )}>
-                            Message Variants
+                            Primary Message
                           </h3>
-                          <p className={cn(
-                            "text-sm",
-                            isDark ? "text-gray-400" : "text-gray-500"
+                          <div className={cn(
+                            "text-sm px-3 py-1 rounded-full",
+                            isDark ? "bg-purple-900/30 text-purple-300" : "bg-purple-100 text-purple-600"
                           )}>
-                            Add up to 5 variants for better engagement
-                          </p>
+                            {messageTemplate.length} characters
+                          </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          onClick={addMessageVariant}
+                        <Textarea
+                          value={messageTemplate}
+                          onChange={(e) => setMessageTemplate(e.target.value)}
                           className={cn(
-                            "gap-2 h-10",
-                            isDark ? "border-gray-600 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-50"
+                            "min-h-[120px] resize-none text-base",
+                            isDark ? "bg-gray-900 text-gray-100 border-gray-700" : "bg-gray-50 border-gray-200"
                           )}
-                          disabled={messageVariants.length >= 5}
-                        >
-                          <span className="text-lg">+</span>
-                          Add Variant
-                        </Button>
+                          placeholder="Enter your primary message here..."
+                        />
                       </div>
 
-                      <div className="space-y-6">
-                        {messageVariants.map((variant, index) => (
-                          <div key={variant.id} className={cn(
-                            "p-4 rounded-lg",
-                            isDark ? "bg-gray-900" : "bg-gray-50"
-                          )}>
-                            <div className="flex justify-between items-center mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className={cn(
-                                  "w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium",
-                                  isDark ? "bg-purple-900/30 text-purple-300" : "bg-purple-100 text-purple-600"
-                                )}>
-                                  {index + 1}
-                                </div>
-                                <Label className={cn(
-                                  "text-sm font-medium",
-                                  isDark ? "text-gray-300" : "text-gray-700"
-                                )}>
-                                  Variant {index + 1}
-                                </Label>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={cn(
-                                  "text-red-500 hover:text-red-600",
-                                  isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                                )}
-                                onClick={() => {
-                                  const newVariants = messageVariants.filter(
-                                    (v) => v.id !== variant.id
-                                  );
-                                  setMessageVariants(newVariants);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <Textarea
-                              value={variant.content}
-                              onChange={(e) => {
-                                const newVariants = [...messageVariants];
-                                newVariants[index].content = e.target.value;
-                                setMessageVariants(newVariants);
-                              }}
-                              className={cn(
-                                "min-h-[100px] resize-none text-base",
-                                isDark ? "bg-gray-800 text-gray-100 border-gray-700" : "bg-white border-gray-200"
-                              )}
-                              placeholder="Enter variant message here..."
-                            />
-                            <div className={cn(
-                              "text-sm mt-2 text-right",
-                              isDark ? "text-gray-400" : "text-gray-500"
+                      {/* Message Variants */}
+                      <div className={cn(
+                        "p-6 rounded-xl border-2",
+                        isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                      )}>
+                        <div className="flex justify-between items-center mb-6">
+                          <div className="space-y-1">
+                            <h3 className={cn(
+                              "text-lg font-medium",
+                              isDark ? "text-gray-100" : "text-gray-900"
                             )}>
-                              {variant.content.length} characters
-                            </div>
-                          </div>
-                        ))}
-
-                        {messageVariants.length === 0 && (
-                          <div className={cn(
-                            "text-center py-8 rounded-lg border-2 border-dashed",
-                            isDark ? "border-gray-700" : "border-gray-200"
-                          )}>
-                            <div className={cn(
-                              "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4",
-                              isDark ? "bg-gray-700" : "bg-gray-100"
-                            )}>
-                              <span className="text-2xl">📝</span>
-                            </div>
-                            <h4 className={cn(
-                              "text-lg font-medium mb-2",
-                              isDark ? "text-gray-200" : "text-gray-900"
-                            )}>
-                              No variants added yet
-                            </h4>
+                              Message Variants
+                            </h3>
                             <p className={cn(
-                              "text-sm max-w-md mx-auto",
+                              "text-sm",
                               isDark ? "text-gray-400" : "text-gray-500"
                             )}>
-                               Click &quot;Add Variant&quot; or &quot;Generate Variants&quot; to create different versions of your message
+                              Add up to 5 variants for better engagement
                             </p>
                           </div>
-                        )}
+                          <Button
+                            variant="outline"
+                            onClick={addMessageVariant}
+                            className={cn(
+                              "gap-2 h-10",
+                              isDark ? "border-gray-600 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-50"
+                            )}
+                            disabled={messageVariants.length >= 5}
+                          >
+                            <span className="text-lg">+</span>
+                            Add Variant
+                          </Button>
+                        </div>
+
+                        <div className="space-y-6">
+                          {messageVariants.map((variant, index) => (
+                            <div key={variant.id} className={cn(
+                              "p-4 rounded-lg",
+                              isDark ? "bg-gray-900" : "bg-gray-50"
+                            )}>
+                              <div className="flex justify-between items-center mb-3">
+                                <div className="flex items-center gap-2">
+                                  <div className={cn(
+                                    "w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium",
+                                    isDark ? "bg-purple-900/30 text-purple-300" : "bg-purple-100 text-purple-600"
+                                  )}>
+                                    {index + 1}
+                                  </div>
+                                  <Label className={cn(
+                                    "text-sm font-medium",
+                                    isDark ? "text-gray-300" : "text-gray-700"
+                                  )}>
+                                    Variant {index + 1}
+                                  </Label>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={cn(
+                                    "text-red-500 hover:text-red-600",
+                                    isDark ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                                  )}
+                                  onClick={() => {
+                                    const newVariants = messageVariants.filter(
+                                      (v) => v.id !== variant.id
+                                    );
+                                    setMessageVariants(newVariants);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <Textarea
+                                value={variant.content}
+                                onChange={(e) => {
+                                  const newVariants = [...messageVariants];
+                                  newVariants[index].content = e.target.value;
+                                  setMessageVariants(newVariants);
+                                }}
+                                className={cn(
+                                  "min-h-[100px] resize-none text-base",
+                                  isDark ? "bg-gray-800 text-gray-100 border-gray-700" : "bg-white border-gray-200"
+                                )}
+                                placeholder="Enter variant message here..."
+                              />
+                              <div className={cn(
+                                "text-sm mt-2 text-right",
+                                isDark ? "text-gray-400" : "text-gray-500"
+                              )}>
+                                {variant.content.length} characters
+                              </div>
+                            </div>
+                          ))}
+
+                          {messageVariants.length === 0 && (
+                            <div className={cn(
+                              "text-center py-8 rounded-lg border-2 border-dashed",
+                              isDark ? "border-gray-700" : "border-gray-200"
+                            )}>
+                              <div className={cn(
+                                "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4",
+                                isDark ? "bg-gray-700" : "bg-gray-100"
+                              )}>
+                                <span className="text-2xl">📝</span>
+                              </div>
+                              <h4 className={cn(
+                                "text-lg font-medium mb-2",
+                                isDark ? "text-gray-200" : "text-gray-900"
+                              )}>
+                                No variants added yet
+                              </h4>
+                              <p className={cn(
+                                "text-sm max-w-md mx-auto",
+                                isDark ? "text-gray-400" : "text-gray-500"
+                              )}>
+                                Click &quot;Add Variant&quot; or &quot;Generate Variants&quot; to create different versions of your message
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1532,7 +1382,7 @@ export default function CampaignPage() {
                         "px-6 h-10",
                         isDark ? "border-gray-700 text-gray-200 hover:bg-gray-700" : ""
                       )}
-                      onClick={() => setStep(3)}
+                      onClick={() => setStep(2)}
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Back
@@ -1542,7 +1392,7 @@ export default function CampaignPage() {
                         "px-6 h-10",
                         isDark ? "bg-purple-600 hover:bg-purple-700" : "bg-black hover:bg-gray-800"
                       )}
-                      onClick={() => setStep(5)}
+                      onClick={() => setStep(4)}
                       disabled={!messageTemplate && messageVariants.every((v) => !v.content)}
                     >
                       Next
@@ -1552,8 +1402,8 @@ export default function CampaignPage() {
                 </div>
               )}
               
-              {/* Step 5: Start Automation */}
-              {step === 5 && (
+              {/* Step 4: Start Automation */}
+              {step === 4 && (
                 <div className="w-full mx-auto space-y-4 sm:space-y-6">
                   <h2 className={cn(
                     "text-2xl sm:text-3xl font-medium text-center mb-4 sm:mb-6",
@@ -1679,7 +1529,7 @@ export default function CampaignPage() {
                           "px-5 sm:px-8 py-3 sm:py-3 text-sm sm:text-base flex-1 sm:flex-initial text-lg font-medium",
                           isDark && "border-gray-700 text-gray-200 hover:bg-gray-800"
                         )}
-                        onClick={() => setStep(4)}
+                        onClick={() => setStep(3)}
                       >
                         Back
                       </Button>
