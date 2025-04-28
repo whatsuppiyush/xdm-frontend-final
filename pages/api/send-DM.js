@@ -787,13 +787,7 @@ if (process.env.NODE_ENV !== 'development') {
   //setTimeout(recoverActiveCampaigns, 5000);
 }
 
-const messageQueue = new Queue('message-queue', {
-  redis: {
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
-    password: process.env.REDIS_PASSWORD
-  }
-});
+const messageQueue = new Queue('message-queue', process.env.UPSTASH_REDIS_URL);
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
