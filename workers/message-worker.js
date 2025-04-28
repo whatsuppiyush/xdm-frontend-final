@@ -23,6 +23,9 @@ async function initializeCampaignQueues() {
   for (const campaign of campaigns) {
     const queue = new Queue(`campaign-${campaign.id}`, process.env.UPSTASH_REDIS_URL);
     campaignQueues.set(campaign.id, queue);
+    // Register processor and seed running state
+    setupQueueProcessing(campaign.id, queue);
+    await redis.set(`queue:${campaign.id}`, JSON.stringify({ status: 'Running' }));
   }
 }
 
@@ -189,7 +192,7 @@ function setupQueueProcessing(campaignId, queue) {
     try {
       const campaignState = await redis.get(`queue:${campaignId}`);
       const state = campaignState ? JSON.parse(campaignState) : {};
-      if (state.status !== 'Running') {
+      if (state.status === 'Paused' || state.status === 'Stopped' || state.status === 'Rate Limited') {
         console.log(`[SKIP] Campaign ${campaignId}: Status is ${state.status}, skipping job for recipient ${recipientId}`);
         throw new Error(`Campaign is ${state.status}`);
       }
