@@ -87,11 +87,15 @@ export default function CampaignPage() {
   const [selectedAccount, setSelectedAccount] = useState<TwitterAccount | null>(null);
   const [leadLists, setLeadLists] = useState<AutomatedLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [leadPage, setLeadPage] = useState(1);
+  const [leadTotalPages, setLeadTotalPages] = useState(1);
   const { userId } = useUser();
   const [twitterAccounts, setTwitterAccounts] = useState<TwitterAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dmqueueList, setDmqueueList] = useState<dmQueueList[]>([]);
+  const [dmPage, setDmPage] = useState(1);
+  const [dmTotalPages, setDmTotalPages] = useState(1);
   const [sendingDM, setSendingDM] = useState(false);
   const [stoppingCampaigns, setStoppingCampaigns] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -131,11 +135,11 @@ export default function CampaignPage() {
 
   const filteredCampaigns = filterCampaigns(activeTab);
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = useCallback(async (page = dmPage) => {
     if (!userId) return;
 
     try {
-      const response = await fetch(`/api/messages?userId=${userId}`);
+      const response = await fetch(`/api/messages?userId=${userId}&page=${page}&limit=5`);
       const data = await response.json();
 
       if (response.ok) {
@@ -163,37 +167,39 @@ export default function CampaignPage() {
         );
 
         setDmqueueList(transformedData);
+        setDmPage(data.page || 1);
+        setDmTotalPages(data.totalPages || 1);
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, dmPage]);
 
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
 
   useEffect(() => {
-    const fetchLeadLists = async () => {
+    const fetchLeadLists = async (page = 1) => {
       if (!userId) return;
-      
+      setLoading(true);
       try {
-        const response = await fetch(`/api/leads?userId=${userId}`);
+        const response = await fetch(`/api/leads?userId=${userId}&page=${page}&limit=5`);
         if (!response.ok) throw new Error('Failed to fetch lead lists');
-        
         const data = await response.json();
         setLeadLists(data.leads);
+        setLeadPage(data.page || 1);
+        setLeadTotalPages(data.totalPages || 1);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching lead lists:', error);
         setLoading(false);
       }
     };
-
-    fetchLeadLists();
-  }, [userId]);
+    fetchLeadLists(leadPage);
+  }, [userId, leadPage]);
 
   useEffect(() => {
     const fetchTwitterAccounts = async () => {
@@ -1801,6 +1807,25 @@ export default function CampaignPage() {
         </div>
       )}
 
+      {/* Pagination controls for campaigns/messages */}
+      <div className="flex justify-center items-center gap-2 mt-4">
+        <Button
+          variant="outline"
+          disabled={dmPage <= 1}
+          onClick={() => setDmPage((p) => Math.max(1, p - 1))}
+        >
+          Prev
+        </Button>
+        <span>Page {dmPage} of {dmTotalPages}</span>
+        <Button
+          variant="outline"
+          disabled={dmPage >= dmTotalPages}
+          onClick={() => setDmPage((p) => Math.min(dmTotalPages, p + 1))}
+        >
+          Next
+        </Button>
+      </div>
+
       <DeleteConfirmationDialog
         isOpen={deleteDialogOpen}
         onClose={() => {
@@ -1812,6 +1837,25 @@ export default function CampaignPage() {
         description="Are you sure you want to delete this campaign? This action cannot be undone."
         isDeleting={isDeleting}
       />
+
+      {/* Pagination controls for leads */}
+      <div className="flex justify-center items-center gap-2 mt-4">
+        <Button
+          variant="outline"
+          disabled={leadPage <= 1}
+          onClick={() => setLeadPage((p) => Math.max(1, p - 1))}
+        >
+          Prev
+        </Button>
+        <span>Page {leadPage} of {leadTotalPages}</span>
+        <Button
+          variant="outline"
+          disabled={leadPage >= leadTotalPages}
+          onClick={() => setLeadPage((p) => Math.min(leadTotalPages, p + 1))}
+        >
+          Next
+        </Button>
+      </div>
 
       {/* {dmqueueList.some(queue => queue.status === "In Progress" || queue.status === "Rate Limited") && (
         <Button
