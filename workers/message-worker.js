@@ -14,6 +14,79 @@ const MAX_RETRIES = 2;
 // Create separate queues for each campaign
 const campaignQueues = new Map();
 
+// Helper to set up queue processing for a campaign
+function setupQueueProcessing(campaignId, queue) {
+    queue.process(1, async (job) => {
+      const { recipientId, message, cookies, userId } = job.data;
+      console.log(`[PROCESS] Campaign ${campaignId}: Processing job for recipient ${recipientId}`);
+      try {
+        const campaignState = await redis.get(`queue:${campaignId}`);
+        const state = campaignState ? JSON.parse(campaignState) : {};
+        if (state.status === 'Paused' || state.status === 'Stopped' || state.status === 'Rate Limited') {
+          console.log(`[SKIP] Campaign ${campaignId}: Status is ${state.status}, skipping job for recipient ${recipientId}`);
+          throw new Error(`Campaign is ${state.status}`);
+        }
+        const today = new Date().toISOString().split('T')[0];
+        const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
+        const currentCount = await redis.get(dailyLimitKey);
+        const parsedCount = currentCount ? parseInt(currentCount) : 0;
+        const userCredits = await prisma.userCredits.findUnique({ where: { userId } });
+        const userLimit = getUserDailyMessageLimit(userCredits);
+        const effectiveLimit = getEnvironmentAdjustedLimit(userLimit);
+        if (parsedCount >= effectiveLimit) {
+          console.log(`[LIMIT] Campaign ${campaignId}: Daily limit reached for user ${userId}`);
+          state.status = 'Rate Limited';
+          await redis.set(`queue:${campaignId}`, JSON.stringify(state));
+          throw new Error('Daily limit reached');
+        }
+        console.log(`[SEND] Campaign ${campaignId}: Sending DM to recipient ${recipientId}`);
+        const success = await sendDM(recipientId, message, cookies);
+        if (success) {
+          await redis.incr(dailyLimitKey);
+          await prisma.message.update({
+            where: { id: campaignId },
+            data: {
+              messages: {
+                updateMany: {
+                  where: { recipientId },
+                  data: { status: true }
+                }
+              }
+            }
+          });
+          if (!state.processedRecipients) {
+            state.processedRecipients = [];
+          }
+          state.processedRecipients.push(recipientId);
+          await redis.set(`queue:${campaignId}`, JSON.stringify(state));
+          console.log(`[SUCCESS] Campaign ${campaignId}: DM sent to recipient ${recipientId}`);
+        } else {
+          console.log(`[FAIL] Campaign ${campaignId}: Failed to send DM to recipient ${recipientId}`);
+        }
+        return { success };
+      } catch (error) {
+        console.error(`[ERROR] Campaign ${campaignId}: Job failed for recipient ${recipientId}:`, error);
+        throw error;
+      }
+    });
+    queue.on('failed', async (job, error) => {
+      console.error(`[FAILED] Campaign ${campaignId}: Job ${job.id} failed for recipient ${job.data.recipientId}:`, error);
+      const campaignState = await redis.get(`queue:${campaignId}`);
+      const state = campaignState ? JSON.parse(campaignState) : {};
+      if (!state.totalAttempts) {
+        state.totalAttempts = 0;
+      }
+      state.totalAttempts++;
+      if (state.totalAttempts >= MAX_RETRIES) {
+        state.totalAttempts = 0;
+        await redis.set(`queue:${campaignId}`, JSON.stringify(state));
+        console.log(`[FAILED] Campaign ${campaignId}: Max retries reached for job ${job.id}`);
+      } else {
+        await job.retry();
+        console.log(`[RETRY] Campaign ${campaignId}: Retrying job ${job.id}`);
+      }
+    });
+  }
 // Initialize queues for each campaign
 async function initializeCampaignQueues() {
   const campaigns = await prisma.message.findMany({
@@ -183,80 +256,6 @@ app.post('/campaign/:campaignId/stop', async (req, res) => {
     res.status(500).json({ error: 'Failed to stop campaign' });
   }
 });
-
-// Helper to set up queue processing for a campaign
-function setupQueueProcessing(campaignId, queue) {
-  queue.process(1, async (job) => {
-    const { recipientId, message, cookies, userId } = job.data;
-    console.log(`[PROCESS] Campaign ${campaignId}: Processing job for recipient ${recipientId}`);
-    try {
-      const campaignState = await redis.get(`queue:${campaignId}`);
-      const state = campaignState ? JSON.parse(campaignState) : {};
-      if (state.status === 'Paused' || state.status === 'Stopped' || state.status === 'Rate Limited') {
-        console.log(`[SKIP] Campaign ${campaignId}: Status is ${state.status}, skipping job for recipient ${recipientId}`);
-        throw new Error(`Campaign is ${state.status}`);
-      }
-      const today = new Date().toISOString().split('T')[0];
-      const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
-      const currentCount = await redis.get(dailyLimitKey);
-      const parsedCount = currentCount ? parseInt(currentCount) : 0;
-      const userCredits = await prisma.userCredits.findUnique({ where: { userId } });
-      const userLimit = getUserDailyMessageLimit(userCredits);
-      const effectiveLimit = getEnvironmentAdjustedLimit(userLimit);
-      if (parsedCount >= effectiveLimit) {
-        console.log(`[LIMIT] Campaign ${campaignId}: Daily limit reached for user ${userId}`);
-        state.status = 'Rate Limited';
-        await redis.set(`queue:${campaignId}`, JSON.stringify(state));
-        throw new Error('Daily limit reached');
-      }
-      console.log(`[SEND] Campaign ${campaignId}: Sending DM to recipient ${recipientId}`);
-      const success = await sendDM(recipientId, message, cookies);
-      if (success) {
-        await redis.incr(dailyLimitKey);
-        await prisma.message.update({
-          where: { id: campaignId },
-          data: {
-            messages: {
-              updateMany: {
-                where: { recipientId },
-                data: { status: true }
-              }
-            }
-          }
-        });
-        if (!state.processedRecipients) {
-          state.processedRecipients = [];
-        }
-        state.processedRecipients.push(recipientId);
-        await redis.set(`queue:${campaignId}`, JSON.stringify(state));
-        console.log(`[SUCCESS] Campaign ${campaignId}: DM sent to recipient ${recipientId}`);
-      } else {
-        console.log(`[FAIL] Campaign ${campaignId}: Failed to send DM to recipient ${recipientId}`);
-      }
-      return { success };
-    } catch (error) {
-      console.error(`[ERROR] Campaign ${campaignId}: Job failed for recipient ${recipientId}:`, error);
-      throw error;
-    }
-  });
-  queue.on('failed', async (job, error) => {
-    console.error(`[FAILED] Campaign ${campaignId}: Job ${job.id} failed for recipient ${job.data.recipientId}:`, error);
-    const campaignState = await redis.get(`queue:${campaignId}`);
-    const state = campaignState ? JSON.parse(campaignState) : {};
-    if (!state.totalAttempts) {
-      state.totalAttempts = 0;
-    }
-    state.totalAttempts++;
-    if (state.totalAttempts >= MAX_RETRIES) {
-      state.totalAttempts = 0;
-      await redis.set(`queue:${campaignId}`, JSON.stringify(state));
-      console.log(`[FAILED] Campaign ${campaignId}: Max retries reached for job ${job.id}`);
-    } else {
-      await job.retry();
-      console.log(`[RETRY] Campaign ${campaignId}: Retrying job ${job.id}`);
-    }
-  });
-}
 
 // Polling function to check for new campaigns
 async function pollForNewCampaigns() {
