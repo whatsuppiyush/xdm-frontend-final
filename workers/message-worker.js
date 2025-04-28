@@ -264,7 +264,6 @@ setInterval(pollForNewCampaigns, 30000);
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
-  await initializeCampaignQueues();
   console.log(`Worker service running on port ${PORT}`);
   console.log(`Configured for ${MAX_CONCURRENT_CAMPAIGNS} concurrent campaigns`);
   console.log(`Target: ${MESSAGES_PER_CAMPAIGN} messages per campaign`);
