@@ -34,6 +34,8 @@ declare global {
 export default function LeadsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [leadLists, setLeadLists] = useState<LeadList[]>([]);
+  const [leadPage, setLeadPage] = useState(1);
+  const [leadTotalPages, setLeadTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const { userId } = useUser();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -59,7 +61,7 @@ export default function LeadsPage() {
       if (!userId) return;
       
       try {
-        const response = await fetch(`/api/leads?userId=${userId}`);
+        const response = await fetch(`/api/leads?userId=${userId}&page=${leadPage}&limit=5`);
         if (!response.ok) throw new Error('Failed to fetch lead lists');
         
         const data = await response.json();
@@ -89,6 +91,8 @@ export default function LeadsPage() {
         }
         
         setLeadLists(formattedLeads);
+        setLeadPage(data.page || 1);
+        setLeadTotalPages(data.totalPages || 1);
         
         // Check if any leads are still in progress
         const hasInProgressLeads = formattedLeads.some(
@@ -119,7 +123,7 @@ export default function LeadsPage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [userId, refreshCounter]);
+  }, [userId, leadPage, refreshCounter]);
 
   useEffect(() => {
     const fetchUserCredits = async () => {
@@ -350,6 +354,25 @@ export default function LeadsPage() {
             />
           ))
         )}
+      </div>
+
+      {/* Pagination controls for leads */}
+      <div className="flex justify-center items-center gap-2 mt-4">
+        <Button
+          variant="outline"
+          disabled={leadPage <= 1}
+          onClick={() => setLeadPage((p) => Math.max(1, p - 1))}
+        >
+          Prev
+        </Button>
+        <span>Page {leadPage} of {leadTotalPages}</span>
+        <Button
+          variant="outline"
+          disabled={leadPage >= leadTotalPages}
+          onClick={() => setLeadPage((p) => Math.min(leadTotalPages, p + 1))}
+        >
+          Next
+        </Button>
       </div>
 
       {/* Delete Confirmation Dialog */}
