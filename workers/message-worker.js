@@ -221,24 +221,22 @@ messageQueue.process(async (job) => {
       throw error;
     }
   });
-  queue.on('failed', async (job, error) => {
-    console.error(`[FAILED] Campaign ${campaignId}: Job ${job.id} failed for recipient ${job.data.recipientId}:`, error);
-    const campaignState = await redis.get(`queue:${campaignId}`);
-    const state = campaignState ? JSON.parse(campaignState) : {};
-    if (!state.totalAttempts) {
-      state.totalAttempts = 0;
-    }
-    state.totalAttempts++;
-    if (state.totalAttempts >= MAX_RETRIES) {
-      state.totalAttempts = 0;
-      await redis.set(`queue:${campaignId}`, JSON.stringify(state));
-      console.log(`[FAILED] Campaign ${campaignId}: Max retries reached for job ${job.id}`);
-    } else {
-      await job.retry();
-      console.log(`[RETRY] Campaign ${campaignId}: Retrying job ${job.id}`);
-    }
-  });
 
+messageQueue.on('failed', async (job, error) => {
+  const { campaignId, recipientId } = job.data;
+  console.error(`[FAILED] Campaign ${campaignId}: Job ${job.id} failed for recipient ${recipientId}:`, error);
+  const campaignState = await redis.get(`queue:${campaignId}`);
+  const state = campaignState ? JSON.parse(campaignState) : {};
+  state.totalAttempts = (state.totalAttempts || 0) + 1;
+  if (state.totalAttempts >= MAX_RETRIES) {
+    state.totalAttempts = 0;
+    await redis.set(`queue:${campaignId}`, JSON.stringify(state));
+    console.log(`[FAILED] Campaign ${campaignId}: Max retries reached for job ${job.id}`);
+  } else {
+    await job.retry();
+    console.log(`[RETRY] Campaign ${campaignId}: Retrying job ${job.id}`);
+  }
+});
 
 // Polling function to check for new campaigns
 async function pollForNewCampaigns() {
