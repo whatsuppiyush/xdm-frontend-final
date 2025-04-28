@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import redis from '../../lib/redis';
-import { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } from '../..lib/planLimits';
+import { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } from '../../lib/planLimits';
 import { createServer } from 'http';
 import Queue from 'bull';
 const prisma = new PrismaClient();
