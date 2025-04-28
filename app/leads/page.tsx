@@ -36,6 +36,7 @@ export default function LeadsPage() {
   const [leadLists, setLeadLists] = useState<LeadList[]>([]);
   const [leadPage, setLeadPage] = useState(1);
   const [leadTotalPages, setLeadTotalPages] = useState(1);
+  const [leadPaginationLoading, setLeadPaginationLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const { userId } = useUser();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -93,6 +94,7 @@ export default function LeadsPage() {
         setLeadLists(formattedLeads);
         setLeadPage(data.page || 1);
         setLeadTotalPages(data.totalPages || 1);
+        setLeadPaginationLoading(false);
         
         // Check if any leads are still in progress
         const hasInProgressLeads = formattedLeads.some(
@@ -111,6 +113,7 @@ export default function LeadsPage() {
         console.error('Error fetching leads:', error);
       } finally {
         setLoading(false);
+        setLeadPaginationLoading(false);
       }
     };
     
@@ -360,17 +363,25 @@ export default function LeadsPage() {
       <div className="flex justify-center items-center gap-2 mt-4">
         <Button
           variant="outline"
-          disabled={leadPage <= 1}
-          onClick={() => setLeadPage((p) => Math.max(1, p - 1))}
+          disabled={leadPage <= 1 || leadPaginationLoading}
+          onClick={() => {
+            setLeadPaginationLoading(true);
+            setLeadPage((p) => Math.max(1, p - 1));
+          }}
         >
+          {leadPaginationLoading ? <span className="animate-spin mr-2">⏳</span> : null}
           Prev
         </Button>
         <span>Page {leadPage} of {leadTotalPages}</span>
         <Button
           variant="outline"
-          disabled={leadPage >= leadTotalPages}
-          onClick={() => setLeadPage((p) => Math.min(leadTotalPages, p + 1))}
+          disabled={leadPage >= leadTotalPages || leadPaginationLoading}
+          onClick={() => {
+            setLeadPaginationLoading(true);
+            setLeadPage((p) => Math.min(leadTotalPages, p + 1));
+          }}
         >
+          {leadPaginationLoading ? <span className="animate-spin mr-2">⏳</span> : null}
           Next
         </Button>
       </div>

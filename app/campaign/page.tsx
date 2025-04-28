@@ -96,6 +96,7 @@ export default function CampaignPage() {
   const [dmqueueList, setDmqueueList] = useState<dmQueueList[]>([]);
   const [dmPage, setDmPage] = useState(1);
   const [dmTotalPages, setDmTotalPages] = useState(1);
+  const [dmPaginationLoading, setDmPaginationLoading] = useState(false);
   const [sendingDM, setSendingDM] = useState(false);
   const [stoppingCampaigns, setStoppingCampaigns] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -169,6 +170,7 @@ export default function CampaignPage() {
         setDmqueueList(transformedData);
         setDmPage(data.page || 1);
         setDmTotalPages(data.totalPages || 1);
+        setDmPaginationLoading(false);
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -1808,20 +1810,29 @@ export default function CampaignPage() {
       )}
 
       {/* Pagination controls for campaigns/messages */}
+      {/* Pagination controls for campaigns/messages */}
       <div className="flex justify-center items-center gap-2 mt-4">
         <Button
           variant="outline"
-          disabled={dmPage <= 1}
-          onClick={() => setDmPage((p) => Math.max(1, p - 1))}
+          disabled={dmPage <= 1 || dmPaginationLoading}
+          onClick={() => {
+            setDmPaginationLoading(true);
+            setDmPage((p) => Math.max(1, p - 1));
+          }}
         >
+          {dmPaginationLoading ? <span className="animate-spin mr-2">⏳</span> : null}
           Prev
         </Button>
         <span>Page {dmPage} of {dmTotalPages}</span>
         <Button
           variant="outline"
-          disabled={dmPage >= dmTotalPages}
-          onClick={() => setDmPage((p) => Math.min(dmTotalPages, p + 1))}
+          disabled={dmPage >= dmTotalPages || dmPaginationLoading}
+          onClick={() => {
+            setDmPaginationLoading(true);
+            setDmPage((p) => Math.min(dmTotalPages, p + 1));
+          }}
         >
+          {dmPaginationLoading ? <span className="animate-spin mr-2">⏳</span> : null}
           Next
         </Button>
       </div>
