@@ -857,39 +857,8 @@ export default async function handler(req, res) {
             await campaignQueue.loadFromRedis();
             console.log("campaignQueue.status and cron",campaignQueue.status,cron);
             if (campaignQueue.status === 'Paused' || cron) {
-                campaignQueue.status = 'Running';
-                await campaignQueue.saveToRedis();
-                // Update active_campaigns and campaigns_updated
-                let activeCampaigns = await redis.get('active_campaigns');
-                let ids = [];
-                try { 
-                    // Safely parse the active_campaigns data
-                    if (activeCampaigns) {
-                        // Handle non-JSON formatted data by converting it
-                        if (activeCampaigns.includes(',') && !activeCampaigns.includes('[')) {
-                            console.log("Converting comma-separated active_campaigns to JSON array");
-                            ids = activeCampaigns.split(',');
-                        } else {
-                            try {
-                                ids = JSON.parse(activeCampaigns);
-                            } catch (e) {
-                                console.error("Error parsing active_campaigns JSON:", e.message);
-                                ids = [];
-                            }
-                        }
-                        // Ensure ids is always an array
-                        if (!Array.isArray(ids)) {
-                            console.log("Active campaigns was not an array, resetting");
-                            ids = [];
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error processing active_campaigns:", e.message);
-                    ids = [];
-                }
-                if (!ids.includes(campaignId)) ids.push(campaignId);
-                await redis.set('active_campaigns', JSON.stringify(ids));
-                await redis.set('campaigns_updated', Date.now().toString());
+                await campaignQueue.resume();
+                await triggerWorkerProcess(campaignId, 'resume');
             }
 
             // Update the message status in database
@@ -934,42 +903,10 @@ export default async function handler(req, res) {
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
 
-            // Add recipients to queue
+            // Add recipients to queue and start processing
             await campaignQueue.addRecipients(recipients, message, updatedCookies, userId);
-            campaignQueue.status = 'Running';
-            await campaignQueue.saveToRedis();
-
-            // Update active_campaigns and campaigns_updated
-            let activeCampaigns = await redis.get('active_campaigns');
-            let ids = [];
-            try { 
-                // Safely parse the active_campaigns data
-                if (activeCampaigns) {
-                    // Handle non-JSON formatted data by converting it
-                    if (activeCampaigns.includes(',') && !activeCampaigns.includes('[')) {
-                        console.log("Converting comma-separated active_campaigns to JSON array");
-                        ids = activeCampaigns.split(',');
-                    } else {
-                        try {
-                            ids = JSON.parse(activeCampaigns);
-                        } catch (e) {
-                            console.error("Error parsing active_campaigns JSON:", e.message);
-                            ids = [];
-                        }
-                    }
-                    // Ensure ids is always an array
-                    if (!Array.isArray(ids)) {
-                        console.log("Active campaigns was not an array, resetting");
-                        ids = [];
-                    }
-                }
-            } catch (e) {
-                console.error("Error processing active_campaigns:", e.message);
-                ids = [];
-            }
-            if (!ids.includes(campaignId)) ids.push(campaignId);
-            await redis.set('active_campaigns', JSON.stringify(ids));
-            await redis.set('campaigns_updated', Date.now().toString());
+            console.log("Active campaign queues in start action:", Array.from(redis.keys('queue:*')));
+            campaignQueue.process().catch(console.error);
 
             return res.status(200).json({ 
                 success: true, 
