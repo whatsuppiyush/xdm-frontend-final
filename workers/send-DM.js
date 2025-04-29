@@ -1,5 +1,4 @@
 // workers/send-DM.js
-// require('dotenv').config();
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 const { PrismaClient } = require('@prisma/client');
@@ -637,7 +636,7 @@ class DMWorker {
   }
 
   async saveQueueState(campaignId, queueState) {
-    await redis.set(`${QUEUE_PREFIX}${campaignId}`, JSON.stringify(queueState));
+    await redis.set(`${QUEUE_PREFIX}${campaignId}`, queueState);
   }
 
   async recoverActiveCampaigns() {
