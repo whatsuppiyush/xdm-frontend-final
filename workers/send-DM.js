@@ -1,5 +1,5 @@
 // workers/send-DM.js
-require('dotenv').config();
+// require('dotenv').config();
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 const { PrismaClient } = require('@prisma/client');
