@@ -884,30 +884,27 @@ export default async function handler(req, res) {
         //console.log('updatedCookies',updatedCookies);
         
         if (action === 'start') {
-            const { userId } = req.body; // Get the user ID from the request
-            console.log('req.body',req.body);
-            if (!userId) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'userId is required'
+            const { userId, campaignId, recipients, message, cookies } = req.body;
+            if (!userId || !campaignId || !recipients || !message || !cookies) {
+                return res.status(400).json({ success: false, message: 'Missing required fields' });
+            }
+
+            // Add jobs to Bull queue for this campaign
+            const messageQueue = new Queue(`campaign-${campaignId}`, process.env.UPSTASH_REDIS_URL);
+
+            for (const recipient of recipients) {
+                await messageQueue.add({
+                    recipientId: recipient.id,
+                    message: message, // If you want to use messageTransformFunction, apply it here
+                    cookies,
+                    userId
                 });
             }
-            
-            console.log("Starting campaign with userId:", userId);
-            
-            // Create or get existing campaign queue
-            const campaignQueue = new CampaignQueue(campaignId);
-            await campaignQueue.loadFromRedis();
 
-            // Add recipients to queue and start processing
-            await campaignQueue.addRecipients(recipients, message, updatedCookies, userId);
-            console.log("Active campaign queues in start action:", Array.from(redis.keys('queue:*')));
-            campaignQueue.process().catch(console.error);
-
-            return res.status(200).json({ 
-                success: true, 
-                message: 'Campaign started',
-                queueLength: campaignQueue.queue.length,
+            return res.status(200).json({
+                success: true,
+                message: 'Campaign jobs enqueued',
+                campaignId,
                 totalRecipients: recipients.length
             });
         }
