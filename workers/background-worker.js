@@ -603,7 +603,16 @@ async function pollForActiveCampaigns() {
         let activeCampaignIds;
         try {
           console.log(`[POLL] Raw active_campaigns data: ${activeCampaignsData}`);
-          activeCampaignIds = JSON.parse(activeCampaignsData);
+          
+          // Handle case where active_campaigns is a comma-separated string instead of JSON
+          let dataToParse = activeCampaignsData;
+          if (activeCampaignsData.includes(',') && !activeCampaignsData.includes('[')) {
+            // Convert comma-separated string to JSON array format
+            console.log('[POLL] Converting comma-separated string to JSON array');
+            dataToParse = JSON.stringify(activeCampaignsData.split(','));
+          }
+          
+          activeCampaignIds = JSON.parse(dataToParse);
           if (!Array.isArray(activeCampaignIds)) {
             throw new Error('active_campaigns is not an array');
           }
@@ -658,6 +667,17 @@ async function pollForActiveCampaigns() {
 async function recoverActiveCampaigns() {
   try {
     console.log("[RECOVER] Recovering active campaigns");
+    
+    // First, check if there's existing active_campaigns data that might be corrupted
+    const existingActiveCampaigns = await redis.get('active_campaigns');
+    if (existingActiveCampaigns) {
+      // If it exists but isn't in JSON array format, clear it
+      if (!existingActiveCampaigns.startsWith('[') || !existingActiveCampaigns.endsWith(']')) {
+        console.log('[RECOVER] Found corrupted active_campaigns data, clearing it');
+        await redis.del('active_campaigns');
+      }
+    }
+    
     const queueKeys = await redis.keys('queue:*');
     console.log(`[RECOVER] Found ${queueKeys.length} campaign queues in Redis`);
     
@@ -738,6 +758,8 @@ async function recoverActiveCampaigns() {
       console.log(`[RECOVER] Active campaigns set successfully`);
     } else {
       console.log(`[RECOVER] No active campaigns to set`);
+      // Clear any existing active_campaigns key to avoid stale data
+      await redis.del('active_campaigns');
     }
     
     console.log(`[RECOVER] Recovered ${recoveredCount} campaigns`);

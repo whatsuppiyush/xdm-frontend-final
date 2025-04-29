@@ -862,7 +862,31 @@ export default async function handler(req, res) {
                 // Update active_campaigns and campaigns_updated
                 let activeCampaigns = await redis.get('active_campaigns');
                 let ids = [];
-                try { ids = activeCampaigns ? JSON.parse(activeCampaigns) : []; } catch {}
+                try { 
+                    // Safely parse the active_campaigns data
+                    if (activeCampaigns) {
+                        // Handle non-JSON formatted data by converting it
+                        if (activeCampaigns.includes(',') && !activeCampaigns.includes('[')) {
+                            console.log("Converting comma-separated active_campaigns to JSON array");
+                            ids = activeCampaigns.split(',');
+                        } else {
+                            try {
+                                ids = JSON.parse(activeCampaigns);
+                            } catch (e) {
+                                console.error("Error parsing active_campaigns JSON:", e.message);
+                                ids = [];
+                            }
+                        }
+                        // Ensure ids is always an array
+                        if (!Array.isArray(ids)) {
+                            console.log("Active campaigns was not an array, resetting");
+                            ids = [];
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error processing active_campaigns:", e.message);
+                    ids = [];
+                }
                 if (!ids.includes(campaignId)) ids.push(campaignId);
                 await redis.set('active_campaigns', JSON.stringify(ids));
                 await redis.set('campaigns_updated', Date.now().toString());
@@ -918,7 +942,31 @@ export default async function handler(req, res) {
             // Update active_campaigns and campaigns_updated
             let activeCampaigns = await redis.get('active_campaigns');
             let ids = [];
-            try { ids = activeCampaigns ? JSON.parse(activeCampaigns) : []; } catch {}
+            try { 
+                // Safely parse the active_campaigns data
+                if (activeCampaigns) {
+                    // Handle non-JSON formatted data by converting it
+                    if (activeCampaigns.includes(',') && !activeCampaigns.includes('[')) {
+                        console.log("Converting comma-separated active_campaigns to JSON array");
+                        ids = activeCampaigns.split(',');
+                    } else {
+                        try {
+                            ids = JSON.parse(activeCampaigns);
+                        } catch (e) {
+                            console.error("Error parsing active_campaigns JSON:", e.message);
+                            ids = [];
+                        }
+                    }
+                    // Ensure ids is always an array
+                    if (!Array.isArray(ids)) {
+                        console.log("Active campaigns was not an array, resetting");
+                        ids = [];
+                    }
+                }
+            } catch (e) {
+                console.error("Error processing active_campaigns:", e.message);
+                ids = [];
+            }
             if (!ids.includes(campaignId)) ids.push(campaignId);
             await redis.set('active_campaigns', JSON.stringify(ids));
             await redis.set('campaigns_updated', Date.now().toString());
