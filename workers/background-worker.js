@@ -595,21 +595,21 @@ async function incrementDailyLimit(userId) {
 // Poll for active campaigns
 async function pollForActiveCampaigns() {
   try {
-    // Check if there's a notification about updated campaigns
     const campaignsUpdated = await redis.get('campaigns_updated');
-    
     if (campaignsUpdated) {
       console.log(`[POLL] Campaigns update detected at ${new Date(parseInt(campaignsUpdated)).toISOString()}`);
-      
-      // Get the list of active campaigns
       const activeCampaignsData = await redis.get('active_campaigns');
-      
       if (activeCampaignsData) {
         let activeCampaignIds;
         try {
           console.log(`[POLL] Raw active_campaigns data: ${activeCampaignsData}`);
           activeCampaignIds = JSON.parse(activeCampaignsData);
-          console.log(`[POLL] Parsed ${activeCampaignIds.length} active campaigns: ${JSON.stringify(activeCampaignIds)}`);
+          if (!Array.isArray(activeCampaignIds)) {
+            throw new Error('active_campaigns is not an array');
+          }
+          // Filter out any non-string/invalid campaign IDs
+          activeCampaignIds = activeCampaignIds.filter(id => typeof id === 'string' && id.length > 0);
+          console.log(`[POLL] Parsed ${activeCampaignIds.length} valid active campaigns: ${JSON.stringify(activeCampaignIds)}`);
         } catch (e) {
           console.error(`[POLL] Invalid JSON in active_campaigns: ${activeCampaignsData}`);
           console.error(`[POLL] JSON parse error: ${e.message}`);
@@ -618,29 +618,18 @@ async function pollForActiveCampaigns() {
           console.log('[POLL] Cleared invalid Redis keys');
           return;
         }
-        
-        if (!Array.isArray(activeCampaignIds)) {
-          console.error(`[POLL] active_campaigns is not an array: ${typeof activeCampaignIds}`);
-          await redis.del('active_campaigns');
+        if (activeCampaignIds.length === 0) {
+          console.log('[POLL] No valid active campaigns to process');
           await redis.del('campaigns_updated');
-          console.log('[POLL] Cleared invalid Redis keys (not an array)');
           return;
         }
-        
-        console.log(`[POLL] Found ${activeCampaignIds.length} active campaigns`);
-        
-        // Process each campaign not already being processed
         for (const campaignId of activeCampaignIds) {
           if (!ACTIVE_CAMPAIGNS.has(campaignId)) {
             console.log(`[POLL] Starting new campaign: ${campaignId}`);
-            
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
-            
             console.log(`[POLL] Campaign ${campaignId} status: ${campaignQueue.status}, queue length: ${campaignQueue.queue.length}`);
-            
             if (campaignQueue.status === 'Running' && campaignQueue.queue.length > 0) {
-              // Start the campaign processing in background
               campaignQueue.process().catch(error => {
                 console.error(`[ERROR] Failed to process campaign ${campaignId}:`, error);
               });
@@ -651,8 +640,6 @@ async function pollForActiveCampaigns() {
             console.log(`[POLL] Campaign ${campaignId} is already being processed`);
           }
         }
-        
-        // Clear the notification
         await redis.del('campaigns_updated');
       } else {
         console.log('[POLL] No active_campaigns data found in Redis');
