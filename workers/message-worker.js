@@ -17,12 +17,10 @@ function getUserDailyMessageLimit(userCredits, defaultLimit = 50) {
   
   // Use plan-based limits
   switch(planType) {
-    case 'Starter': return 100;
-    case 'Growth': return 150;
-    case 'Elite': 
-    case 'ENTERPRISE': return 450;
-    case 'free': 
-    case 'FREE': return 50;
+    case 'Starter': return 450;
+    case 'Growth': return 1250;
+    case 'Elite': return 450;
+    case 'free': return 50;
     default: return defaultLimit;
   }
 }
@@ -57,12 +55,25 @@ const upstashConnection = {
 
 // Add BullMQ Worker for each campaign queue
 function setupBullMQWorker(campaignId) {
+  // Track error counts and retries
+  let consecutiveMemoryErrors = 0;
+  let browserRestartCount = 0;
+  let recipientsToRetry = [];
+  let currentBrowser = null;
+  let cooldownActive = false;
+
   const worker = new Worker(
     `campaign-${campaignId}`,
     async (job) => {
       const { recipientId, message, cookies, userId } = job.data;
       console.log(`[PROCESS] Campaign ${campaignId}: Processing job for recipient ${recipientId}`);
       try {
+        // Skip if we're currently in cooldown
+        if (cooldownActive) {
+          console.log(`[COOLDOWN] Campaign ${campaignId}: In cooldown period, delaying job for recipient ${recipientId}`);
+          throw new Error('Campaign is in cooldown period');
+        }
+
         const campaignState = await redis.get(`queue:${campaignId}`);
         const state = campaignState ? 
           (typeof campaignState === 'object' ? campaignState : JSON.parse(campaignState)) : {};
@@ -84,8 +95,17 @@ function setupBullMQWorker(campaignId) {
           throw new Error('Daily limit reached');
         }
         console.log(`[SEND] Campaign ${campaignId}: Sending DM to recipient ${recipientId}`);
+        
+        // Use random delay between 2-4 minutes to avoid rate limiting
+        const randomDelay = Math.floor(Math.random() * (4 - 2 + 1) + 2) * 60000; 
+        console.log(`[DELAY] Campaign ${campaignId}: Waiting ${randomDelay/60000} minutes before sending to ${recipientId}`);
+        await new Promise(resolve => setTimeout(resolve, randomDelay));
+        
         const success = await sendDM(recipientId, message, cookies);
         if (success) {
+          // Reset consecutive errors on success
+          consecutiveMemoryErrors = 0;
+          
           await redis.incr(dailyLimitKey);
           await prisma.message.update({
             where: { id: campaignId },
@@ -110,11 +130,91 @@ function setupBullMQWorker(campaignId) {
         return { success };
       } catch (error) {
         console.error(`[ERROR] Campaign ${campaignId}: Job failed for recipient ${recipientId}:`, error);
+        
+        // Check for memory-related or rate-limit errors
+        if (error.message.includes('Target.createTarget timed out') || 
+            error.message.includes('out of memory') || 
+            error.message.includes('TimeoutError') ||
+            error.message.includes('Browser closed') ||
+            error.message.includes('Protocol error') || 
+            error.message.includes('Increase the \'protocolTimeout\'') ||
+            error.message.includes('Waiting for selector') ||
+            error.message.includes('Waiting failed:')) {
+          
+          // Implement cooldown logic
+          consecutiveMemoryErrors++;
+          console.log(`[COOLDOWN] Campaign ${campaignId}: Browser issue detected, consecutive errors: ${consecutiveMemoryErrors}`);
+          
+          // Start cooldown if we're hitting repeated errors
+          if (consecutiveMemoryErrors >= 2) {
+            // Save the recipient to retry later
+            recipientsToRetry.push({
+              recipientId,
+              message,
+              cookies,
+              userId
+            });
+            
+            // Progressive cooldown period - increases with consecutive errors
+            const cooldownMinutes = Math.min(3 + (consecutiveMemoryErrors), 10);
+            console.log(`[COOLDOWN] Campaign ${campaignId}: Starting cooldown of ${cooldownMinutes} minutes`);
+            
+            // Set cooldown flag and schedule reset
+            cooldownActive = true;
+            
+            // Log cooldown times
+            const resumeTime = new Date(Date.now() + cooldownMinutes * 60000);
+            console.log(`[COOLDOWN] Campaign ${campaignId}: Started at ${new Date().toISOString()}, will resume at ${resumeTime.toISOString()}`);
+            
+            // Schedule end of cooldown
+            setTimeout(() => {
+              cooldownActive = false;
+              console.log(`[COOLDOWN] Campaign ${campaignId}: Cooldown completed at ${new Date().toISOString()}`);
+              
+              // Re-add the jobs that failed during cooldown
+              const reAddJobs = async () => {
+                try {
+                  console.log(`[RETRY] Campaign ${campaignId}: Re-adding ${recipientsToRetry.length} failed jobs`);
+                  
+                  // Get the queue
+                  const queue = campaignQueues.get(campaignId);
+                  if (!queue) return;
+                  
+                  // Add the jobs back to the queue
+                  for (const jobData of recipientsToRetry) {
+                    await queue.add('sendDM', jobData, {
+                      attempts: 2,
+                      backoff: {
+                        type: 'exponential',
+                        delay: 60000 // 1 minute
+                      }
+                    });
+                  }
+                  
+                  // Clear retry list
+                  recipientsToRetry = [];
+                  
+                  console.log(`[RETRY] Campaign ${campaignId}: Re-added failed jobs to queue`);
+                } catch (error) {
+                  console.error(`[RETRY] Campaign ${campaignId}: Error re-adding jobs:`, error);
+                }
+              };
+              
+              // Schedule job re-addition after cooldown
+              reAddJobs();
+            }, cooldownMinutes * 60000);
+          }
+        }
+        
         throw error;
       }
     },
-    { connection: upstashConnection }
+    { 
+      connection: upstashConnection,
+      concurrency: 1 // Process one message at a time to avoid rate limits
+    }
   );
+  
   worker.on('failed', async (job, error) => {
     console.error(`[FAILED] Campaign ${campaignId}: Job ${job.id} failed for recipient ${job.data.recipientId}:`, error);
     const campaignState = await redis.get(`queue:${campaignId}`);
@@ -133,6 +233,7 @@ function setupBullMQWorker(campaignId) {
       console.log(`[RETRY] Campaign ${campaignId}: Retrying job ${job.id}`);
     }
   });
+  
   return worker;
 }
 
@@ -344,6 +445,7 @@ app.listen(PORT, async () => {
 async function sendDM(recipientId, message, cookies) {
   let browser = null;
   let page = null;
+  
   try {
     console.log(`[sendDM] Launching browser for recipient ${recipientId}`);
     const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
@@ -363,7 +465,9 @@ async function sendDM(recipientId, message, cookies) {
       ],
       executablePath,
       headless: isLocal ? false : chromium.headless,
-      defaultViewport: { width: 800, height: 600 }
+      defaultViewport: { width: 800, height: 600 },
+      protocolTimeout: 180000, // Increase timeout to 3 minutes
+      timeout: 180000 // Increase timeout to 3 minutes
     });
 
     page = await browser.newPage();
@@ -406,8 +510,42 @@ async function sendDM(recipientId, message, cookies) {
       }
       throw waitError;
     }
-    await page.type('[data-testid="dmComposerTextInput"]', message);
-    console.log(`[sendDM] Typed message for recipient ${recipientId}`);
+    
+    // Use a more reliable typing method
+    try {
+      // Try direct typing first (most reliable)
+      await page.type('[data-testid="dmComposerTextInput"]', message);
+      console.log(`[sendDM] Typed message for recipient ${recipientId}`);
+    } catch (typeError) {
+      console.log(`[sendDM] Direct typing failed, trying evaluate method for ${recipientId}`);
+      // Fallback method using evaluate with better error checking
+      await page.evaluate((msg) => {
+        const composer = document.querySelector('[data-testid="dmComposerTextInput"]');
+        if (composer) {
+          composer.innerText = msg;
+          composer.dispatchEvent(new Event('input', { bubbles: true }));
+          return true;
+        } else {
+          // Try alternative selectors
+          const alternatives = [
+            '[role="textbox"]',
+            '[contenteditable="true"]',
+            'div[data-contents="true"]'
+          ];
+          
+          for (const selector of alternatives) {
+            const element = document.querySelector(selector);
+            if (element) {
+              element.innerText = msg;
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+              return true;
+            }
+          }
+          return false;
+        }
+      }, message);
+    }
+    
     await page.click('[data-testid="dmComposerSendButton"]');
     console.log(`[sendDM] Clicked send button for recipient ${recipientId}`);
     await page.waitForTimeout(1000);
