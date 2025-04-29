@@ -1,0 +1,40 @@
+const express = require('express');
+const { recoverActiveCampaigns, startCampaignPolling } = require('./campaign-manager');
+const { ACTIVE_CAMPAIGNS } = require('./campaign-manager');
+const { BROWSER_INSTANCES } = require('./browser-manager');
+const { CampaignQueue } = require('./campaign-queue');
+const { sendDM } = require('./message-sender');
+const { messageTransformFunction } = require('./config');
+const { checkDailyLimit, incrementDailyLimit } = require('./limit-manager');
+
+const app = express();
+
+// API endpoints - keep only the health endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    activeCampaigns: Array.from(ACTIVE_CAMPAIGNS.keys()),
+    activeBrowsers: Array.from(BROWSER_INSTANCES.keys())
+  });
+});
+
+// Start server
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, async () => {
+  console.log(`Background worker service running on port ${PORT}`);
+  
+  // Recover campaigns on startup
+  await recoverActiveCampaigns();
+  
+  // Start polling for new campaigns
+  startCampaignPolling();
+});
+
+module.exports = {
+  CampaignQueue,
+  sendDM,
+  messageTransformFunction,
+  checkDailyLimit,
+  incrementDailyLimit,
+  recoverActiveCampaigns
+}; 

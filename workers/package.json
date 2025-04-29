@@ -2,10 +2,10 @@
   "name": "xautodm-background-worker",
   "version": "1.0.0",
   "description": "Background worker for Twitter DM automation",
-  "main": "background-worker.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node background-worker.js",
-    "start:prod": "NODE_ENV=production node background-worker.js",
+    "start": "node index.js",
+    "start:prod": "NODE_ENV=production node index.js",
     "prisma": "prisma generate"
   },
   "dependencies": {
