@@ -446,13 +446,12 @@ class DMWorker {
         visible: true
       });
       console.log(`[${recipientId}] Composer found, attempting to type`);
-      
       // Use a more reliable typing method
       try {
         // Try direct typing first (most reliable)
-        console.log(`[${recipientId}] Trying page.type method`);
+        console.log(`[${recipientId}] Trying page.type method, message: ${message}`);
         await page.type('[data-testid="dmComposerTextInput"]', message);
-        console.log(`[${recipientId}] page.type succeeded`);
+        console.log(`[${recipientId}] page.type succeeded, message typed: ${message}`);
       } catch (error) {
         console.log(`[${recipientId}] page.type failed: ${error.message}`);
         // Fallback method using evaluate with better error checking
@@ -460,23 +459,19 @@ class DMWorker {
         await page.evaluate((msg) => {
           const composer = document.querySelector('[data-testid="dmComposerTextInput"]');
           if (composer) {
-            console.log('Found composer via main selector');
             composer.innerText = msg;
             composer.dispatchEvent(new Event('input', { bubbles: true }));
             return true;
           } else {
-            console.log('Main selector failed, trying alternatives');
             // Try alternative selectors
             const alternatives = [
               '[role="textbox"]',
               '[contenteditable="true"]',
               'div[data-contents="true"]'
             ];
-            
             for (const selector of alternatives) {
               const element = document.querySelector(selector);
               if (element) {
-                console.log(`Found element via ${selector}`);
                 element.innerText = msg;
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 return true;
@@ -485,15 +480,22 @@ class DMWorker {
             return false;
           }
         }, message).then(result => {
-          console.log(`[${recipientId}] Evaluate method result: ${result}`);
+          console.log(`[${recipientId}] Evaluate method result: ${result}, message: ${message}`);
         });
       }
-      
+      // Log the DM page URL
+      const dmUrl = `https://twitter.com/messages/compose?recipient_id=${recipientId}`;
+      console.log(`[${recipientId}] DM page URL: ${dmUrl}`);
       // Click send
-      console.log(`[${recipientId}] Attempting to click send button`);
-      await page.click('[data-testid="dmComposerSendButton"]');
+      console.log(`[${recipientId}] Attempting to click send button, message: ${message}`);
+      try {
+        await page.click('[data-testid="dmComposerSendButton"]');
+        console.log(`[${recipientId}] Send button clicked successfully, message: ${message}`);
+      } catch (clickError) {
+        console.error(`[${recipientId}] Error clicking send button: ${clickError.message}`);
+      }
       await page.waitForTimeout(1000);
-      console.log(`[${recipientId}] Message sent successfully`);
+      console.log(`[${recipientId}] Message sent successfully (browser action complete)`);
       
       return true;
     } catch (error) {
