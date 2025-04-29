@@ -8,7 +8,6 @@ import { PrismaClient } from '@prisma/client';
 import redis from '../../lib/redis';
 import { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } from '../../lib/planLimits';
 import { createServer } from 'http';
-import { Queue } from 'bullmq';
 const prisma = new PrismaClient();
 const MAX_RETRIES = 2;
 
@@ -35,6 +34,9 @@ class CampaignQueue {
       status: this.status
     };
     await redis.set(`queue:${this.campaignId}`, JSON.stringify(queueState));
+    
+    // Add a timestamp for status changes to ensure worker detects changes
+    await redis.set(`status_change:${this.campaignId}`, Date.now().toString());
   }
 
   async loadFromRedis() {
@@ -50,28 +52,16 @@ class CampaignQueue {
 
   async addRecipients(recipients, message, cookies, userId) {
     await this.loadFromRedis();
-    
-    // Add jobs to the queue for each recipient
-    for (const recipient of recipients) {
-      if (!this.processedRecipients.has(recipient.id)) {
-        await messageQueue.add({
-          recipientId: recipient.id,
-          message: messageTransformFunction(message, recipient),
-          cookies,
-          campaignId: this.campaignId,
-          userId
-        }, {
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 60000 // 1 minute
-          }
-        });
-        
-        this.queue.push(recipient.id);
-      }
-    }
-    
+    recipients.forEach(recipient => {
+      let transformedMessage = messageTransformFunction(message, recipient);
+      this.queue.push({ 
+        recipientId: recipient.id, 
+        message: transformedMessage, 
+        cookies,
+        userId,
+        recipient
+      });
+    });
     await this.saveToRedis();
   }
 
@@ -414,11 +404,6 @@ class CampaignQueue {
         }
       }
     }
-
-    // The actual processing is now handled by the worker service
-    // We just need to monitor the queue status
-    const queueCount = await messageQueue.count();
-    console.log(`Campaign ${this.campaignId} has ${queueCount} messages in queue`);
   }
 
   handleFailedAttempt(recipientId) {
@@ -433,16 +418,9 @@ class CampaignQueue {
 
   async stop() {
     this.status = 'Stopped';
-    this.queue = [];
+    this.queue = []; // Clear the queue
     await this.saveToRedis();
-    
-    // Remove all jobs for this campaign from the queue
-    const jobs = await messageQueue.getJobs(['waiting', 'active', 'delayed']);
-    for (const job of jobs) {
-      if (job.data.campaignId === this.campaignId) {
-        await job.remove();
-      }
-    }
+    console.log(`Campaign ${this.campaignId} stopped and Redis state updated`);
   }
 
   async pause() {
@@ -455,9 +433,11 @@ class CampaignQueue {
     this.status = 'Running';
     await this.saveToRedis();
     
+    // Restart processing only if we have items in the queue
     if (this.queue.length > 0) {
       this.process().catch(console.error);
     }
+    console.log(`Campaign ${this.campaignId} resumed and items in queue`,this.queue.length);
   }
 
   async updateQueueWithUserId(userId) {
@@ -787,14 +767,30 @@ if (process.env.NODE_ENV !== 'development') {
   //setTimeout(recoverActiveCampaigns, 5000);
 }
 
-const upstashConnection = {
-  host: 'settling-mackerel-23947.upstash.io',
-  port: 6379,
-  password: 'AV2LAAIjcDE1NzQyOTg4MzRmN2M0YzBkYTgxMWZiNjBlNWZkODI2Y3AxMA',
-  tls: {}
-};
+// Communicate with the background worker
+async function triggerWorkerProcess(campaignId, action) {
+  try {
+    const workerUrl = process.env.WORKER_URL || 'http://localhost:3001';
+    const endpoint = `${workerUrl}/campaign/${campaignId}/control`;
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action }),
+    });
 
-const messageQueue = new Queue('message-queue', { connection: upstashConnection });
+    if (!response.ok) {
+      throw new Error(`Worker responded with status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`Error communicating with worker (${action}):`, error);
+    return { success: false, error: error.message };
+  }
+}
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
@@ -810,7 +806,7 @@ export default async function handler(req, res) {
             
             if (campaignQueue.status !== 'Stopped') {
                 await campaignQueue.stop();
-                console.log(`Stopped existing queue for campaign ${campaignId}`);
+                await triggerWorkerProcess(campaignId, 'stop');
             }
 
             // Update the message status in database
@@ -836,6 +832,7 @@ export default async function handler(req, res) {
             await campaignQueue.loadFromRedis();
             
             await campaignQueue.pause();
+            await triggerWorkerProcess(campaignId, 'pause');
             
             // Update the message status in database
             try {
@@ -861,7 +858,7 @@ export default async function handler(req, res) {
             console.log("campaignQueue.status and cron",campaignQueue.status,cron);
             if (campaignQueue.status === 'Paused' || cron) {
                 await campaignQueue.resume();
-                console.log(`Resumed paused queue for campaign ${campaignId}`);
+                await triggerWorkerProcess(campaignId, 'resume');
             }
 
             // Update the message status in database
@@ -891,27 +888,30 @@ export default async function handler(req, res) {
         //console.log('updatedCookies',updatedCookies);
         
         if (action === 'start') {
-            const { userId, campaignId, recipients, message, cookies } = req.body;
-            if (!userId || !campaignId || !recipients || !message || !cookies) {
-                return res.status(400).json({ success: false, message: 'Missing required fields' });
-            }
-
-            // Add jobs to BullMQ queue for this campaign
-            const campaignQueue = new Queue(`campaign-${campaignId}`, { connection: upstashConnection });
-
-            for (const recipient of recipients) {
-                await campaignQueue.add('sendDM', {
-                    recipientId: recipient.id,
-                    message: message, // If you want to use messageTransformFunction, apply it here
-                    cookies,
-                    userId
+            const { userId } = req.body; // Get the user ID from the request
+            console.log('req.body',req.body);
+            if (!userId) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'userId is required'
                 });
             }
+            
+            console.log("Starting campaign with userId:", userId);
+            
+            // Create or get existing campaign queue
+            const campaignQueue = new CampaignQueue(campaignId);
+            await campaignQueue.loadFromRedis();
 
-            return res.status(200).json({
-                success: true,
-                message: 'Campaign jobs enqueued',
-                campaignId,
+            // Add recipients to queue and start processing
+            await campaignQueue.addRecipients(recipients, message, updatedCookies, userId);
+            console.log("Active campaign queues in start action:", Array.from(redis.keys('queue:*')));
+            campaignQueue.process().catch(console.error);
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Campaign started',
+                queueLength: campaignQueue.queue.length,
                 totalRecipients: recipients.length
             });
         }
@@ -977,10 +977,8 @@ export default async function handler(req, res) {
                         console.error('Failed to update message status:', error);
                     }
                     
-                    // Start processing again
-                    setTimeout(() => {
-                        campaignQueue.process().catch(console.error);
-                    }, 100);
+                    // Trigger worker to resume
+                    await triggerWorkerProcess(campaignId, 'resume');
                 }
             }
         }
@@ -989,10 +987,11 @@ export default async function handler(req, res) {
             isActive: campaignQueue.status !== 'Stopped',
             remainingTasks: campaignQueue.queue.length,
             processedCount: campaignQueue.processedRecipients.size,
-            status: campaignQueue.status === 'Running' ? 'processing' : 'waiting'
+            status: campaignQueue.status === 'Running' ? 'processing' : 
+                    campaignQueue.status === 'Paused' ? 'paused' : 
+                    campaignQueue.status === 'Rate Limited' ? 'rate-limited' : 'waiting'
         });
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 }
-

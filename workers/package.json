@@ -1,22 +1,20 @@
 {
-  "name": "message-worker",
+  "name": "xautodm-background-worker",
   "version": "1.0.0",
-  "description": "Worker service for handling Twitter DM campaigns",
-  "main": "message-worker.js",
+  "description": "Background worker for Twitter DM automation",
+  "main": "background-worker.js",
   "scripts": {
-    "start": "node message-worker.js",
-    "start:prod": "NODE_ENV=production node message-worker.js",
+    "start": "node background-worker.js",
+    "start:prod": "NODE_ENV=production node background-worker.js",
     "prisma": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
     "@sparticuz/chromium": "^119.0.0",
     "@upstash/redis": "^1.34.4",
-    "bullmq": "^5.51.1",
     "express": "^4.18.2",
     "prisma": "^6.6.0",
-    "puppeteer-core": "^21.0.0",
-    "redis": "^4.6.0"
+    "puppeteer-core": "^21.0.0"
   },
   "engines": {
     "node": "20.x"

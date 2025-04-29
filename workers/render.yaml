@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: message-worker
+    name: xautodm-background-worker
     env: node
     buildCommand: yarn install && npx prisma generate
     startCommand: yarn start:prod
@@ -25,9 +25,9 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: REDIS_HOST
+      - key: UPSTASH_REDIS_REST_URL
         sync: false
-      - key: REDIS_PORT
+      - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: REDIS_PASSWORD
         sync: false
