@@ -592,7 +592,7 @@ export default function CampaignPage() {
       // Show initial notification
       toast({
         title: "Starting Campaign",
-        description: "It takes upto 5 minutes to start the campaign be patient.",
+        description: "It takes up to 5 minutes to start the campaign. Please be patient.",
         duration: 10000,
       });
       const recipientIds = filteredLeads.map((follower) => follower.id);
@@ -608,12 +608,13 @@ export default function CampaignPage() {
         return;
       }
       
+      // Step 1: Create message record in database
       const messageResponse = await fetch("/api/messages/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messageSent: messageTemplate,
-          variants: messageVariants.map(v => v.content),
+          variants: messageVariants.filter(v => v.content).map(v => v.content),
           recipients: recipientIds,
           campaignName: campaignName,
           userId: userId
@@ -625,8 +626,9 @@ export default function CampaignPage() {
       const messageData = await messageResponse.json();
       const campaignId = messageData.message.id;
 
-      // Send campaign notification email
-      console.log('userId',userId);
+      console.log('Starting campaign with ID:', campaignId);
+      
+      // Step 2: Tell the background worker to start processing
       const response = await fetch("/api/send-DM", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -642,6 +644,7 @@ export default function CampaignPage() {
 
       if (!response.ok) throw new Error('Failed to start campaign');
 
+      // Step 3: Send notification email (optional)
       try {
         await fetch("/api/send-campaign-notification", {
           method: "POST",
@@ -671,6 +674,12 @@ export default function CampaignPage() {
       setDmqueueList(prev => [newCampaign, ...prev]);
       setIsCreating(false);
       setStep(1);
+      
+      toast({
+        title: "Campaign Started",
+        description: `Campaign "${campaignName}" is now running in the background.`,
+        duration: 5000,
+      });
     } catch (error) {
       console.error("Error sending DM:", error);
       setError("An error occurred while sending DM. Please try again later.");
