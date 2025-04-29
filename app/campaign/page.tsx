@@ -108,6 +108,9 @@ export default function CampaignPage() {
   const [isRecovering, setIsRecovering] = useState(false);
   const [filteredLeads, setFilteredLeads] = useState<any[]>([]);
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  const [leadPage, setLeadPage] = useState(1);
+  const [leadTotalPages, setLeadTotalPages] = useState(1);
+  const [leadLoadingPage, setLeadLoadingPage] = useState(false);
   
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
@@ -176,24 +179,24 @@ export default function CampaignPage() {
   }, [fetchMessages]);
 
   useEffect(() => {
-    const fetchLeadLists = async () => {
+    const fetchLeadLists = async (pageOverride?: number) => {
       if (!userId) return;
-      
+      if (pageOverride) setLeadPage(pageOverride);
+      setLeadLoadingPage(true);
       try {
-        const response = await fetch(`/api/leads?userId=${userId}`);
+        const response = await fetch(`/api/leads?userId=${userId}&page=${pageOverride || leadPage}&limit=5`);
         if (!response.ok) throw new Error('Failed to fetch lead lists');
-        
         const data = await response.json();
         setLeadLists(data.leads);
-        setLoading(false);
+        setLeadTotalPages(data.totalPages || 1);
       } catch (error) {
-        console.error('Error fetching lead lists:', error);
+      } finally {
         setLoading(false);
+        setLeadLoadingPage(false);
       }
     };
-
     fetchLeadLists();
-  }, [userId]);
+  }, [userId, leadPage]);
 
   useEffect(() => {
     const fetchTwitterAccounts = async () => {
@@ -967,42 +970,63 @@ export default function CampaignPage() {
               {step === 1 && (
                 <div className="space-y-8 w-full">
                   <h3 className={cn("text-xl font-semibold", isDark && "text-gray-100")}>Select Lead Source</h3>
-                  
-                  {/* Lead cards displayed outside the container box with more spacing */}
                   <div className="w-full">
-                    {/* Hide scrollbar for Chrome, Safari and Opera */}
                     <style jsx>{`
-                      div::-webkit-scrollbar {
-                        display: none;
-                      }
+                      div::-webkit-scrollbar { display: none; }
                     `}</style>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 w-full px-1 py-2 -mx-2 sm:-mx-4">
-                      {leadLists.map((list) => (
-                        <div
-                          key={list.id}
-                          className={cn(
-                            "border-2 p-6 sm:p-7 cursor-pointer transition-all hover:shadow-xl w-full h-full flex flex-col justify-between rounded-xl shadow-md transform hover:-translate-y-1",
-                            selectedLeadList?.id === list.id
-                              ? isDark 
-                                ? "ring-2 ring-purple-500 border-purple-600 bg-gray-800" 
-                                : "ring-2 ring-black border-black bg-white"
-                              : isDark
-                                ? "hover:border-gray-600 bg-gray-800 border-gray-700" 
-                                : "hover:border-gray-300 bg-white"
-                          )}
-                          onClick={() => setSelectedLeadList(list)}
-                        >
-                          <h3 className={cn("font-medium text-lg sm:text-xl mb-4", isDark && "text-white")}>{list.leadName}</h3>
-                          <div className={cn(
-                            "px-4 py-2 rounded-full text-sm font-medium inline-block w-fit",
-                            isDark ? "bg-gray-700 text-purple-300" : "bg-gray-100 text-purple-700"
-                          )}>
-                            {list.totalLeads.toLocaleString()} leads
+                    {leadLoadingPage ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 w-full px-1 py-2 -mx-2 sm:-mx-4">
+                        {Array.from({ length: 3 }).map((_, idx) => (
+                          <div key={idx} className={cn("border-2 p-6 sm:p-7 rounded-xl shadow-md bg-gray-100 dark:bg-gray-800 animate-pulse h-[120px]")}></div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 w-full px-1 py-2 -mx-2 sm:-mx-4">
+                        {leadLists.map((list) => (
+                          <div
+                            key={list.id}
+                            className={cn(
+                              "border-2 p-6 sm:p-7 cursor-pointer transition-all hover:shadow-xl w-full h-full flex flex-col justify-between rounded-xl shadow-md transform hover:-translate-y-1",
+                              selectedLeadList?.id === list.id
+                                ? isDark 
+                                  ? "ring-2 ring-purple-500 border-purple-600 bg-gray-800" 
+                                  : "ring-2 ring-black border-black bg-white"
+                                : isDark
+                                  ? "hover:border-gray-600 bg-gray-800 border-gray-700" 
+                                  : "hover:border-gray-300 bg-white"
+                            )}
+                            onClick={() => setSelectedLeadList(list)}
+                          >
+                            <h3 className={cn("font-medium text-lg sm:text-xl mb-4", isDark && "text-white")}>{list.leadName}</h3>
+                            <div className={cn(
+                              "px-4 py-2 rounded-full text-sm font-medium inline-block w-fit",
+                              isDark ? "bg-gray-700 text-purple-300" : "bg-gray-100 text-purple-700"
+                            )}>
+                              {list.totalLeads.toLocaleString()} leads
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
+                    {leadTotalPages > 1 && (
+                      <div className="flex justify-center mt-6 gap-2">
+                        {Array.from({ length: leadTotalPages }).map((_, idx) => (
+                          <button
+                            key={idx + 1}
+                            className={`px-3 py-1 rounded ${leadPage === idx + 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                            disabled={leadPage === idx + 1 || leadLoadingPage}
+                            onClick={() => {
+                              if (leadPage !== idx + 1) {
+                                setLeadLoadingPage(true);
+                                setLeadPage(idx + 1);
+                              }
+                            }}
+                          >
+                            {idx + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Navigation buttons */}

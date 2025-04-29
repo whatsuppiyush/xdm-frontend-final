@@ -35,6 +35,9 @@ export default function LeadsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [leadLists, setLeadLists] = useState<LeadList[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPage, setLoadingPage] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { userId } = useUser();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null);
@@ -54,12 +57,14 @@ export default function LeadsPage() {
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
     
-    const fetchLeads = async () => {
+    const fetchLeads = async (pageOverride?: number) => {
       console.log('Fetching leads', refreshCounter);
       if (!userId) return;
+      if (pageOverride) setPage(pageOverride);
+      setLoadingPage(true);
       
       try {
-        const response = await fetch(`/api/leads?userId=${userId}`);
+        const response = await fetch(`/api/leads?userId=${userId}&page=${pageOverride || page}&limit=5`);
         if (!response.ok) throw new Error('Failed to fetch lead lists');
         
         const data = await response.json();
@@ -89,6 +94,7 @@ export default function LeadsPage() {
         }
         
         setLeadLists(formattedLeads);
+        setTotalPages(data.totalPages || 1);
         
         // Check if any leads are still in progress
         const hasInProgressLeads = formattedLeads.some(
@@ -107,6 +113,7 @@ export default function LeadsPage() {
         console.error('Error fetching leads:', error);
       } finally {
         setLoading(false);
+        setLoadingPage(false);
       }
     };
     
@@ -114,12 +121,12 @@ export default function LeadsPage() {
     fetchLeads();
     
     // Set up polling every 10 seconds
-    intervalId = setInterval(fetchLeads, 10000);
+    intervalId = setInterval(() => fetchLeads(), 10000);
     
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [userId, refreshCounter]);
+  }, [userId, page, refreshCounter]);
 
   useEffect(() => {
     const fetchUserCredits = async () => {
@@ -232,9 +239,9 @@ export default function LeadsPage() {
   };
 
   // Filter leads based on search query
-  const filteredLeads = leadLists.filter(lead => 
-    lead.leadName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredLeads = searchQuery
+    ? leadLists.filter(lead => lead.leadName.toLowerCase().includes(searchQuery.toLowerCase()))
+    : leadLists;
 
   if (isImporting) {
     return <ImportLeads onBack={() => setIsImporting(false)} refreshLeads={refreshLeads} />;
@@ -285,8 +292,7 @@ export default function LeadsPage() {
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {loading ? (
-          // Loading state
+        {(loading || loadingPage) ? (
           Array.from({ length: 3 }).map((_, index) => (
             <Card key={`skeleton-${index}`} className="border border-gray-100 dark:border-gray-700 h-[150px] animate-pulse bg-gray-50 dark:bg-gray-800">
               <CardContent className="p-6 flex flex-col">
@@ -300,7 +306,6 @@ export default function LeadsPage() {
             </Card>
           ))
         ) : filteredLeads.length === 0 && searchQuery ? (
-          // No search results
           <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
             <Search className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">No matching leads found</h3>
@@ -316,7 +321,6 @@ export default function LeadsPage() {
             </Button>
           </div>
         ) : leadLists.length === 0 ? (
-          // Empty state
           <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
             <Database className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">No lead lists yet</h3>
@@ -332,7 +336,6 @@ export default function LeadsPage() {
             </Button>
           </div>
         ) : (
-          // Lead list cards
           filteredLeads.map((lead) => (
             <LeadListCard
               key={lead.id}
@@ -351,6 +354,26 @@ export default function LeadsPage() {
           ))
         )}
       </div>
+
+      {totalPages > 1 && !searchQuery && (
+        <div className="flex justify-center mt-6 gap-2">
+          {Array.from({ length: totalPages }).map((_, idx) => (
+            <button
+              key={idx + 1}
+              className={`px-3 py-1 rounded ${page === idx + 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+              disabled={page === idx + 1 || loadingPage}
+              onClick={() => {
+                if (page !== idx + 1) {
+                  setLoadingPage(true);
+                  setPage(idx + 1);
+                }
+              }}
+            >
+              {idx + 1}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {deleteDialogOpen && (

@@ -111,7 +111,9 @@ class DMWorker {
       const queueData = await redis.get(queueKey);
       if (!queueData) continue;
       const queueState = queueData;
-      if (queueState.queue && queueState.queue.length > 0 && queueState.status === 'Running') {
+      // Ensure queueState.queue is always an array
+      if (!Array.isArray(queueState.queue)) queueState.queue = [];
+      if (queueState.queue.length > 0 && queueState.status === 'Running') {
         console.log(`Processing campaign ${campaignId}`);
         this.isProcessing = true;
         this.currentCampaignId = campaignId;
@@ -148,11 +150,13 @@ class DMWorker {
       // Add any recipients that need retry from previous browser crash
       if (recipientsToRetry.length > 0) {
         console.log(`Adding ${recipientsToRetry.length} recipients back to the queue for retry`);
-        queueState.queue = [...recipientsToRetry, ...queueState.queue];
+        queueState.queue = [...recipientsToRetry, ...(Array.isArray(queueState.queue) ? queueState.queue : [])];
         recipientsToRetry = [];
         await this.saveQueueState(campaignId, queueState);
       }
 
+      // Ensure queueState.queue is always an array
+      if (!Array.isArray(queueState.queue)) queueState.queue = [];
       while (queueState.queue.length > 0 && queueState.status === 'Running') {
         // Reload queue state to check for status changes
         const freshState = await this.getQueueState(campaignId);
