@@ -228,5 +228,6 @@ module.exports = {
   pollForActiveCampaigns,
   recoverActiveCampaigns,
   startCampaignPolling,
-  addCampaignToActiveList
+  addCampaignToActiveList,
+  resetInvalidCampaignsKey
 }; 
