@@ -34,9 +34,6 @@ class CampaignQueue {
       status: this.status
     };
     await redis.set(`queue:${this.campaignId}`, JSON.stringify(queueState));
-    
-    // Add a timestamp for status changes to ensure worker detects changes
-    await redis.set(`status_change:${this.campaignId}`, Date.now().toString());
   }
 
   async loadFromRedis() {
@@ -58,8 +55,7 @@ class CampaignQueue {
         recipientId: recipient.id, 
         message: transformedMessage, 
         cookies,
-        userId,
-        recipient
+        userId  // Add userId to each queue item
       });
     });
     await this.saveToRedis();
@@ -767,46 +763,46 @@ if (process.env.NODE_ENV !== 'development') {
   //setTimeout(recoverActiveCampaigns, 5000);
 }
 
-// Communicate with the background worker
-async function triggerWorkerProcess(campaignId, action) {
+// Function to check if there are active workers running
+async function checkForActiveWorkers() {
   try {
-    const workerUrl = process.env.WORKER_URL || 'http://localhost:3001';
-    const endpoint = `${workerUrl}/campaign/${campaignId}/control`;
+    const workerHeartbeatKey = 'worker:heartbeat';
+    const lastHeartbeat = await redis.get(workerHeartbeatKey);
     
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Worker responded with status: ${response.status}`);
+    if (!lastHeartbeat) {
+      console.log("No worker heartbeat found, workers may not be running");
+      return false;
     }
-
-    return await response.json();
+    
+    const heartbeatTime = parseInt(lastHeartbeat);
+    const currentTime = Date.now();
+    
+    // Check if heartbeat is within the last 5 minutes
+    if ((currentTime - heartbeatTime) > 5 * 60 * 1000) {
+      console.log("Worker heartbeat is stale, workers may not be running");
+      return false;
+    }
+    
+    return true;
   } catch (error) {
-    console.error(`Error communicating with worker (${action}):`, error);
-    return { success: false, error: error.message };
+    console.error("Error checking worker status:", error);
+    return false;
   }
 }
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
-        const { action, message, cookies,recipients, campaignId, cron = false } = req.body;
-        //const recipients = [{id:'1393223661851607042'},{id:'1393223661851607042'},{id:'1393223661851607042'},{id:'1393223661851607042'}]//['1393223661851607042',"1151640228349612032"];
-        //console.log("recipientIds",recipients);
+        const { action, message, cookies, recipients, campaignId, cron = false } = req.body;
+        
         if (action === 'stop') {
             console.log(`Received stop request for campaign ${campaignId}`);
-            console.log("Active campaign queues:", Array.from(redis.keys('queue:*')));
             
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
             
             if (campaignQueue.status !== 'Stopped') {
                 await campaignQueue.stop();
-                await triggerWorkerProcess(campaignId, 'stop');
+                console.log(`Stopped existing queue for campaign ${campaignId}`);
             }
 
             // Update the message status in database
@@ -825,6 +821,7 @@ export default async function handler(req, res) {
                 campaignId 
             });
         }
+        
         if (action === 'pause') {
             console.log(`Received pause request for campaign ${campaignId}`);
             
@@ -832,7 +829,6 @@ export default async function handler(req, res) {
             await campaignQueue.loadFromRedis();
             
             await campaignQueue.pause();
-            await triggerWorkerProcess(campaignId, 'pause');
             
             // Update the message status in database
             try {
@@ -850,15 +846,23 @@ export default async function handler(req, res) {
                 campaignId 
             });
         }
+        
         if (action === 'resume') {
             console.log(`Received resume request for campaign ${campaignId}`);
             
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
-            console.log("campaignQueue.status and cron",campaignQueue.status,cron);
+            console.log("campaignQueue.status and cron", campaignQueue.status, cron);
+            
             if (campaignQueue.status === 'Paused' || cron) {
                 await campaignQueue.resume();
-                await triggerWorkerProcess(campaignId, 'resume');
+                console.log(`Resumed paused queue for campaign ${campaignId}`);
+                
+                // Check if workers are running
+                const workersRunning = await checkForActiveWorkers();
+                if (!workersRunning) {
+                    console.log("Warning: No active workers detected. Messages may not be processed.");
+                }
             }
 
             // Update the message status in database
@@ -877,24 +881,31 @@ export default async function handler(req, res) {
                 campaignId 
             });
         }
+        
         let updatedCookies = [];
-        if(cookies){
-        for(let cookie of cookies){
-            if(cookie.name=="ct0"||cookie.name=="auth_token"){
-                updatedCookies.push(cookie);
+        if (cookies) {
+            for (let cookie of cookies) {
+                if (cookie.name == "ct0" || cookie.name == "auth_token") {
+                    updatedCookies.push(cookie);
+                }
             }
         }
-        }
-        //console.log('updatedCookies',updatedCookies);
         
         if (action === 'start') {
-            const { userId } = req.body; // Get the user ID from the request
-            console.log('req.body',req.body);
+            const { userId } = req.body;
+            console.log('req.body', req.body);
+            
             if (!userId) {
                 return res.status(400).json({ 
                     success: false, 
                     message: 'userId is required'
                 });
+            }
+            
+            // Check if we have workers running before starting
+            const workersRunning = await checkForActiveWorkers();
+            if (!workersRunning) {
+                console.log("Warning: No active workers detected. Starting campaign, but it may not be processed.");
             }
             
             console.log("Starting campaign with userId:", userId);
@@ -903,16 +914,30 @@ export default async function handler(req, res) {
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
 
-            // Add recipients to queue and start processing
+            // Add recipients to queue
             await campaignQueue.addRecipients(recipients, message, updatedCookies, userId);
-            console.log("Active campaign queues in start action:", Array.from(redis.keys('queue:*')));
-            campaignQueue.process().catch(console.error);
+            console.log("Campaign queued with status:", campaignQueue.status);
+            
+            // Set status to Running in Redis
+            campaignQueue.status = 'Running';
+            await campaignQueue.saveToRedis();
+            
+            // Update status in database
+            try {
+                await prisma.message.update({
+                    where: { id: campaignId },
+                    data: { status: 'In Progress' }
+                });
+            } catch (error) {
+                console.error('Failed to update message status:', error);
+            }
 
             return res.status(200).json({ 
                 success: true, 
                 message: 'Campaign started',
                 queueLength: campaignQueue.queue.length,
-                totalRecipients: recipients.length
+                totalRecipients: recipients.length,
+                workersActive: workersRunning
             });
         }
 
@@ -923,10 +948,10 @@ export default async function handler(req, res) {
                 const today = new Date().toISOString().split('T')[0];
                 const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
                 await redis.del(dailyLimitKey);
-            return res.status(200).json({ 
-                success: true, 
+                return res.status(200).json({ 
+                    success: true, 
                     message: 'Rate limit reset for testing'
-            });
+                });
             }
         }
     } else if (req.method === 'GET') {
@@ -939,10 +964,27 @@ export default async function handler(req, res) {
             await campaignQueue.updateQueueWithUserId(userId);
         }
         
+        // Check if we have workers running
+        const workersRunning = await checkForActiveWorkers();
+        
+        // Get campaign details from database
+        let campaignDetails = null;
+        try {
+            campaignDetails = await prisma.message.findUnique({
+                where: { id: campaignId }
+            });
+        } catch (error) {
+            console.error('Failed to fetch campaign details:', error);
+        }
+        
         // Check if the campaign is rate limited and potentially resumable
         if (campaignQueue.status === 'Rate Limited') {
-            // Get the userId from the first item in the queue
-            const userId = campaignQueue.queue.length > 0 ? campaignQueue.queue[0].userId : null;
+            // Get the userId from the first item in the queue or from the campaign
+            let userId = campaignQueue.queue.length > 0 ? campaignQueue.queue[0].userId : null;
+            
+            if (!userId && campaignDetails) {
+                userId = campaignDetails.userId;
+            }
             
             if (userId) {
                 const today = new Date().toISOString().split('T')[0];
@@ -976,20 +1018,22 @@ export default async function handler(req, res) {
                     } catch (error) {
                         console.error('Failed to update message status:', error);
                     }
-                    
-                    // Trigger worker to resume
-                    await triggerWorkerProcess(campaignId, 'resume');
                 }
             }
+        }
+        
+        // Calculate processed count from database if available
+        let processedCount = campaignQueue.processedRecipients.size;
+        if (campaignDetails && campaignDetails.messages) {
+            processedCount = campaignDetails.messages.filter(msg => msg.status).length;
         }
         
         res.json({
             isActive: campaignQueue.status !== 'Stopped',
             remainingTasks: campaignQueue.queue.length,
-            processedCount: campaignQueue.processedRecipients.size,
-            status: campaignQueue.status === 'Running' ? 'processing' : 
-                    campaignQueue.status === 'Paused' ? 'paused' : 
-                    campaignQueue.status === 'Rate Limited' ? 'rate-limited' : 'waiting'
+            processedCount,
+            status: campaignQueue.status,
+            workersActive: workersRunning
         });
     } else {
         res.status(405).json({ success: false, message: 'Method not allowed' });
