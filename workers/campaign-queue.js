@@ -89,8 +89,13 @@ class CampaignQueue {
     
     // Mark this campaign as active
     // Get the ACTIVE_CAMPAIGNS from the campaign-manager
-    const { ACTIVE_CAMPAIGNS } = require('./campaign-manager');
+    const { ACTIVE_CAMPAIGNS, addCampaignToActiveList } = require('./campaign-manager');
+    
+    // Add to local tracking
     ACTIVE_CAMPAIGNS.set(this.campaignId, this);
+    
+    // Add to Redis using the new function that guarantees valid JSON
+    await addCampaignToActiveList(this.campaignId);
     
     let browserRestartCount = 0;
     let consecutiveMemoryErrors = 0;

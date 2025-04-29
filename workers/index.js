@@ -7,7 +7,12 @@ const { sendDM } = require('./message-sender');
 const { messageTransformFunction } = require('./config');
 const { checkDailyLimit, incrementDailyLimit } = require('./limit-manager');
 const { BROWSER_INSTANCES } = require('./browser-manager');
-const { ACTIVE_CAMPAIGNS, recoverActiveCampaigns, startCampaignPolling } = require('./campaign-manager');
+const { 
+  ACTIVE_CAMPAIGNS, 
+  recoverActiveCampaigns, 
+  startCampaignPolling,
+  resetInvalidCampaignsKey
+} = require('./campaign-manager');
 
 // API endpoints - keep only the health endpoint
 app.get('/health', (req, res) => {
@@ -22,6 +27,9 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, async () => {
   console.log(`Background worker service running on port ${PORT}`);
+  
+  // Reset invalid active_campaigns key on startup
+  await resetInvalidCampaignsKey();
   
   // Recover campaigns on startup
   await recoverActiveCampaigns();

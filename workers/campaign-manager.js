@@ -4,6 +4,32 @@ const { checkDailyLimit } = require('./limit-manager');
 // Track active campaigns
 const ACTIVE_CAMPAIGNS = new Map();
 
+// Reset invalid active_campaigns Redis key on startup
+async function resetInvalidCampaignsKey() {
+  try {
+    const activeCampaignsData = await redis.get('active_campaigns');
+    if (activeCampaignsData) {
+      try {
+        // Try to parse it - if it succeeds and is an array, it's valid
+        const parsed = JSON.parse(activeCampaignsData);
+        if (Array.isArray(parsed)) {
+          console.log('[RESET] active_campaigns key is valid JSON array');
+          return; // It's valid, no need to reset
+        }
+      } catch (error) {
+        // Parse error, need to reset
+        console.error('[RESET] Invalid JSON in active_campaigns:', error.message);
+      }
+      
+      // Reset the key to an empty array if we got here
+      await redis.set('active_campaigns', '[]');
+      console.log('[RESET] Reset active_campaigns key to empty array');
+    }
+  } catch (error) {
+    console.error('[RESET] Error checking/resetting campaigns key:', error);
+  }
+}
+
 // Poll for active campaigns
 async function pollForActiveCampaigns() {
   try {
@@ -18,16 +44,24 @@ async function pollForActiveCampaigns() {
       
       if (activeCampaignsData) {
         let activeCampaignIds = [];
+        let validData = true;
+        
         try {
           activeCampaignIds = JSON.parse(activeCampaignsData);
           if (!Array.isArray(activeCampaignIds)) {
             console.error('[POLL] Active campaigns data is not an array:', activeCampaignsData);
-            activeCampaignIds = [];
+            validData = false;
           }
         } catch (parseError) {
           console.error('[POLL] Error parsing active campaigns data:', parseError.message);
           console.error('[POLL] Raw data:', activeCampaignsData);
-          // Continue with empty array
+          validData = false;
+        }
+        
+        // Reset the key if invalid
+        if (!validData) {
+          await redis.set('active_campaigns', '[]');
+          console.log('[POLL] Reset active_campaigns key to empty array due to invalid data');
           activeCampaignIds = [];
         }
         
@@ -65,9 +99,49 @@ async function pollForActiveCampaigns() {
   }
 }
 
+// Add a campaign to the active campaigns list
+async function addCampaignToActiveList(campaignId) {
+  try {
+    // Get current active campaigns
+    const activeCampaignsData = await redis.get('active_campaigns');
+    let activeCampaignIds = [];
+    
+    if (activeCampaignsData) {
+      try {
+        const parsed = JSON.parse(activeCampaignsData);
+        if (Array.isArray(parsed)) {
+          activeCampaignIds = parsed;
+        }
+      } catch (error) {
+        console.error('[ADD] Error parsing active campaigns:', error.message);
+        // Continue with empty array
+      }
+    }
+    
+    // Add the new campaign if not already in the list
+    if (!activeCampaignIds.includes(campaignId)) {
+      activeCampaignIds.push(campaignId);
+      
+      // Store back with proper JSON stringification
+      await redis.set('active_campaigns', JSON.stringify(activeCampaignIds));
+      await redis.set('campaigns_updated', Date.now().toString());
+      console.log(`[ADD] Added campaign ${campaignId} to active list`);
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error(`[ADD] Error adding campaign ${campaignId} to active list:`, error);
+    return false;
+  }
+}
+
 // Recover active campaigns function
 async function recoverActiveCampaigns() {
   try {
+    // First, reset invalid active_campaigns key if needed
+    await resetInvalidCampaignsKey();
+    
     console.log("[RECOVER] Recovering active campaigns");
     const queueKeys = await redis.keys('queue:*');
     console.log(`[RECOVER] Found ${queueKeys.length} campaign queues in Redis`);
@@ -128,7 +202,7 @@ async function recoverActiveCampaigns() {
       }
     }
     
-    // Update the active campaigns list
+    // Update the active campaigns list with properly stringified JSON
     if (activeCampaignIds.length > 0) {
       await redis.set('active_campaigns', JSON.stringify(activeCampaignIds));
       await redis.set('campaigns_updated', Date.now().toString());
@@ -153,5 +227,6 @@ module.exports = {
   ACTIVE_CAMPAIGNS,
   pollForActiveCampaigns,
   recoverActiveCampaigns,
-  startCampaignPolling
+  startCampaignPolling,
+  addCampaignToActiveList
 }; 
