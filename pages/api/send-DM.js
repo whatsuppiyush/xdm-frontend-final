@@ -857,8 +857,15 @@ export default async function handler(req, res) {
             await campaignQueue.loadFromRedis();
             console.log("campaignQueue.status and cron",campaignQueue.status,cron);
             if (campaignQueue.status === 'Paused' || cron) {
-                await campaignQueue.resume();
-                await triggerWorkerProcess(campaignId, 'resume');
+                campaignQueue.status = 'Running';
+                await campaignQueue.saveToRedis();
+                // Update active_campaigns and campaigns_updated
+                let activeCampaigns = await redis.get('active_campaigns');
+                let ids = [];
+                try { ids = activeCampaigns ? JSON.parse(activeCampaigns) : []; } catch {}
+                if (!ids.includes(campaignId)) ids.push(campaignId);
+                await redis.set('active_campaigns', JSON.stringify(ids));
+                await redis.set('campaigns_updated', Date.now().toString());
             }
 
             // Update the message status in database
@@ -903,10 +910,18 @@ export default async function handler(req, res) {
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
 
-            // Add recipients to queue and start processing
+            // Add recipients to queue
             await campaignQueue.addRecipients(recipients, message, updatedCookies, userId);
-            console.log("Active campaign queues in start action:", Array.from(redis.keys('queue:*')));
-            campaignQueue.process().catch(console.error);
+            campaignQueue.status = 'Running';
+            await campaignQueue.saveToRedis();
+
+            // Update active_campaigns and campaigns_updated
+            let activeCampaigns = await redis.get('active_campaigns');
+            let ids = [];
+            try { ids = activeCampaigns ? JSON.parse(activeCampaigns) : []; } catch {}
+            if (!ids.includes(campaignId)) ids.push(campaignId);
+            await redis.set('active_campaigns', JSON.stringify(ids));
+            await redis.set('campaigns_updated', Date.now().toString());
 
             return res.status(200).json({ 
                 success: true, 
