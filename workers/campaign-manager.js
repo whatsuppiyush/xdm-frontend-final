@@ -1,6 +1,5 @@
 const { redis, prisma } = require('./config');
 const { checkDailyLimit } = require('./limit-manager');
-const { CampaignQueue } = require('./campaign-queue');
 
 // Track active campaigns
 const ACTIVE_CAMPAIGNS = new Map();
@@ -18,7 +17,20 @@ async function pollForActiveCampaigns() {
       const activeCampaignsData = await redis.get('active_campaigns');
       
       if (activeCampaignsData) {
-        const activeCampaignIds = JSON.parse(activeCampaignsData);
+        let activeCampaignIds = [];
+        try {
+          activeCampaignIds = JSON.parse(activeCampaignsData);
+          if (!Array.isArray(activeCampaignIds)) {
+            console.error('[POLL] Active campaigns data is not an array:', activeCampaignsData);
+            activeCampaignIds = [];
+          }
+        } catch (parseError) {
+          console.error('[POLL] Error parsing active campaigns data:', parseError.message);
+          console.error('[POLL] Raw data:', activeCampaignsData);
+          // Continue with empty array
+          activeCampaignIds = [];
+        }
+        
         console.log(`[POLL] Found ${activeCampaignIds.length} active campaigns`);
         
         // Process each campaign not already being processed
@@ -26,6 +38,8 @@ async function pollForActiveCampaigns() {
           if (!ACTIVE_CAMPAIGNS.has(campaignId)) {
             console.log(`[POLL] Starting new campaign: ${campaignId}`);
             
+            // Import CampaignQueue here to avoid circular dependency
+            const { CampaignQueue } = require('./campaign-queue');
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
             
@@ -76,6 +90,8 @@ async function recoverActiveCampaigns() {
       
       if (!campaign) continue;
       
+      // Import CampaignQueue here to avoid circular dependency
+      const { CampaignQueue } = require('./campaign-queue');
       const campaignQueue = new CampaignQueue(campaignId);
       await campaignQueue.loadFromRedis();
       

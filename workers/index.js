@@ -1,13 +1,13 @@
 const express = require('express');
-const { recoverActiveCampaigns, startCampaignPolling } = require('./campaign-manager');
-const { ACTIVE_CAMPAIGNS } = require('./campaign-manager');
-const { BROWSER_INSTANCES } = require('./browser-manager');
+const app = express();
+
+// Import required modules
 const { CampaignQueue } = require('./campaign-queue');
 const { sendDM } = require('./message-sender');
 const { messageTransformFunction } = require('./config');
 const { checkDailyLimit, incrementDailyLimit } = require('./limit-manager');
-
-const app = express();
+const { BROWSER_INSTANCES } = require('./browser-manager');
+const { ACTIVE_CAMPAIGNS, recoverActiveCampaigns, startCampaignPolling } = require('./campaign-manager');
 
 // API endpoints - keep only the health endpoint
 app.get('/health', (req, res) => {

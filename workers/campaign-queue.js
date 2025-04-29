@@ -2,7 +2,6 @@ const { redis, prisma, MAX_RETRIES, messageTransformFunction } = require('./conf
 const { BROWSER_INSTANCES, launchBrowser } = require('./browser-manager');
 const { sendDM } = require('./message-sender');
 const { checkDailyLimit, incrementDailyLimit } = require('./limit-manager');
-const { ACTIVE_CAMPAIGNS } = require('./campaign-manager');
 
 // Campaign Queue class - similar to send-DM.js but optimized for worker
 class CampaignQueue {
@@ -89,6 +88,8 @@ class CampaignQueue {
     await this.saveToRedis();
     
     // Mark this campaign as active
+    // Get the ACTIVE_CAMPAIGNS from the campaign-manager
+    const { ACTIVE_CAMPAIGNS } = require('./campaign-manager');
     ACTIVE_CAMPAIGNS.set(this.campaignId, this);
     
     let browserRestartCount = 0;
@@ -308,6 +309,7 @@ class CampaignQueue {
       console.error(`[ERROR] Campaign ${this.campaignId}: Process error:`, error);
     } finally {
       // Remove from active campaigns
+      const { ACTIVE_CAMPAIGNS } = require('./campaign-manager');
       ACTIVE_CAMPAIGNS.delete(this.campaignId);
       
       if (this.browser) {
