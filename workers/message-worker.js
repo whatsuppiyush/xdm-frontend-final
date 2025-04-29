@@ -344,9 +344,8 @@ app.listen(PORT, async () => {
 async function sendDM(recipientId, message, cookies) {
   let browser = null;
   let page = null;
-  
   try {
-    // Launch browser with memory optimization arguments
+    console.log(`[sendDM] Launching browser for recipient ${recipientId}`);
     const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
     const isWindows = process.platform === 'win32';
     const executablePath = isLocal && isWindows ? 
@@ -368,8 +367,7 @@ async function sendDM(recipientId, message, cookies) {
     });
 
     page = await browser.newPage();
-    
-    // Block unnecessary resources
+    console.log(`[sendDM] New page created for recipient ${recipientId}`);
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
@@ -379,35 +377,56 @@ async function sendDM(recipientId, message, cookies) {
         req.continue();
       }
     });
-    
-    // Set minimal cookies
-    const essentialCookies = cookies.filter(c => 
-      ['auth_token', 'ct0'].includes(c.name)
-    );
+    console.log(`[sendDM] Set request interception for recipient ${recipientId}`);
+    const essentialCookies = cookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
     await page.setCookie(...essentialCookies);
-    
-    // Navigate to DM page
-    await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
+    console.log(`[sendDM] Set cookies for recipient ${recipientId}`);
+    const dmUrl = `https://twitter.com/messages/compose?recipient_id=${recipientId}`;
+    console.log(`[sendDM] Navigating to ${dmUrl}`);
+    await page.goto(dmUrl, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-    
-    // Wait for composer and send message
-    await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
-      timeout: 60000,
-      visible: true
-    });
-    
+    console.log(`[sendDM] Page loaded for recipient ${recipientId}`);
+    try {
+      await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
+        timeout: 60000,
+        visible: true
+      });
+      console.log(`[sendDM] DM composer input found for recipient ${recipientId}`);
+    } catch (waitError) {
+      console.error(`[sendDM] Timeout waiting for DM composer input for recipient ${recipientId}`);
+      const content = await page.content();
+      console.error(`[sendDM] Page content for recipient ${recipientId}:\n${content.substring(0, 1000)}...`);
+      try {
+        await page.screenshot({ path: `senddm_error_${recipientId}.png` });
+        console.log(`[sendDM] Screenshot saved for recipient ${recipientId}`);
+      } catch (screenshotError) {
+        console.error(`[sendDM] Failed to save screenshot for recipient ${recipientId}:`, screenshotError);
+      }
+      throw waitError;
+    }
     await page.type('[data-testid="dmComposerTextInput"]', message);
+    console.log(`[sendDM] Typed message for recipient ${recipientId}`);
     await page.click('[data-testid="dmComposerSendButton"]');
+    console.log(`[sendDM] Clicked send button for recipient ${recipientId}`);
     await page.waitForTimeout(1000);
-    
+    console.log(`[sendDM] DM sent for recipient ${recipientId}`);
     return true;
   } catch (error) {
-    console.error(`Error sending DM to ${recipientId}:`, error);
+    console.error(`[sendDM] Error sending DM to ${recipientId}:`, error);
+    if (page) {
+      try {
+        const content = await page.content();
+        console.error(`[sendDM] Error page content for recipient ${recipientId}:\n${content.substring(0, 1000)}...`);
+        await page.screenshot({ path: `senddm_error_final_${recipientId}.png` });
+        console.log(`[sendDM] Final error screenshot saved for recipient ${recipientId}`);
+      } catch (err) {
+        console.error(`[sendDM] Failed to log error page content or screenshot for recipient ${recipientId}:`, err);
+      }
+    }
     return false;
   } finally {
-    // Clean up resources
     if (page) {
       await page.close();
     }
