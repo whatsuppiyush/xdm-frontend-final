@@ -6,8 +6,7 @@ const { Redis } = require('@upstash/redis');
 const express = require('express');
 const app = express();
 const path = require('path');
-
-// Define utility functions directly since the import path is problematic with the Render configuration
+//  import path is problematic with the Render configuration
 function getUserDailyMessageLimit(userCredits, defaultLimit = 50) {
   if (!userCredits) {
     return defaultLimit;
@@ -45,6 +44,8 @@ const redis = new Redis({
 
 // Create separate queues for each campaign
 const campaignQueues = new Map();
+// Store browser instances for each campaign
+const campaignBrowsers = new Map();
 
 const upstashConnection = {
   host: 'settling-mackerel-23947.upstash.io',
@@ -53,13 +54,84 @@ const upstashConnection = {
   tls: {}
 };
 
+// Function to launch a browser for a campaign
+async function launchBrowser(campaignId) {
+  console.log(`[BROWSER] Campaign ${campaignId}: Launching new browser instance`);
+  const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
+  const isWindows = process.platform === 'win32';
+  const executablePath = isLocal && isWindows ? 
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
+    await chromium.executablePath();
+
+  const browser = await puppeteer.launch({
+    args: [
+      ...chromium.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--js-flags="--max-old-space-size=256"',
+      '--single-process'
+    ],
+    executablePath,
+    headless: isLocal ? false : chromium.headless,
+    defaultViewport: { width: 800, height: 600 },
+    protocolTimeout: 180000, // Increase timeout to 3 minutes
+    timeout: 180000 // Increase timeout to 3 minutes
+  });
+  
+  // Store the browser instance
+  campaignBrowsers.set(campaignId, browser);
+  console.log(`[BROWSER] Campaign ${campaignId}: Browser launched successfully`);
+  return browser;
+}
+
+// Function to get or create a browser for a campaign
+async function getOrCreateBrowser(campaignId) {
+  // Check if we have an existing browser
+  let browser = campaignBrowsers.get(campaignId);
+  
+  // If browser exists, check if it's still usable
+  if (browser) {
+    try {
+      // Test if the browser is still responsive
+      await browser.version();
+      console.log(`[BROWSER] Campaign ${campaignId}: Using existing browser instance`);
+      return browser;
+    } catch (error) {
+      console.log(`[BROWSER] Campaign ${campaignId}: Existing browser not usable, creating new one`);
+      // If there was an error, the browser might be dead, so we'll create a new one
+      try {
+        await browser.close();
+      } catch (closeError) {
+        // Ignore errors when closing an already dead browser
+      }
+    }
+  }
+  
+  // Create a new browser
+  return await launchBrowser(campaignId);
+}
+
+// Function to close a campaign's browser
+async function closeBrowser(campaignId) {
+  const browser = campaignBrowsers.get(campaignId);
+  if (browser) {
+    console.log(`[BROWSER] Campaign ${campaignId}: Closing browser instance`);
+    try {
+      await browser.close();
+    } catch (error) {
+      console.error(`[BROWSER] Campaign ${campaignId}: Error closing browser:`, error);
+    }
+    campaignBrowsers.delete(campaignId);
+  }
+}
+
 // Add BullMQ Worker for each campaign queue
 function setupBullMQWorker(campaignId) {
   // Track error counts and retries
   let consecutiveMemoryErrors = 0;
   let browserRestartCount = 0;
   let recipientsToRetry = [];
-  let currentBrowser = null;
   let cooldownActive = false;
 
   const worker = new Worker(
@@ -101,7 +173,12 @@ function setupBullMQWorker(campaignId) {
         console.log(`[DELAY] Campaign ${campaignId}: Waiting ${randomDelay/60000} minutes before sending to ${recipientId}`);
         await new Promise(resolve => setTimeout(resolve, randomDelay));
         
-        const success = await sendDM(recipientId, message, cookies);
+        // Get or create a browser for this campaign
+        const browser = await getOrCreateBrowser(campaignId);
+        
+        // Send the DM using the campaign browser
+        const success = await sendDM(recipientId, message, cookies, browser, campaignId);
+        
         if (success) {
           // Reset consecutive errors on success
           consecutiveMemoryErrors = 0;
@@ -145,6 +222,9 @@ function setupBullMQWorker(campaignId) {
           consecutiveMemoryErrors++;
           console.log(`[COOLDOWN] Campaign ${campaignId}: Browser issue detected, consecutive errors: ${consecutiveMemoryErrors}`);
           
+          // Close the problematic browser
+          await closeBrowser(campaignId);
+          
           // Start cooldown if we're hitting repeated errors
           if (consecutiveMemoryErrors >= 2) {
             // Save the recipient to retry later
@@ -179,6 +259,9 @@ function setupBullMQWorker(campaignId) {
                   // Get the queue
                   const queue = campaignQueues.get(campaignId);
                   if (!queue) return;
+                  
+                  // Create a fresh browser for the campaign after cooldown
+                  await launchBrowser(campaignId);
                   
                   // Add the jobs back to the queue
                   for (const jobData of recipientsToRetry) {
@@ -234,6 +317,12 @@ function setupBullMQWorker(campaignId) {
     }
   });
   
+  // Clean up browser when worker is closed
+  worker.on('closed', async () => {
+    console.log(`[WORKER] Campaign ${campaignId}: Worker closed, cleaning up browser`);
+    await closeBrowser(campaignId);
+  });
+  
   return worker;
 }
 
@@ -242,7 +331,8 @@ async function initializeCampaignQueues() {
   const campaigns = await prisma.message.findMany({
     where: { status: 'In Progress' }
   });
-  
+  // Each campaign gets its own dedicated queue named campaign-{campaignId}
+  // This ensures that each campaign is processed independently and avoids conflicts
   for (const campaign of campaigns) {
     const queue = new Queue(`campaign-${campaign.id}`, { connection: upstashConnection });
     campaignQueues.set(campaign.id, queue);
@@ -388,6 +478,9 @@ app.post('/campaign/:campaignId/stop', async (req, res) => {
     await queue.clean(0, 'active');
     await queue.clean(0, 'delayed');
 
+    // Close browser for this campaign
+    await closeBrowser(campaignId);
+
     // Update campaign state in Redis
     const campaignState = await redis.get(`queue:${campaignId}`);
     const state = campaignState ? 
@@ -442,36 +535,17 @@ app.listen(PORT, async () => {
   console.log(`Target: ${MESSAGES_PER_CAMPAIGN} messages per campaign`);
 });
 
-async function sendDM(recipientId, message, cookies) {
-  let browser = null;
+// Modified sendDM to accept a browser instance
+async function sendDM(recipientId, message, cookies, browser, campaignId) {
   let page = null;
   
   try {
-    console.log(`[sendDM] Launching browser for recipient ${recipientId}`);
-    const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
-    const isWindows = process.platform === 'win32';
-    const executablePath = isLocal && isWindows ? 
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
-      await chromium.executablePath();
-
-    browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--js-flags="--max-old-space-size=256"',
-        '--single-process'
-      ],
-      executablePath,
-      headless: isLocal ? false : chromium.headless,
-      defaultViewport: { width: 800, height: 600 },
-      protocolTimeout: 180000, // Increase timeout to 3 minutes
-      timeout: 180000 // Increase timeout to 3 minutes
-    });
-
+    console.log(`[sendDM] Using campaign browser for recipient ${recipientId}`);
+    
+    // Create a new page in the existing browser
     page = await browser.newPage();
     console.log(`[sendDM] New page created for recipient ${recipientId}`);
+    
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
@@ -482,16 +556,20 @@ async function sendDM(recipientId, message, cookies) {
       }
     });
     console.log(`[sendDM] Set request interception for recipient ${recipientId}`);
+    
     const essentialCookies = cookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
     await page.setCookie(...essentialCookies);
     console.log(`[sendDM] Set cookies for recipient ${recipientId}`);
+    
     const dmUrl = `https://twitter.com/messages/compose?recipient_id=${recipientId}`;
     console.log(`[sendDM] Navigating to ${dmUrl}`);
+    
     await page.goto(dmUrl, {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
     console.log(`[sendDM] Page loaded for recipient ${recipientId}`);
+    
     try {
       await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
         timeout: 60000,
@@ -563,14 +641,22 @@ async function sendDM(recipientId, message, cookies) {
         console.error(`[sendDM] Failed to log error page content or screenshot for recipient ${recipientId}:`, err);
       }
     }
+    
+    // If we get a serious browser error, we should signal the campaign to restart the browser
+    if (error.message.includes('Target.createTarget timed out') || 
+        error.message.includes('out of memory') || 
+        error.message.includes('Browser closed') ||
+        error.message.includes('Protocol error')) {
+      throw error; // Rethrow these specific errors for campaign-level handling
+    }
+    
     return false;
   } finally {
     if (page) {
       await page.close();
+      console.log(`[sendDM] Page closed for recipient ${recipientId}`);
     }
-    if (browser) {
-      await browser.close();
-    }
+    // We don't close the browser here anymore, it's managed at the campaign level
   }
 }
 
