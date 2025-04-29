@@ -8,7 +8,7 @@ import { PrismaClient } from '@prisma/client';
 import redis from '../../lib/redis';
 import { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } from '../../lib/planLimits';
 import { createServer } from 'http';
-import Queue from 'bull';
+import { Queue } from 'bullmq';
 const prisma = new PrismaClient();
 const MAX_RETRIES = 2;
 
@@ -787,7 +787,14 @@ if (process.env.NODE_ENV !== 'development') {
   //setTimeout(recoverActiveCampaigns, 5000);
 }
 
-const messageQueue = new Queue('message-queue', process.env.UPSTASH_REDIS_URL);
+const upstashConnection = {
+  host: 'settling-mackerel-23947.upstash.io',
+  port: 6379,
+  password: 'AV2LAAIjcDE1NzQyOTg4MzRmN2M0YzBkYTgxMWZiNjBlNWZkODI2Y3AxMA',
+  tls: {}
+};
+
+const messageQueue = new Queue('message-queue', { connection: upstashConnection });
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
@@ -889,11 +896,11 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, message: 'Missing required fields' });
             }
 
-            // Add jobs to Bull queue for this campaign
-            const messageQueue = new Queue(`campaign-${campaignId}`, process.env.UPSTASH_REDIS_URL);
+            // Add jobs to BullMQ queue for this campaign
+            const campaignQueue = new Queue(`campaign-${campaignId}`, { connection: upstashConnection });
 
             for (const recipient of recipients) {
-                await messageQueue.add({
+                await campaignQueue.add('sendDM', {
                     recipientId: recipient.id,
                     message: message, // If you want to use messageTransformFunction, apply it here
                     cookies,

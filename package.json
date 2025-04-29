@@ -54,6 +54,7 @@
     "axios": "^1.8.2",
     "bcryptjs": "^2.4.3",
     "bull": "^4.16.5",
+    "bullmq": "^5.51.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",

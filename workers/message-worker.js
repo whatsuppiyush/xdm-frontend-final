@@ -1,4 +1,4 @@
-const Queue = require('bull');
+const { Queue, Worker } = require('bullmq');
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 const { PrismaClient } = require('@prisma/client');
@@ -48,9 +48,18 @@ const redis = new Redis({
 // Create separate queues for each campaign
 const campaignQueues = new Map();
 
-// Helper to set up queue processing for a campaign
-function setupQueueProcessing(campaignId, queue) {
-    queue.process(1, async (job) => {
+const upstashConnection = {
+  host: 'settling-mackerel-23947.upstash.io',
+  port: 6379,
+  password: 'AV2LAAIjcDE1NzQyOTg4MzRmN2M0YzBkYTgxMWZiNjBlNWZkODI2Y3AxMA',
+  tls: {}
+};
+
+// Add BullMQ Worker for each campaign queue
+function setupBullMQWorker(campaignId) {
+  const worker = new Worker(
+    `campaign-${campaignId}`,
+    async (job) => {
       const { recipientId, message, cookies, userId } = job.data;
       console.log(`[PROCESS] Campaign ${campaignId}: Processing job for recipient ${recipientId}`);
       try {
@@ -102,25 +111,29 @@ function setupQueueProcessing(campaignId, queue) {
         console.error(`[ERROR] Campaign ${campaignId}: Job failed for recipient ${recipientId}:`, error);
         throw error;
       }
-    });
-    queue.on('failed', async (job, error) => {
-      console.error(`[FAILED] Campaign ${campaignId}: Job ${job.id} failed for recipient ${job.data.recipientId}:`, error);
-      const campaignState = await redis.get(`queue:${campaignId}`);
-      const state = campaignState ? JSON.parse(campaignState) : {};
-      if (!state.totalAttempts) {
-        state.totalAttempts = 0;
-      }
-      state.totalAttempts++;
-      if (state.totalAttempts >= MAX_RETRIES) {
-        state.totalAttempts = 0;
-        await redis.set(`queue:${campaignId}`, JSON.stringify(state));
-        console.log(`[FAILED] Campaign ${campaignId}: Max retries reached for job ${job.id}`);
-      } else {
-        await job.retry();
-        console.log(`[RETRY] Campaign ${campaignId}: Retrying job ${job.id}`);
-      }
-    });
-  }
+    },
+    { connection: upstashConnection }
+  );
+  worker.on('failed', async (job, error) => {
+    console.error(`[FAILED] Campaign ${campaignId}: Job ${job.id} failed for recipient ${job.data.recipientId}:`, error);
+    const campaignState = await redis.get(`queue:${campaignId}`);
+    const state = campaignState ? JSON.parse(campaignState) : {};
+    if (!state.totalAttempts) {
+      state.totalAttempts = 0;
+    }
+    state.totalAttempts++;
+    if (state.totalAttempts >= MAX_RETRIES) {
+      state.totalAttempts = 0;
+      await redis.set(`queue:${campaignId}`, JSON.stringify(state));
+      console.log(`[FAILED] Campaign ${campaignId}: Max retries reached for job ${job.id}`);
+    } else {
+      // BullMQ automatically handles retries if configured in job options
+      console.log(`[RETRY] Campaign ${campaignId}: Retrying job ${job.id}`);
+    }
+  });
+  return worker;
+}
+
 // Initialize queues for each campaign
 async function initializeCampaignQueues() {
   const campaigns = await prisma.message.findMany({
@@ -128,10 +141,9 @@ async function initializeCampaignQueues() {
   });
   
   for (const campaign of campaigns) {
-    const queue = new Queue(`campaign-${campaign.id}`, process.env.UPSTASH_REDIS_URL);
+    const queue = new Queue(`campaign-${campaign.id}`, { connection: upstashConnection });
     campaignQueues.set(campaign.id, queue);
-    // Register processor and seed running state
-    setupQueueProcessing(campaign.id, queue);
+    setupBullMQWorker(campaign.id);
     await redis.set(`queue:${campaign.id}`, JSON.stringify({ status: 'Running' }));
   }
 }
@@ -301,9 +313,9 @@ async function pollForNewCampaigns() {
       }
     });
     for (const campaign of campaigns) {
-      const queue = new Queue(`campaign-${campaign.id}`, process.env.UPSTASH_REDIS_URL);
+      const queue = new Queue(`campaign-${campaign.id}`, { connection: upstashConnection });
       campaignQueues.set(campaign.id, queue);
-      setupQueueProcessing(campaign.id, queue);
+      setupBullMQWorker(campaign.id);
       console.log(`Created queue for new campaign: ${campaign.id}`);
     }
   } catch (err) {
