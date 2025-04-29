@@ -607,12 +607,26 @@ async function pollForActiveCampaigns() {
       if (activeCampaignsData) {
         let activeCampaignIds;
         try {
+          console.log(`[POLL] Raw active_campaigns data: ${activeCampaignsData}`);
           activeCampaignIds = JSON.parse(activeCampaignsData);
+          console.log(`[POLL] Parsed ${activeCampaignIds.length} active campaigns: ${JSON.stringify(activeCampaignIds)}`);
         } catch (e) {
-          console.error('[POLL] Invalid JSON in active_campaigns:', activeCampaignsData);
+          console.error(`[POLL] Invalid JSON in active_campaigns: ${activeCampaignsData}`);
+          console.error(`[POLL] JSON parse error: ${e.message}`);
           await redis.del('active_campaigns');
+          await redis.del('campaigns_updated');
+          console.log('[POLL] Cleared invalid Redis keys');
           return;
         }
+        
+        if (!Array.isArray(activeCampaignIds)) {
+          console.error(`[POLL] active_campaigns is not an array: ${typeof activeCampaignIds}`);
+          await redis.del('active_campaigns');
+          await redis.del('campaigns_updated');
+          console.log('[POLL] Cleared invalid Redis keys (not an array)');
+          return;
+        }
+        
         console.log(`[POLL] Found ${activeCampaignIds.length} active campaigns`);
         
         // Process each campaign not already being processed
@@ -622,6 +636,8 @@ async function pollForActiveCampaigns() {
             
             const campaignQueue = new CampaignQueue(campaignId);
             await campaignQueue.loadFromRedis();
+            
+            console.log(`[POLL] Campaign ${campaignId} status: ${campaignQueue.status}, queue length: ${campaignQueue.queue.length}`);
             
             if (campaignQueue.status === 'Running' && campaignQueue.queue.length > 0) {
               // Start the campaign processing in background
@@ -638,10 +654,16 @@ async function pollForActiveCampaigns() {
         
         // Clear the notification
         await redis.del('campaigns_updated');
+      } else {
+        console.log('[POLL] No active_campaigns data found in Redis');
+        await redis.del('campaigns_updated');
       }
     }
   } catch (error) {
     console.error('[POLL] Error polling for active campaigns:', error);
+    if (error.message && error.message.includes('invalid username-password pair')) {
+      console.error('[POLL] Redis authentication error. Check your Redis credentials.');
+    }
   }
 }
 
@@ -668,7 +690,10 @@ async function recoverActiveCampaigns() {
         where: { id: campaignId }
       });
       
-      if (!campaign) continue;
+      if (!campaign) {
+        console.log(`[RECOVER] Campaign ${campaignId} not found in database, skipping`);
+        continue;
+      }
       
       const campaignQueue = new CampaignQueue(campaignId);
       await campaignQueue.loadFromRedis();
@@ -679,6 +704,11 @@ async function recoverActiveCampaigns() {
         // For rate limited campaigns, check if limit has reset
         if (campaign.status === 'Rate Limited') {
           const userId = campaign.userId;
+          if (!userId) {
+            console.error(`[RECOVER] Campaign ${campaignId} has no userId, skipping`);
+            continue;
+          }
+          
           const limitCheck = await checkDailyLimit(userId);
           
           if (limitCheck.canSend) {
@@ -693,6 +723,8 @@ async function recoverActiveCampaigns() {
             // Add to active campaigns
             activeCampaignIds.push(campaignId);
             recoveredCount++;
+          } else {
+            console.log(`[RECOVER] Campaign ${campaignId} still rate limited (${limitCheck.currentCount}/${limitCheck.limit || 'unknown limit'})`);
           }
         }
         // For In Progress or Running campaigns, ensure they're added to active list
@@ -708,8 +740,17 @@ async function recoverActiveCampaigns() {
     
     // Update the active campaigns list
     if (activeCampaignIds.length > 0) {
-      await redis.set('active_campaigns', JSON.stringify(activeCampaignIds));
+      // Ensure we're storing a valid JSON string
+      const activeCampaignsJson = JSON.stringify(activeCampaignIds);
+      console.log(`[RECOVER] Setting active_campaigns to: ${activeCampaignsJson}`);
+      
+      // Make sure we're using JSON.stringify when setting the Redis key
+      await redis.set('active_campaigns', activeCampaignsJson);
       await redis.set('campaigns_updated', Date.now().toString());
+      
+      console.log(`[RECOVER] Active campaigns set successfully`);
+    } else {
+      console.log(`[RECOVER] No active campaigns to set`);
     }
     
     console.log(`[RECOVER] Recovered ${recoveredCount} campaigns`);
