@@ -605,7 +605,14 @@ async function pollForActiveCampaigns() {
       const activeCampaignsData = await redis.get('active_campaigns');
       
       if (activeCampaignsData) {
-        const activeCampaignIds = JSON.parse(activeCampaignsData);
+        let activeCampaignIds;
+        try {
+          activeCampaignIds = JSON.parse(activeCampaignsData);
+        } catch (e) {
+          console.error('[POLL] Invalid JSON in active_campaigns:', activeCampaignsData);
+          await redis.del('active_campaigns');
+          return;
+        }
         console.log(`[POLL] Found ${activeCampaignIds.length} active campaigns`);
         
         // Process each campaign not already being processed
