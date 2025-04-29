@@ -111,6 +111,7 @@ export default function CampaignPage() {
   const [leadPage, setLeadPage] = useState(1);
   const [leadTotalPages, setLeadTotalPages] = useState(1);
   const [leadLoadingPage, setLeadLoadingPage] = useState(false);
+  const [loadingLeads, setLoadingLeads] = useState(true);
   
   const steps = [
     { title: "Select Source", subtitle: "Choose your campaign data source" },
@@ -136,11 +137,10 @@ export default function CampaignPage() {
 
   const fetchMessages = useCallback(async () => {
     if (!userId) return;
-
+    setLoading(true);
     try {
       const response = await fetch(`/api/messages?userId=${userId}`);
       const data = await response.json();
-
       if (response.ok) {
         const transformedData: dmQueueList[] = data.messages.map(
           (message: any) => {
@@ -151,7 +151,6 @@ export default function CampaignPage() {
             const failedLeads = message.messages.filter(
               (m: any) => m.status === false,
             ).length;
-
             return {
               id: message.id,
               messageSent: message.messageSent,
@@ -164,7 +163,6 @@ export default function CampaignPage() {
             };
           },
         );
-
         setDmqueueList(transformedData);
       }
     } catch (error) {
@@ -183,6 +181,7 @@ export default function CampaignPage() {
       if (!userId) return;
       if (pageOverride) setLeadPage(pageOverride);
       setLeadLoadingPage(true);
+      setLoadingLeads(true);
       try {
         const response = await fetch(`/api/leads?userId=${userId}&page=${pageOverride || leadPage}&limit=5`);
         if (!response.ok) throw new Error('Failed to fetch lead lists');
@@ -191,8 +190,8 @@ export default function CampaignPage() {
         setLeadTotalPages(data.totalPages || 1);
       } catch (error) {
       } finally {
-        setLoading(false);
         setLeadLoadingPage(false);
+        setLoadingLeads(false);
       }
     };
     fetchLeadLists();
