@@ -104,36 +104,21 @@ class DMWorker {
   }
 
   async processNextTask() {
-    // Look for campaign queues that are ready to process
     const queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
     console.log(`Found ${queueKeys.length} campaign queues in Redis`);
-    
     for (const queueKey of queueKeys) {
-      // Extract campaign ID from the key (queue:campaignId)
       const campaignId = queueKey.split(':')[1];
-      
       if (!campaignId) continue;
-      
-      // Load queue state
       const queueData = await redis.get(queueKey);
       if (!queueData) continue;
-      
-      const queueState = typeof queueData === 'string' ? JSON.parse(queueData) : queueData;
-      
-      // Only process if queue has messages and status is Running
+      const queueState = queueData;
       if (queueState.queue && queueState.queue.length > 0 && queueState.status === 'Running') {
         console.log(`Processing campaign ${campaignId}`);
         this.isProcessing = true;
         this.currentCampaignId = campaignId;
-        
-        // Process this campaign
         await this.processCampaignQueue(campaignId, queueState);
-        
-        // Reset processing state
         this.isProcessing = false;
         this.currentCampaignId = null;
-        
-        // We've processed one campaign, break out of the loop
         break;
       }
     }
@@ -648,10 +633,7 @@ class DMWorker {
 
   async getQueueState(campaignId) {
     const queueData = await redis.get(`${QUEUE_PREFIX}${campaignId}`);
-    if (queueData) {
-      return JSON.parse(queueData);
-    }
-    return null;
+    return queueData || null;
   }
 
   async saveQueueState(campaignId, queueState) {
@@ -664,41 +646,20 @@ class DMWorker {
       console.log("Recovering active campaigns");
       const queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
       console.log(`Found ${queueKeys.length} campaign queues in Redis`);
-      
       if (queueKeys.length === 0) {
         return { recovered: 0 };
       }
-      
       let recoveredCount = 0;
-      
-      // Check each queue
       for (const queueKey of queueKeys) {
-        // Extract campaign ID from the key (queue:campaignId)
         const campaignId = queueKey.split(':')[1];
-        
         if (!campaignId) continue;
-        
-        // Get campaign data from database
-        const campaign = await prisma.message.findUnique({
-          where: { id: campaignId }
-        });
-        
-        // Skip if campaign doesn't exist in database
-        if (!campaign) {
-          // Do not delete from Redis, just skip
-          continue;
-        }
-        
-        // Load queue state
+        const campaign = await prisma.message.findUnique({ where: { id: campaignId } });
+        if (!campaign) continue;
         const queueData = await redis.get(queueKey);
         if (!queueData) continue;
-        
-        const queueState = typeof queueData === 'string' ? JSON.parse(queueData) : queueData;
-        
-        // Only process if queue has messages
+        const queueState = queueData;
         if (queueState.queue && queueState.queue.length > 0 && queueState.status !== 'Stopped') {
           console.log(`Found active campaign ${campaignId} with status ${queueState.status}`);
-          
           // For rate limited campaigns, check if limit has reset
           if (queueState.status === 'Rate Limited') {
             // Find a userId in the queue
@@ -743,7 +704,6 @@ class DMWorker {
           }
         }
       }
-      
       console.log(`Recovered ${recoveredCount} campaigns`);
       return { recovered: recoveredCount };
     } catch (error) {
