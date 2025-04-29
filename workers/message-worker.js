@@ -137,7 +137,7 @@ function setupBullMQWorker(campaignId) {
   const worker = new Worker(
     `campaign-${campaignId}`,
     async (job) => {
-      const { recipientId, message, cookies, userId } = job.data;
+      const { recipientId, message, cookies, userId, recipient } = job.data;
       console.log(`[PROCESS] Campaign ${campaignId}: Processing job for recipient ${recipientId}`);
       try {
         // Skip if we're currently in cooldown
@@ -176,8 +176,11 @@ function setupBullMQWorker(campaignId) {
         // Get or create a browser for this campaign
         const browser = await getOrCreateBrowser(campaignId);
         
+        // Transform the message
+        const personalizedMessage = recipient ? messageTransformFunction(message, recipient) : message;
+        
         // Send the DM using the campaign browser
-        const success = await sendDM(recipientId, message, cookies, browser, campaignId);
+        const success = await sendDM(recipientId, personalizedMessage, cookies, browser, campaignId);
         
         if (success) {
           // Reset consecutive errors on success
@@ -658,6 +661,19 @@ async function sendDM(recipientId, message, cookies, browser, campaignId) {
     }
     // We don't close the browser here anymore, it's managed at the campaign level
   }
+}
+
+console.log('Message worker started');
+
+// Add this function near the top of the file
+function messageTransformFunction(message, recipient) {
+  let transformedMessage = message.replace("{name}", recipient.name ? recipient.name.split(" ")[0] : "");
+  transformedMessage = transformedMessage.replace("{username}", recipient.username ? recipient.username : "");
+  transformedMessage = transformedMessage.replace("{url}", recipient.url ? recipient.url : "");
+  transformedMessage = transformedMessage.replace("{bio}", recipient.bio ? recipient.bio : "");
+  transformedMessage = transformedMessage.replace("{followers}", recipient.followers ? recipient.followers : "");
+  transformedMessage = transformedMessage.replace("{following}", recipient.following ? recipient.following : "");
+  return transformedMessage;
 }
 
 console.log('Message worker started'); 
