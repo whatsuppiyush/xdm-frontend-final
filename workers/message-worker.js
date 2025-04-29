@@ -64,7 +64,8 @@ function setupBullMQWorker(campaignId) {
       console.log(`[PROCESS] Campaign ${campaignId}: Processing job for recipient ${recipientId}`);
       try {
         const campaignState = await redis.get(`queue:${campaignId}`);
-        const state = campaignState ? JSON.parse(campaignState) : {};
+        const state = campaignState ? 
+          (typeof campaignState === 'object' ? campaignState : JSON.parse(campaignState)) : {};
         if (state.status === 'Paused' || state.status === 'Stopped' || state.status === 'Rate Limited') {
           console.log(`[SKIP] Campaign ${campaignId}: Status is ${state.status}, skipping job for recipient ${recipientId}`);
           throw new Error(`Campaign is ${state.status}`);
@@ -117,7 +118,8 @@ function setupBullMQWorker(campaignId) {
   worker.on('failed', async (job, error) => {
     console.error(`[FAILED] Campaign ${campaignId}: Job ${job.id} failed for recipient ${job.data.recipientId}:`, error);
     const campaignState = await redis.get(`queue:${campaignId}`);
-    const state = campaignState ? JSON.parse(campaignState) : {};
+    const state = campaignState ? 
+      (typeof campaignState === 'object' ? campaignState : JSON.parse(campaignState)) : {};
     if (!state.totalAttempts) {
       state.totalAttempts = 0;
     }
@@ -177,7 +179,8 @@ app.get('/queue-status', async (req, res) => {
 
       // Get campaign status from Redis
       const campaignState = await redis.get(`queue:${campaignId}`);
-      const state = campaignState ? JSON.parse(campaignState) : { status: 'Ready' };
+      const state = campaignState ? 
+        (typeof campaignState === 'object' ? campaignState : JSON.parse(campaignState)) : { status: 'Ready' };
 
       campaignStatuses.push({
         campaignId,
@@ -223,7 +226,8 @@ app.post('/campaign/:campaignId/pause', async (req, res) => {
 
     // Update campaign state in Redis
     const campaignState = await redis.get(`queue:${campaignId}`);
-    const state = campaignState ? JSON.parse(campaignState) : {};
+    const state = campaignState ? 
+      (typeof campaignState === 'object' ? campaignState : JSON.parse(campaignState)) : {};
     state.status = 'Paused';
     await redis.set(`queue:${campaignId}`, JSON.stringify(state));
 
@@ -251,7 +255,8 @@ app.post('/campaign/:campaignId/resume', async (req, res) => {
 
     // Update campaign state in Redis
     const campaignState = await redis.get(`queue:${campaignId}`);
-    const state = campaignState ? JSON.parse(campaignState) : {};
+    const state = campaignState ? 
+      (typeof campaignState === 'object' ? campaignState : JSON.parse(campaignState)) : {};
     state.status = 'Running';
     await redis.set(`queue:${campaignId}`, JSON.stringify(state));
 
@@ -284,7 +289,8 @@ app.post('/campaign/:campaignId/stop', async (req, res) => {
 
     // Update campaign state in Redis
     const campaignState = await redis.get(`queue:${campaignId}`);
-    const state = campaignState ? JSON.parse(campaignState) : {};
+    const state = campaignState ? 
+      (typeof campaignState === 'object' ? campaignState : JSON.parse(campaignState)) : {};
     state.status = 'Stopped';
     state.queue = [];
     state.processedRecipients = [];
