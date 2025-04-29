@@ -43,6 +43,281 @@ server.listen(PORT, () => {
   console.log(`Health check server listening on port ${PORT}`);
 });
 
+class CampaignQueue {
+  constructor(campaignId) {
+    this.campaignId = campaignId;
+    this.queue = [];
+    this.processedRecipients = [];
+    this.totalAttempts = 0;
+    this.status = 'Ready'; // Ready, Running, Paused, Stopped, Rate Limited
+    this.browser = null;
+  }
+
+  async loadFromRedis() {
+    const queueData = await redis.get(`${QUEUE_PREFIX}${this.campaignId}`);
+    if (queueData) {
+      this.queue = queueData.queue || [];
+      this.processedRecipients = queueData.processedRecipients || [];
+      this.status = queueData.status || 'Ready';
+      this.totalAttempts = queueData.totalAttempts || 0;
+    }
+  }
+
+  async saveToRedis() {
+    const queueState = {
+      queue: this.queue,
+      processedRecipients: this.processedRecipients,
+      status: this.status,
+      totalAttempts: this.totalAttempts
+    };
+    await redis.set(`${QUEUE_PREFIX}${this.campaignId}`, queueState);
+  }
+
+  async process(dmWorker) {
+    await this.loadFromRedis();
+    console.log(`Processing campaign ${this.campaignId}, status: ${this.status}`);
+    
+    // Only proceed if status is Ready or Running
+    if (this.status === 'Stopped' || this.status === 'Paused') return;
+    
+    // Set status to Running
+    this.status = 'Running';
+    await this.saveToRedis();
+    
+    // Update message status in database to In Progress
+    try {
+      await prisma.message.update({
+        where: { id: this.campaignId },
+        data: { status: 'In Progress' }
+      });
+    } catch (error) {
+      console.error('Failed to update message status:', error);
+    }
+    
+    let browserRestartCount = 0;
+    let consecutiveMemoryErrors = 0;
+    let limitCheckCounter = 0;
+    let recipientsToRetry = [];
+    
+    try {
+      // Launch browser if not already launched
+      if (!dmWorker.browser) {
+        await dmWorker.launchBrowser();
+      }
+      
+      // Add any recipients that need retry from previous browser crash
+      if (recipientsToRetry.length > 0) {
+        console.log(`Adding ${recipientsToRetry.length} recipients back to the queue for retry`);
+        this.queue = [...recipientsToRetry, ...this.queue];
+        recipientsToRetry = [];
+        await this.saveToRedis();
+      }
+
+      while (this.queue.length > 0 && this.status === 'Running') {
+        await this.loadFromRedis();
+        if (this.status !== 'Running') break;
+
+        const { recipientId, message, cookies, userId } = this.queue[0];
+        
+        if (this.processedRecipients.includes(recipientId)) {
+          this.queue.shift();
+          await this.saveToRedis();
+          continue;
+        }
+
+        // Check daily limit every 5 messages or on the first message
+        if (limitCheckCounter % 5 === 0) {
+          if (!userId) {
+            console.error(`userId is undefined for campaign: ${this.campaignId}`);
+            
+            // Try to get userId from database as fallback
+            try {
+              const campaign = await prisma.message.findUnique({
+                where: { id: this.campaignId },
+                select: { userId: true }
+              });
+              
+              if (campaign?.userId) {
+                console.log(`Found userId ${campaign.userId} from database for campaign ${this.campaignId}`);
+                // Update the current queue item
+                this.queue[0].userId = campaign.userId;
+                await this.saveToRedis();
+                
+                // Continue with the updated userId
+                const limitCheck = await dmWorker.checkDailyLimit(campaign.userId);
+                
+                if (!limitCheck.canSend) {
+                  console.log(`Daily limit reached for user ${campaign.userId}. Setting campaign to Rate Limited.`);
+                  this.status = 'Rate Limited';
+                  await this.saveToRedis();
+                  
+                  // Update message status in database
+                  await prisma.message.update({
+                    where: { id: this.campaignId },
+                    data: { status: 'Rate Limited' }
+                  });
+                  
+                  // Exit the processing loop
+                  return;
+                }
+              }
+            } catch (error) {
+              console.error("Error fetching userId from database:", error);
+            }
+            
+            // Skip this message if no userId found
+            this.queue.shift();
+            await this.saveToRedis();
+            continue;
+          }
+          
+          const limitCheck = await dmWorker.checkDailyLimit(userId);
+          
+          if (!limitCheck.canSend) {
+            console.log(`Daily limit reached for user ${userId}. Setting campaign to Rate Limited.`);
+            this.status = 'Rate Limited';
+            await this.saveToRedis();
+            
+            // Update message status in database
+            await prisma.message.update({
+              where: { id: this.campaignId },
+              data: { status: 'Rate Limited' }
+            });
+            
+            return; // Exit the processing loop
+          }
+        }
+        limitCheckCounter++;
+
+        // Apply random delay between messages (2-4 minutes)
+        const delay = Math.floor(Math.random() * (240000 - 120000 + 1) + 120000);
+        console.log(`Waiting ${delay/60000} minutes before sending next message`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Reload queue state after delay to check for status changes
+        await this.loadFromRedis();
+        if (this.status !== 'Running') {
+          console.log(`Campaign ${this.campaignId} status changed to ${this.status} during delay, stopping processing`);
+          break;
+        }
+
+        try {
+          // Send the DM
+          const success = await dmWorker.sendDM(recipientId, message, cookies);
+          
+          if (success) {
+            // Only increment the counter AFTER successful message sending
+            if (userId) {
+              await dmWorker.incrementDailyLimit(userId);
+              console.log(`Incremented daily message count for user ${userId} after successful send`);
+            }
+            
+            // Update message status in database
+            await dmWorker.updateMessageStatus(this.campaignId, recipientId);
+            
+            // Update processed recipients list
+            this.processedRecipients.push(recipientId);
+            this.queue.shift();
+            this.totalAttempts = 0;
+            
+            // Reset consecutive errors counter on success
+            consecutiveMemoryErrors = 0;
+          } else {
+            this.handleFailedAttempt(recipientId);
+          }
+        } catch (error) {
+          // Check for memory-related errors
+          console.log("Error in send attempt:", error);
+          if (dmWorker.isMemoryError(error)) {
+            // Increment consecutive errors
+            consecutiveMemoryErrors++;
+            console.log(`Browser memory issue detected: ${error.message}`);
+            console.log(`Performing browser restart and cooldown (attempt ${++browserRestartCount}, consecutive: ${consecutiveMemoryErrors})`);
+            
+            // Save current state
+            await this.saveToRedis();
+            
+            // Add current recipient to retry list
+            const currentRecipient = this.queue[0];
+            recipientsToRetry.push(currentRecipient);
+            console.log("Recipients to retry:", recipientsToRetry);
+            
+            // Remove from current queue to avoid duplicate processing
+            this.queue.shift();
+            await this.saveToRedis();
+            
+            // Progressive cooldown period - increases with consecutive errors
+            const cooldownMinutes = Math.min(3 + (consecutiveMemoryErrors * 2), 10);
+            console.log(`Cooling down for ${cooldownMinutes} minutes before restarting browser`);
+            
+            // Close browser BEFORE cooldown to free up memory
+            await dmWorker.closeBrowser();
+            
+            // Perform the actual cooldown
+            await new Promise(resolve => setTimeout(resolve, cooldownMinutes * 60000));
+            console.log(`Cooldown completed, restarting browser`);
+            
+            // Restart browser
+            try {
+              await dmWorker.launchBrowser();
+              console.log("Browser restarted successfully after cooldown");
+              
+              // Add failed recipients back to the beginning of the queue
+              this.queue = [...recipientsToRetry, ...this.queue];
+              recipientsToRetry = [];
+              await this.saveToRedis();
+              
+              // Continue the loop from the beginning
+              continue;
+            } catch (restartError) {
+              console.error('Error restarting browser:', restartError);
+              break;
+            }
+          } else {
+            // For non-memory errors, handle as a regular failed attempt
+            console.error(`Error sending DM to ${recipientId}:`, error);
+            this.handleFailedAttempt(recipientId);
+          }
+        }
+        
+        // Save state after each message
+        await this.saveToRedis();
+      }
+      
+      // If we've processed all messages, mark as Completed
+      if (this.queue.length === 0) {
+        this.status = 'Completed';
+        await this.saveToRedis();
+        
+        // Update the message status in database
+        await prisma.message.update({
+          where: { id: this.campaignId },
+          data: { status: 'Completed' }
+        });
+        
+        // Clean up Redis queue if completed
+        await redis.del(`${QUEUE_PREFIX}${this.campaignId}`);
+      }
+      
+    } catch (error) {
+      console.error(`Error processing campaign ${this.campaignId}:`, error);
+    } finally {
+      // Do not close the browser here, as it's managed by the DMWorker
+    }
+  }
+
+  handleFailedAttempt(recipientId) {
+    this.totalAttempts++;
+    
+    if (this.totalAttempts >= MAX_RETRIES) {
+      console.log(`Max retries reached for recipient ${recipientId}, marking as processed`);
+      this.processedRecipients.push(recipientId);
+      this.queue.shift();
+      this.totalAttempts = 0;
+    }
+  }
+}
+
 class DMWorker {
   constructor() {
     this.browser = null;
@@ -108,274 +383,19 @@ class DMWorker {
     for (const queueKey of queueKeys) {
       const campaignId = queueKey.split(':')[1];
       if (!campaignId) continue;
-      const queueData = await redis.get(queueKey);
-      if (!queueData) continue;
-      const queueState = queueData;
-      // Ensure queueState.queue is always an array
-      if (!Array.isArray(queueState.queue)) queueState.queue = [];
-      if (queueState.queue.length > 0 && queueState.status === 'Running') {
+      
+      const campaignQueue = new CampaignQueue(campaignId);
+      await campaignQueue.loadFromRedis();
+      
+      if (campaignQueue.queue.length > 0 && campaignQueue.status === 'Running') {
         console.log(`Processing campaign ${campaignId}`);
         this.isProcessing = true;
         this.currentCampaignId = campaignId;
-        await this.processCampaignQueue(campaignId, queueState);
+        await campaignQueue.process(this);
         this.isProcessing = false;
         this.currentCampaignId = null;
         break;
       }
-    }
-  }
-
-  async processCampaignQueue(campaignId, queueState) {
-    console.log(`Starting to process campaign ${campaignId}`);
-    
-    let browserRestartCount = 0;
-    let consecutiveMemoryErrors = 0;
-    let limitCheckCounter = 0;
-    let recipientsToRetry = [];
-    
-    try {
-      // Get campaign from database
-      const campaign = await prisma.message.findUnique({
-        where: { id: campaignId }
-      });
-      
-      if (!campaign) {
-        console.log(`Campaign ${campaignId} not found in database, skipping`);
-        return;
-      }
-      
-      // Launch browser with memory optimization arguments
-      await this.launchBrowser();
-      
-      // Add any recipients that need retry from previous browser crash
-      if (recipientsToRetry.length > 0) {
-        console.log(`Adding ${recipientsToRetry.length} recipients back to the queue for retry`);
-        queueState.queue = [...recipientsToRetry, ...(Array.isArray(queueState.queue) ? queueState.queue : [])];
-        recipientsToRetry = [];
-        await this.saveQueueState(campaignId, queueState);
-      }
-
-      // Ensure queueState.queue is always an array
-      if (!Array.isArray(queueState.queue)) queueState.queue = [];
-      while (queueState.queue.length > 0 && queueState.status === 'Running') {
-        // Reload queue state to check for status changes
-        const freshState = await this.getQueueState(campaignId);
-        if (freshState && freshState.status !== 'Running') {
-          console.log(`Campaign ${campaignId} status changed to ${freshState.status}, stopping processing`);
-          break;
-        }
-        
-        const { recipientId, message, cookies, userId } = queueState.queue[0];
-        console.log(`Processing message to recipient ${recipientId} for user ${userId}`);
-        
-        if (queueState.processedRecipients && queueState.processedRecipients.includes(recipientId)) {
-          console.log(`Recipient ${recipientId} already processed, skipping`);
-          queueState.queue.shift();
-          await this.saveQueueState(campaignId, queueState);
-          continue;
-        }
-
-        // Check daily limit every 5 messages or on the first message
-        if (limitCheckCounter % 5 === 0) {
-          if (!userId) {
-            console.error(`userId is undefined for campaign: ${campaignId}`);
-            
-            // Try to get userId from database as fallback
-            try {
-              const campaign = await prisma.message.findUnique({
-                where: { id: campaignId },
-                select: { userId: true }
-              });
-              
-              if (campaign?.userId) {
-                console.log(`Found userId ${campaign.userId} from database for campaign ${campaignId}`);
-                // Update the current queue item
-                queueState.queue[0].userId = campaign.userId;
-                await this.saveQueueState(campaignId, queueState);
-                
-                // Continue with the updated userId
-                const limitCheck = await this.checkDailyLimit(campaign.userId);
-                
-                if (!limitCheck.canSend) {
-                  console.log(`Daily limit reached for user ${campaign.userId}. Setting campaign to Rate Limited.`);
-                  queueState.status = 'Rate Limited';
-                  await this.saveQueueState(campaignId, queueState);
-                  
-                  // Update message status in database
-                  await prisma.message.update({
-                    where: { id: campaignId },
-                    data: { status: 'Rate Limited' }
-                  });
-                  
-                  // Exit the processing loop
-                  return;
-                }
-              }
-            } catch (error) {
-              console.error("Error fetching userId from database:", error);
-            }
-            
-            // Skip this message if no userId found
-            queueState.queue.shift();
-            await this.saveQueueState(campaignId, queueState);
-            continue;
-          }
-          
-          const limitCheck = await this.checkDailyLimit(userId);
-          
-          if (!limitCheck.canSend) {
-            console.log(`Daily limit reached for user ${userId}. Setting campaign to Rate Limited.`);
-            queueState.status = 'Rate Limited';
-            await this.saveQueueState(campaignId, queueState);
-            
-            // Update message status in database
-            await prisma.message.update({
-              where: { id: campaignId },
-              data: { status: 'Rate Limited' }
-            });
-            
-            return; // Exit the processing loop
-          }
-        }
-        limitCheckCounter++;
-
-        // Apply random delay between messages (2-4 minutes)
-        const delay = Math.floor(Math.random() * (240000 - 120000 + 1) + 120000);
-        console.log(`Waiting ${delay/60000} minutes before sending next message`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        // Reload queue state after delay to check for status changes
-        const postDelayState = await this.getQueueState(campaignId);
-        if (postDelayState && postDelayState.status !== 'Running') {
-          console.log(`Campaign ${campaignId} status changed to ${postDelayState.status} during delay, stopping processing`);
-          queueState = postDelayState;
-          break;
-        }
-
-        try {
-          // Send the DM
-          const success = await this.sendDM(recipientId, message, cookies);
-          
-          if (success) {
-            // Only increment the counter AFTER successful message sending
-            if (userId) {
-              await this.incrementDailyLimit(userId);
-              console.log(`Incremented daily message count for user ${userId} after successful send`);
-            }
-            
-            // Update message status in database
-            await this.updateMessageStatus(campaignId, recipientId);
-            
-            // Update processed recipients list
-            if (!queueState.processedRecipients) {
-              queueState.processedRecipients = [];
-            }
-            
-            queueState.processedRecipients.push(recipientId);
-            queueState.queue.shift();
-            queueState.totalAttempts = 0;
-            
-            // Reset consecutive errors counter on success
-            consecutiveMemoryErrors = 0;
-          } else {
-            this.handleFailedAttempt(queueState, recipientId);
-          }
-        } catch (error) {
-          // Check for memory-related errors
-          console.log("Error in send attempt:", error);
-          if (this.isMemoryError(error)) {
-            // Increment consecutive errors
-            consecutiveMemoryErrors++;
-            console.log(`Browser memory issue detected: ${error.message}`);
-            console.log(`Performing browser restart and cooldown (attempt ${++browserRestartCount}, consecutive: ${consecutiveMemoryErrors})`);
-            
-            // Save current state
-            await this.saveQueueState(campaignId, queueState);
-            
-            // Add current recipient to retry list
-            const currentRecipient = queueState.queue[0];
-            recipientsToRetry.push(currentRecipient);
-            console.log("Recipients to retry:", recipientsToRetry);
-            
-            // Remove from current queue to avoid duplicate processing
-            queueState.queue.shift();
-            await this.saveQueueState(campaignId, queueState);
-            
-            // Progressive cooldown period - increases with consecutive errors
-            const cooldownMinutes = Math.min(3 + (consecutiveMemoryErrors * 2), 10);
-            console.log(`Cooling down for ${cooldownMinutes} minutes before restarting browser`);
-            
-            // Close browser BEFORE cooldown to free up memory
-            await this.closeBrowser();
-            
-            // Perform the actual cooldown
-            await new Promise(resolve => setTimeout(resolve, cooldownMinutes * 60000));
-            console.log(`Cooldown completed, restarting browser`);
-            
-            // Restart browser
-            try {
-              await this.launchBrowser();
-              console.log("Browser restarted successfully after cooldown");
-              
-              // Add failed recipients back to the beginning of the queue
-              queueState.queue = [...recipientsToRetry, ...queueState.queue];
-              recipientsToRetry = [];
-              await this.saveQueueState(campaignId, queueState);
-              
-              // Continue the loop from the beginning
-              continue;
-            } catch (restartError) {
-              console.error('Error restarting browser:', restartError);
-              break;
-            }
-          } else {
-            // For non-memory errors, handle as a regular failed attempt
-            console.error(`Error sending DM to ${recipientId}:`, error);
-            this.handleFailedAttempt(queueState, recipientId);
-          }
-        }
-        
-        // Save state after each message
-        await this.saveQueueState(campaignId, queueState);
-      }
-      
-      // If we've processed all messages, mark as Completed
-      if (queueState.queue.length === 0) {
-        queueState.status = 'Completed';
-        await this.saveQueueState(campaignId, queueState);
-        
-        // Update the message status in database
-        await prisma.message.update({
-          where: { id: campaignId },
-          data: { status: 'Completed' }
-        });
-        
-        // Clean up Redis queue if completed
-        await redis.del(`${QUEUE_PREFIX}${campaignId}`);
-      }
-      
-    } catch (error) {
-      console.error(`Error processing campaign ${campaignId}:`, error);
-    } finally {
-      await this.closeBrowser();
-    }
-  }
-
-  handleFailedAttempt(queueState, recipientId) {
-    if (!queueState.totalAttempts) {
-      queueState.totalAttempts = 0;
-    }
-    
-    queueState.totalAttempts++;
-    
-    if (queueState.totalAttempts >= MAX_RETRIES) {
-      console.log(`Max retries reached for recipient ${recipientId}, marking as processed`);
-      if (!queueState.processedRecipients) {
-        queueState.processedRecipients = [];
-      }
-      queueState.processedRecipients.push(recipientId);
-      queueState.queue.shift();
-      queueState.totalAttempts = 0;
     }
   }
 
@@ -446,6 +466,7 @@ class DMWorker {
         visible: true
       });
       console.log(`[${recipientId}] Composer found, attempting to type`);
+      
       // Use a more reliable typing method
       try {
         // Try direct typing first (most reliable)
@@ -636,15 +657,6 @@ class DMWorker {
     };
   }
 
-  async getQueueState(campaignId) {
-    const queueData = await redis.get(`${QUEUE_PREFIX}${campaignId}`);
-    return queueData || null;
-  }
-
-  async saveQueueState(campaignId, queueState) {
-    await redis.set(`${QUEUE_PREFIX}${campaignId}`, queueState);
-  }
-
   async recoverActiveCampaigns() {
     try {
       // Find all campaign queues in Redis
@@ -654,23 +666,28 @@ class DMWorker {
       if (queueKeys.length === 0) {
         return { recovered: 0 };
       }
+      
       let recoveredCount = 0;
+      
       for (const queueKey of queueKeys) {
         const campaignId = queueKey.split(':')[1];
         if (!campaignId) continue;
+        
         const campaign = await prisma.message.findUnique({ where: { id: campaignId } });
         if (!campaign) continue;
-        const queueData = await redis.get(queueKey);
-        if (!queueData) continue;
-        const queueState = queueData;
-        if (queueState.queue && queueState.queue.length > 0 && queueState.status !== 'Stopped') {
-          console.log(`Found active campaign ${campaignId} with status ${queueState.status}`);
+        
+        const campaignQueue = new CampaignQueue(campaignId);
+        await campaignQueue.loadFromRedis();
+        
+        if (campaignQueue.queue.length > 0 && campaignQueue.status !== 'Stopped') {
+          console.log(`Found active campaign ${campaignId} with status ${campaignQueue.status}`);
+          
           // For rate limited campaigns, check if limit has reset
-          if (queueState.status === 'Rate Limited') {
+          if (campaignQueue.status === 'Rate Limited') {
             // Find a userId in the queue
             let userId = null;
-            if (queueState.queue.length > 0 && queueState.queue[0].userId) {
-              userId = queueState.queue[0].userId;
+            if (campaignQueue.queue.length > 0 && campaignQueue.queue[0].userId) {
+              userId = campaignQueue.queue[0].userId;
             } else if (campaign.userId) {
               userId = campaign.userId;
             }
@@ -690,8 +707,8 @@ class DMWorker {
               
               if (!dailyUsage || parseInt(dailyUsage) < adjustedLimit) {
                 // Resume campaign
-                queueState.status = 'Running';
-                await this.saveQueueState(campaignId, queueState);
+                campaignQueue.status = 'Running';
+                await campaignQueue.saveToRedis();
                 
                 await prisma.message.update({
                   where: { id: campaignId },
@@ -703,12 +720,13 @@ class DMWorker {
             }
           }
           // For Running campaigns, ensure they're actually running
-          else if (queueState.status === 'Running') {
+          else if (campaignQueue.status === 'Running') {
             // Mark as recovered
             recoveredCount++;
           }
         }
       }
+      
       console.log(`Recovered ${recoveredCount} campaigns`);
       return { recovered: recoveredCount };
     } catch (error) {
@@ -716,6 +734,20 @@ class DMWorker {
       return { recovered: 0, error: error.message };
     }
   }
+}
+
+// Utility function to transform message templates
+function messageTransformFunction(message, recipient) {
+  if (!message || !recipient) return message;
+  
+  let transformedMessage = message.replace(/{name}/g, recipient.name ? recipient.name.split(" ")[0] : "");
+  transformedMessage = transformedMessage.replace(/{username}/g, recipient.username ? recipient.username : "");
+  transformedMessage = transformedMessage.replace(/{url}/g, recipient.url ? recipient.url : "");
+  transformedMessage = transformedMessage.replace(/{bio}/g, recipient.bio ? recipient.bio : "");
+  transformedMessage = transformedMessage.replace(/{followers}/g, recipient.followers ? recipient.followers : "");
+  transformedMessage = transformedMessage.replace(/{following}/g, recipient.following ? recipient.following : "");
+  
+  return transformedMessage;
 }
 
 // Start the worker
