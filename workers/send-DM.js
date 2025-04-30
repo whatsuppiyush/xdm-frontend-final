@@ -427,7 +427,7 @@ class DMWorker {
     let page = null;
     
     try {
-      console.log(`[${recipientId}] Starting DM process`);
+      console.log(`[${recipientId}] Starting DM process for campaign ${this.currentCampaignId}`);
       page = await this.browser.newPage();
       
       // Block unnecessary resources
