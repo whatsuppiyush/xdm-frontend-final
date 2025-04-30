@@ -1021,7 +1021,13 @@ export default function CampaignPage() {
                               }
                             }}
                           >
-                            {idx + 1}
+                            {leadLoadingPage && leadPage !== idx + 1 ? (
+                              idx + 1
+                            ) : leadLoadingPage && leadPage === idx + 1 ? (
+                              <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                            ) : (
+                              idx + 1
+                            )}
                           </button>
                         ))}
                       </div>
