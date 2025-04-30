@@ -59,8 +59,8 @@ export default function Login() {
           title: "Success!",
           description: "You have successfully logged in.",
         });
-        router.push("/");
-        router.refresh();
+        await fetch("/api/auth/session");
+        window.location.reload();
       }
     } catch (error) {
       console.error("Login failed:", error);
