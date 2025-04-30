@@ -63,10 +63,9 @@ export const CampaignLiveEmailTemplate: React.FC<Readonly<CampaignLiveEmailTempl
         color: '#374151',
         marginBottom: '24px',
       }}>
-        Great news! Your campaign <strong>{campaignName}</strong> is now live and running. Your message is being delivered to {recipientCount} recipients.
+        Great news! Your campaign <strong>{campaignName}</strong> is now live and running. Your message is being delivered to {recipientCount} recipients.It takes time we send dm slowly and steadily,by end of day your dm will be sent to all recipients as per day quota.
       </p>
 
-      {/* Campaign Stats Section */}
       <div style={{
         backgroundColor: '#f0fdfa',
         borderRadius: '8px',
