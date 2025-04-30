@@ -419,28 +419,23 @@ class DMWorker {
     for (const queueKey of queueKeys) {
       const campaignId = queueKey.split(':')[1];
       if (!campaignId) continue;
-      
       const campaignQueue = new CampaignQueue(campaignId);
       await campaignQueue.loadFromRedis();
-      
       if (campaignQueue.queue.length > 0 && campaignQueue.status === 'Running') {
-        // Distributed lock section
         const lock = new Lock({
           id: `lock:campaign:${campaignId}`,
           redis: redis,
           lease: 60000 // 60 seconds
         });
-
         if (await lock.acquire()) {
+          console.log(`[${process.pid}] Acquired lock for campaign ${campaignId}, starting processing`);
           let lockRenewal;
           try {
-            // Start lock renewal every 30 seconds
             lockRenewal = setInterval(() => {
               lock.extend(60000).catch(e => {
                 console.error(`Failed to extend lock for campaign ${campaignId}:`, e);
               });
             }, 30000);
-            console.log(`Processing campaign ${campaignId}`);
             this.isProcessing = true;
             this.currentCampaignId = campaignId;
             await campaignQueue.process(this);
@@ -449,10 +444,11 @@ class DMWorker {
           } finally {
             clearInterval(lockRenewal);
             await lock.release();
+            console.log(`[${process.pid}] Released lock for campaign ${campaignId}`);
           }
           break;
         } else {
-          console.log(`Could not acquire lock for campaign ${campaignId}, skipping...`);
+          console.log(`[${process.pid}] Could not acquire lock for campaign ${campaignId}, skipping...`);
         }
       }
     }
