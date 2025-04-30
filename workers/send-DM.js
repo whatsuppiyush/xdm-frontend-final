@@ -52,6 +52,8 @@ class CampaignQueue {
     this.totalAttempts = 0;
     this.status = 'Ready'; // Ready, Running, Paused, Stopped, Rate Limited
     this.browser = null;
+    // Add error count tracking for browser restarts per recipient
+    this.recipientErrorCounts = {};
   }
 
   async loadFromRedis() {
@@ -223,10 +225,24 @@ class CampaignQueue {
             
             // Reset consecutive errors counter on success
             consecutiveMemoryErrors = 0;
+            // Reset error count on success
+            this.recipientErrorCounts[recipientId] = 0;
           } else {
             this.handleFailedAttempt(recipientId);
           }
         } catch (error) {
+          // Track browser restart/cooldown attempts per recipient
+          const MAX_BROWSER_RESTARTS_PER_RECIPIENT = 3;
+          this.recipientErrorCounts[recipientId] = (this.recipientErrorCounts[recipientId] || 0) + 1;
+          // Log the error reason
+          console.error(`[${recipientId}] Browser restart/cooldown error: ${error.message}`);
+          if (this.recipientErrorCounts[recipientId] >= MAX_BROWSER_RESTARTS_PER_RECIPIENT) {
+            console.log(`[${recipientId}] Hit max browser restarts (${MAX_BROWSER_RESTARTS_PER_RECIPIENT}), skipping recipient.`);
+            this.processedRecipients.push(recipientId);
+            this.queue.shift();
+            await this.saveToRedis();
+            continue;
+          }
           // Check for memory-related errors
           console.log("Error in send attempt:", error);
           if (dmWorker.isMemoryError(error)) {
