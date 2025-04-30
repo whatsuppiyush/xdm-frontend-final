@@ -1693,7 +1693,7 @@ export default function CampaignPage() {
                           isDark ? "text-gray-400" : "text-gray-500"
                         )}>
                           Progress - {queue.processedLeads}/{queue.totalLeads} sent 
-                          {queue.failedLeads > 0 && ` (${queue.failedLeads} failed)`}
+                          {queue.failedLeads > 0 && ` (${queue.failedLeads} pending)`}
                         </p>
                       </div>
                       <div className="text-sm">
