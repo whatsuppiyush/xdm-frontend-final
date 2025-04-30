@@ -102,6 +102,8 @@ class CampaignQueue {
     let consecutiveMemoryErrors = 0;
     let limitCheckCounter = 0;
     let recipientsToRetry = [];
+    let consecutiveSkips = 0;
+    const SKIP_THRESHOLD = 10;
     
     try {
       // Launch browser if not already launched
@@ -229,6 +231,7 @@ class CampaignQueue {
             this.recipientErrorCounts[recipientId] = 0;
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = 0;
+            consecutiveSkips = 0;
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
@@ -238,16 +241,40 @@ class CampaignQueue {
               this.queue.shift();
               this.totalAttempts = 0;
               await this.saveToRedis();
+              consecutiveSkips++;
+              if (consecutiveSkips >= SKIP_THRESHOLD) {
+                this.status = 'Paused';
+                await this.saveToRedis();
+                await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
+                console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
+                break;
+              }
               continue;
             } else {
               console.log(`[${recipientId}] Composer not found, will retry (attempt ${this.composerErrorCounts[recipientId]})`);
               // Wait a short time before retrying
               await new Promise(resolve => setTimeout(resolve, 10000));
               await this.saveToRedis();
+              consecutiveSkips++;
+              if (consecutiveSkips >= SKIP_THRESHOLD) {
+                this.status = 'Paused';
+                await this.saveToRedis();
+                await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
+                console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
+                break;
+              }
               continue;
             }
           } else {
             this.handleFailedAttempt(recipientId);
+            consecutiveSkips++;
+            if (consecutiveSkips >= SKIP_THRESHOLD) {
+              this.status = 'Paused';
+              await this.saveToRedis();
+              await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
+              console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (send failure)`);
+              break;
+            }
           }
         } catch (error) {
           // Track browser restart/cooldown attempts per recipient
@@ -260,6 +287,14 @@ class CampaignQueue {
             this.processedRecipients.push(recipientId);
             this.queue.shift();
             await this.saveToRedis();
+            consecutiveSkips++;
+            if (consecutiveSkips >= SKIP_THRESHOLD) {
+              this.status = 'Paused';
+              await this.saveToRedis();
+              await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
+              console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (browser restart/cooldown)`);
+              break;
+            }
             continue;
           }
           // Check for memory-related errors
@@ -313,6 +348,14 @@ class CampaignQueue {
             // For non-memory errors, handle as a regular failed attempt
             console.error(`Error sending DM to ${recipientId}:`, error);
             this.handleFailedAttempt(recipientId);
+            consecutiveSkips++;
+            if (consecutiveSkips >= SKIP_THRESHOLD) {
+              this.status = 'Paused';
+              await this.saveToRedis();
+              await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
+              console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (send error)`);
+              break;
+            }
           }
         }
         
