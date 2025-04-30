@@ -416,14 +416,7 @@ class DMWorker {
           let lockRenewal;
           try {
             // Start lock renewal every 30 seconds
-            lockRenewal = setInterval(async () => {
-              try {
-                await lock.renew();
-              } catch (renewErr) {
-                console.error(`Failed to renew lock for campaign ${campaignId}:`, renewErr);
-              }
-            }, 30000);
-
+            lockRenewal = setInterval(() => lock.extend(60000), 30000);
             console.log(`Processing campaign ${campaignId}`);
             this.isProcessing = true;
             this.currentCampaignId = campaignId;
@@ -431,7 +424,7 @@ class DMWorker {
             this.isProcessing = false;
             this.currentCampaignId = null;
           } finally {
-            if (lockRenewal) clearInterval(lockRenewal);
+            clearInterval(lockRenewal);
             await lock.release();
           }
           break;
