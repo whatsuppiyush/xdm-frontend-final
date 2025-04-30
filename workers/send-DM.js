@@ -178,17 +178,19 @@ class CampaignQueue {
           const limitCheck = await dmWorker.checkDailyLimit(userId);
           
           if (!limitCheck.canSend) {
-            console.log(`Daily limit reached for user ${userId}. Setting campaign to Rate Limited.`);
+            // Add detailed rate limit log
+            const userCredits = await prisma.userCredits.findUnique({ where: { userId } });
+            const planType = userCredits?.planType;
+            const planLimit = getUserDailyMessageLimit(userCredits);
+            const effectiveLimit = getEnvironmentAdjustedLimit(planLimit);
+            console.log(`RATE LIMIT: User ${userId} (plan: ${planType}) has sent ${limitCheck.currentCount} DMs, limit is ${effectiveLimit}. Campaign ${this.campaignId} will be set to Rate Limited.`);
             this.status = 'Rate Limited';
             await this.saveToRedis();
-            
-            // Update message status in database
             await prisma.message.update({
               where: { id: this.campaignId },
               data: { status: 'Rate Limited' }
             });
-            
-            return; // Exit the processing loop
+            return;
           }
         }
         limitCheckCounter++;
