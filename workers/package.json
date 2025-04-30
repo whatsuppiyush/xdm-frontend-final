@@ -2,10 +2,10 @@
   "name": "xautodm-worker",
   "version": "1.0.0",
   "description": "Background worker for xAutoDM messaging",
-  "main": "send-DM.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node send-DM.js",
-    "start:prod": "NODE_ENV=production node send-DM.js",
+    "start": "node index.js",
+    "start:prod": "NODE_ENV=production node index.js",
     "prisma": "prisma generate"
   },
   "dependencies": {
