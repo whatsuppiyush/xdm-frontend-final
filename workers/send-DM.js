@@ -54,6 +54,7 @@ class CampaignQueue {
     this.browser = null;
     // Add error count tracking for browser restarts per recipient
     this.recipientErrorCounts = {};
+    this.composerErrorCounts = {};
   }
 
   async loadFromRedis() {
@@ -205,11 +206,8 @@ class CampaignQueue {
         }
 
         try {
-          // Send the DM
-          const success = await dmWorker.sendDM(recipientId, message, cookies);
-          
-          if (success) {
-            // Only increment the counter AFTER successful message sending
+          const result = await dmWorker.sendDM(recipientId, message, cookies);
+          if (result === true) {
             if (userId) {
               await dmWorker.incrementDailyLimit(userId);
               console.log(`Incremented daily message count for user ${userId} after successful send`);
@@ -227,6 +225,25 @@ class CampaignQueue {
             consecutiveMemoryErrors = 0;
             // Reset error count on success
             this.recipientErrorCounts[recipientId] = 0;
+            this.composerErrorCounts = this.composerErrorCounts || {};
+            this.composerErrorCounts[recipientId] = 0;
+          } else if (result === 'composer_not_found') {
+            this.composerErrorCounts = this.composerErrorCounts || {};
+            this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
+            if (this.composerErrorCounts[recipientId] >= 3) {
+              console.log(`[${recipientId}] Hit max composer not found errors (3), skipping recipient.`);
+              this.processedRecipients.push(recipientId);
+              this.queue.shift();
+              this.totalAttempts = 0;
+              await this.saveToRedis();
+              continue;
+            } else {
+              console.log(`[${recipientId}] Composer not found, will retry (attempt ${this.composerErrorCounts[recipientId]})`);
+              // Wait a short time before retrying
+              await new Promise(resolve => setTimeout(resolve, 10000));
+              await this.saveToRedis();
+              continue;
+            }
           } else {
             this.handleFailedAttempt(recipientId);
           }
@@ -483,11 +500,7 @@ class DMWorker {
       
       // Set minimal viewport
       await page.setViewport({ width: 800, height: 600 });
-      
-      // Set minimal cookies
-      const essentialCookies = cookies.filter(c => 
-        ['auth_token', 'ct0'].includes(c.name)
-      );
+      const essentialCookies = cookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
       await page.setCookie(...essentialCookies);
       console.log(`[${recipientId}] Cookies set, essential count: ${essentialCookies.length}`);
       
@@ -501,10 +514,18 @@ class DMWorker {
       
       // Find composer with minimal DOM operations
       console.log(`[${recipientId}] Waiting for composer selector`);
-      await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
-        timeout: 60000,
-        visible: true
-      });
+      try {
+        await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
+          timeout: 60000,
+          visible: true
+        });
+      } catch (e) {
+        if (e.name === 'TimeoutError') {
+          console.error(`[${recipientId}] DM composer not found, incrementing composer error count`);
+          return 'composer_not_found';
+        }
+        throw e;
+      }
       console.log(`[${recipientId}] Composer found, attempting to type`);
       
       // Use a more reliable typing method
