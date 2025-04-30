@@ -366,6 +366,11 @@ export default function LeadsPage() {
                 }
               }}
               disabled={loadingPage}
+              className={`font-medium px-5 py-2 rounded-xl transition-colors duration-200 ${
+                typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-black text-white hover:bg-gray-800'
+              }`}
             >
               Previous
             </Button>
@@ -380,6 +385,11 @@ export default function LeadsPage() {
                 }
               }}
               disabled={loadingPage}
+              className={`font-medium px-5 py-2 rounded-xl transition-colors duration-200 ${
+                typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-black text-white hover:bg-gray-800'
+              }`}
             >
               Next
             </Button>
