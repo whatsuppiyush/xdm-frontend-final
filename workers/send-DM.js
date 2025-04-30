@@ -416,7 +416,11 @@ class DMWorker {
           let lockRenewal;
           try {
             // Start lock renewal every 30 seconds
-            lockRenewal = setInterval(() => lock.extend(60000), 30000);
+            lockRenewal = setInterval(() => {
+              lock.extend(60000).catch(e => {
+                console.error(`Failed to extend lock for campaign ${campaignId}:`, e);
+              });
+            }, 30000);
             console.log(`Processing campaign ${campaignId}`);
             this.isProcessing = true;
             this.currentCampaignId = campaignId;
