@@ -357,21 +357,33 @@ export default function LeadsPage() {
 
       {totalPages > 1 && !searchQuery && (
         <div className="flex justify-center mt-6 gap-2">
-          {Array.from({ length: totalPages }).map((_, idx) => (
-            <button
-              key={idx + 1}
-              className={`px-3 py-1 rounded ${page === idx + 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
-              disabled={page === idx + 1 || loadingPage}
+          {page > 1 && (
+            <Button
               onClick={() => {
-                if (page !== idx + 1) {
+                if (!loadingPage) {
                   setLoadingPage(true);
-                  setPage(idx + 1);
+                  setPage(page - 1);
                 }
               }}
+              disabled={loadingPage}
             >
-              {idx + 1}
-            </button>
-          ))}
+              Previous
+            </Button>
+          )}
+          <span className="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium">Page {page} of {totalPages}</span>
+          {page < totalPages && (
+            <Button
+              onClick={() => {
+                if (!loadingPage) {
+                  setLoadingPage(true);
+                  setPage(page + 1);
+                }
+              }}
+              disabled={loadingPage}
+            >
+              Next
+            </Button>
+          )}
         </div>
       )}
 

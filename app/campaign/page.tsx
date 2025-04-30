@@ -1009,27 +1009,33 @@ export default function CampaignPage() {
                     )}
                     {leadTotalPages > 1 && (
                       <div className="flex justify-center mt-6 gap-2">
-                        {Array.from({ length: leadTotalPages }).map((_, idx) => (
-                          <button
-                            key={idx + 1}
-                            className={`px-3 py-1 rounded ${leadPage === idx + 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
-                            disabled={leadPage === idx + 1 || leadLoadingPage}
+                        {leadPage > 1 && (
+                          <Button
                             onClick={() => {
-                              if (leadPage !== idx + 1) {
+                              if (!leadLoadingPage) {
                                 setLeadLoadingPage(true);
-                                setLeadPage(idx + 1);
+                                setLeadPage(leadPage - 1);
                               }
                             }}
+                            disabled={leadLoadingPage}
                           >
-                            {leadLoadingPage && leadPage !== idx + 1 ? (
-                              idx + 1
-                            ) : leadLoadingPage && leadPage === idx + 1 ? (
-                              <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                            ) : (
-                              idx + 1
-                            )}
-                          </button>
-                        ))}
+                            Previous
+                          </Button>
+                        )}
+                        <span className="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium">Page {leadPage} of {leadTotalPages}</span>
+                        {leadPage < leadTotalPages && (
+                          <Button
+                            onClick={() => {
+                              if (!leadLoadingPage) {
+                                setLeadLoadingPage(true);
+                                setLeadPage(leadPage + 1);
+                              }
+                            }}
+                            disabled={leadLoadingPage}
+                          >
+                            Next
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
