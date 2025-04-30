@@ -606,6 +606,11 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                           <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base">
                             {option.description}
                           </p>
+                          {option.key === "followers" && (
+                            <div className="mt-2 text-sm text-red-600 dark:text-red-400 font-semibold">
+                              Currently facing an outage with this feature.
+                            </div>
+                          )}
                         </div>
                         <div
                           className={`p-2 rounded-full flex-shrink-0 ${
