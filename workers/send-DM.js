@@ -5,6 +5,7 @@ const { PrismaClient } = require('@prisma/client');
 const { Redis } = require('@upstash/redis');
 const http = require('http');
 const { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } = require('./planLimits');
+const { Lock } = require("@upstash/lock");
 
 // Initialize Prisma client
 const prisma = new PrismaClient();
@@ -388,13 +389,28 @@ class DMWorker {
       await campaignQueue.loadFromRedis();
       
       if (campaignQueue.queue.length > 0 && campaignQueue.status === 'Running') {
-        console.log(`Processing campaign ${campaignId}`);
-        this.isProcessing = true;
-        this.currentCampaignId = campaignId;
-        await campaignQueue.process(this);
-        this.isProcessing = false;
-        this.currentCampaignId = null;
-        break;
+        // Distributed lock section
+        const lock = new Lock({
+          id: `lock:campaign:${campaignId}`,
+          redis: redis,
+          lease: 60000 // 60 seconds
+        });
+
+        if (await lock.acquire()) {
+          try {
+            console.log(`Processing campaign ${campaignId}`);
+            this.isProcessing = true;
+            this.currentCampaignId = campaignId;
+            await campaignQueue.process(this);
+            this.isProcessing = false;
+            this.currentCampaignId = null;
+          } finally {
+            await lock.release();
+          }
+          break;
+        } else {
+          console.log(`Could not acquire lock for campaign ${campaignId}, skipping...`);
+        }
       }
     }
   }
