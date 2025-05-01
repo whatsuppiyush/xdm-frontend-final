@@ -418,8 +418,7 @@ class DMWorker {
     this.browser = null;
     this.isProcessing = false;
     this.currentCampaignId = null;
-    
-    // Set up heartbeat interval
+    this.lastStatusMap = new Map();
     this.startHeartbeat();
   }
   
@@ -478,7 +477,6 @@ class DMWorker {
     for (const queueKey of queueKeys) {
       const campaignId = queueKey.split(':')[1];
       if (!campaignId) continue;
-      // Fetch campaign name from DB
       let campaignName = 'Unknown';
       try {
         const campaign = await prisma.message.findUnique({
@@ -489,15 +487,22 @@ class DMWorker {
       } catch (e) {
         console.error(`Error fetching campaign name for ${campaignId}:`, e);
       }
-      // Log picking up campaign
-      console.log(`[${process.pid}] Attempting to process campaign ${campaignId} (${campaignName})`);
       const campaignQueue = new CampaignQueue(campaignId, campaignName);
       await campaignQueue.loadFromRedis();
-      if (campaignQueue.queue.length > 0 && campaignQueue.status === 'Running') {
+      // Only process if status is Running
+      if (["Running"].includes(campaignQueue.status)) {
+        // Log status transition only
+        const lastStatus = this.lastStatusMap.get(campaignId);
+        if (campaignQueue.status !== lastStatus) {
+          console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
+          this.lastStatusMap.set(campaignId, campaignQueue.status);
+        }
+        // Add to active_campaigns set
+        await redis.sadd('active_campaigns', campaignId);
         const lock = new Lock({
           id: `lock:campaign:${campaignId}`,
           redis: redis,
-          lease: 60000 // 60 seconds
+          lease: 60000
         });
         if (await lock.acquire()) {
           console.log(`[${process.pid}] Acquired lock for campaign ${campaignId} (${campaignName}), starting processing`);
@@ -523,8 +528,19 @@ class DMWorker {
           console.log(`[${process.pid}] Could not acquire lock for campaign ${campaignId} (${campaignName}), skipping...`);
         }
       } else {
-        // Log skipping due to status
-        console.log(`[${process.pid}] Skipping campaign ${campaignId} (${campaignName}) because status is ${campaignQueue.status}`);
+        // Remove from active_campaigns set if not active
+        await redis.srem('active_campaigns', campaignId);
+        // Delete stuck lock if exists
+        const lockKey = `lock:campaign:${campaignId}`;
+        await redis.del(lockKey);
+        // Log status transition only
+        const lastStatus = this.lastStatusMap.get(campaignId);
+        if (campaignQueue.status !== lastStatus) {
+          console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
+          this.lastStatusMap.set(campaignId, campaignQueue.status);
+        }
+        // No log spam for every skip
+        continue;
       }
     }
   }
