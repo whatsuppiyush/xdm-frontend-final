@@ -100,40 +100,36 @@ export default function OnboardingChecklist() {
         setIsLoading(false);
         return;
       }
-      
       setIsLoading(true);
-      
       try {
-        // Check Twitter accounts
-        const accountsResponse = await fetch(`/api/twitter/get-accounts?userId=${userId}`);
+        // Fetch all data in parallel
+        const [
+          accountsResponse,
+          leadsResponse,
+          messagesResponse,
+          userResponse
+        ] = await Promise.all([
+          fetch(`/api/twitter/get-accounts?userId=${userId}`),
+          fetch(`/api/leads?userId=${userId}`),
+          fetch(`/api/messages?userId=${userId}`),
+          fetch("/api/user/credits")
+        ]);
         const accountsData = await accountsResponse.json();
-        const hasTwitterAccount = accountsData.accounts?.length > 0;
-        
-        // Check leads
-        const leadsResponse = await fetch(`/api/leads?userId=${userId}`);
         const leadsData = await leadsResponse.json();
-        const hasLeads = leadsData.leads?.length > 0;
-        
-        // Check campaigns
-        const messagesResponse = await fetch(`/api/messages?userId=${userId}`);
         const messagesData = await messagesResponse.json();
-        const hasCampaigns = messagesData.messages?.length > 0;
-
-        // Check subscription status
-        const userResponse = await fetch("/api/user/credits");
         const userData = await userResponse.json();
+        const hasTwitterAccount = accountsData.accounts?.length > 0;
+        const hasLeads = leadsData.leads?.length > 0;
+        const hasCampaigns = messagesData.messages?.length > 0;
         const hasSubscription = !!userData.planType;
         const hasFree = userData.planType === "free";
-        
         if (hasFree) {
           setHasFreeAccount(true);
-          
-          // Update subscription description for free users
-          setChecklist(prev => 
+          setChecklist(prev =>
             prev.map(item => {
               if (item.id === "subscription") {
-                return { 
-                  ...item, 
+                return {
+                  ...item,
                   description: "You have 2,000 lead credits on the free plan. Upgrade for more.",
                   buttonText: "Upgrade plan"
                 };
@@ -142,9 +138,7 @@ export default function OnboardingChecklist() {
             })
           );
         }
-        
-        // Update checklist with completed items
-        setChecklist(prev => 
+        setChecklist(prev =>
           prev.map(item => {
             if (item.id === "connect-twitter") return { ...item, completed: hasTwitterAccount };
             if (item.id === "import-leads") return { ...item, completed: hasLeads };
@@ -153,24 +147,17 @@ export default function OnboardingChecklist() {
             return item;
           })
         );
-        
-        // Check if all items are completed
         const allCompleted = hasTwitterAccount && hasLeads && hasCampaigns && hasSubscription;
-        
-        // Only update visibility if we haven't already set it as invisible
         if (allCompleted) {
           setIsVisible(false);
-          // Store completion status in localStorage to prevent flashing on future visits
           localStorage.setItem('onboardingCompleted', 'true');
         }
-        
       } catch (error) {
         console.error("Error fetching onboarding data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
     if (isInitialized && userId) {
       fetchData();
     }
@@ -178,15 +165,8 @@ export default function OnboardingChecklist() {
 
   // If we're not visible, don't render anything
   if (!isVisible) return null;
-  
   // Only show the UI after client initialization to prevent hydration errors
-  if (!isInitialized) {
-    return (
-      <div className="mb-8 opacity-0">
-        <div className="h-[300px]"></div>
-      </div>
-    );
-  }
+  if (!isInitialized) return null;
 
   // Animation variants
   const containerVariants = {
