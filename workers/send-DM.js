@@ -45,8 +45,9 @@ server.listen(PORT, () => {
 });
 
 class CampaignQueue {
-  constructor(campaignId) {
+  constructor(campaignId, campaignName = 'Unknown') {
     this.campaignId = campaignId;
+    this.campaignName = campaignName;
     this.queue = [];
     this.processedRecipients = [];
     this.totalAttempts = 0;
@@ -58,6 +59,7 @@ class CampaignQueue {
   }
 
   async loadFromRedis() {
+    console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Loading campaign state from Redis`);
     const queueData = await redis.get(`${QUEUE_PREFIX}${this.campaignId}`);
     if (queueData) {
       this.queue = queueData.queue || [];
@@ -68,6 +70,7 @@ class CampaignQueue {
   }
 
   async saveToRedis() {
+    console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Saving campaign state to Redis`);
     const queueState = {
       queue: this.queue,
       processedRecipients: this.processedRecipients,
@@ -79,13 +82,17 @@ class CampaignQueue {
 
   async process(dmWorker) {
     await this.loadFromRedis();
-    console.log(`Processing campaign ${this.campaignId}, status: ${this.status}`);
+    console.log(`[${process.pid}] Processing campaign ${this.campaignId} (${this.campaignName}), status: ${this.status}`);
     
     // Only proceed if status is Ready or Running
-    if (this.status === 'Stopped' || this.status === 'Paused') return;
+    if (this.status === 'Stopped' || this.status === 'Paused') {
+      console.log(`[${process.pid}] Skipping campaign ${this.campaignId} (${this.campaignName}) because status is ${this.status}`);
+      return;
+    }
     
     // Set status to Running
     this.status = 'Running';
+    console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) status changed to: Running`);
     await this.saveToRedis();
     
     // Update message status in database to In Progress
@@ -121,7 +128,10 @@ class CampaignQueue {
 
       while (this.queue.length > 0 && this.status === 'Running') {
         await this.loadFromRedis();
-        if (this.status !== 'Running') break;
+        if (this.status !== 'Running') {
+          console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) status changed to ${this.status} during delay, stopping processing`);
+          break;
+        }
 
         const { recipientId, message, cookies, userId } = this.queue[0];
         
@@ -205,19 +215,22 @@ class CampaignQueue {
         // Reload queue state after delay to check for status changes
         await this.loadFromRedis();
         if (this.status !== 'Running') {
-          console.log(`Campaign ${this.campaignId} status changed to ${this.status} during delay, stopping processing`);
+          console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) status changed to ${this.status} during delay, stopping processing`);
           break;
         }
 
         try {
+          // Log DM attempt
+          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Attempting DM to recipient ${recipientId}`);
           const result = await dmWorker.sendDM(recipientId, message, cookies);
           if (result === true) {
             if (userId) {
               await dmWorker.incrementDailyLimit(userId);
-              console.log(`Incremented daily message count for user ${userId} after successful send`);
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Incremented daily message count for user ${userId} after successful send`);
             }
             
-            // Update message status in database
+            // Log DB update
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Updating DB status for recipient ${recipientId}`);
             await dmWorker.updateMessageStatus(this.campaignId, recipientId);
             
             // Update processed recipients list
@@ -232,11 +245,12 @@ class CampaignQueue {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = 0;
             consecutiveSkips = 0;
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} succeeded`);
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
             if (this.composerErrorCounts[recipientId] >= 3) {
-              console.log(`[${recipientId}] Hit max composer not found errors (3), skipping recipient.`);
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Skipping recipient ${recipientId} due to: composer_not_found (max errors)`);
               this.processedRecipients.push(recipientId);
               this.queue.shift();
               this.totalAttempts = 0;
@@ -251,7 +265,7 @@ class CampaignQueue {
               }
               continue;
             } else {
-              console.log(`[${recipientId}] Composer not found, will retry (attempt ${this.composerErrorCounts[recipientId]})`);
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Composer not found for recipient ${recipientId}, will retry (attempt ${this.composerErrorCounts[recipientId]})`);
               // Wait a short time before retrying
               await new Promise(resolve => setTimeout(resolve, 10000));
               await this.saveToRedis();
@@ -266,6 +280,7 @@ class CampaignQueue {
               continue;
             }
           } else {
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} failed, will retry if under max attempts`);
             this.handleFailedAttempt(recipientId);
             consecutiveSkips++;
             if (consecutiveSkips >= SKIP_THRESHOLD) {
@@ -281,9 +296,9 @@ class CampaignQueue {
           const MAX_BROWSER_RESTARTS_PER_RECIPIENT = 3;
           this.recipientErrorCounts[recipientId] = (this.recipientErrorCounts[recipientId] || 0) + 1;
           // Log the error reason
-          console.error(`[${recipientId}] Browser restart/cooldown error: ${error.message}`);
+          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Retrying recipient ${recipientId} due to error: ${error.message}`);
           if (this.recipientErrorCounts[recipientId] >= MAX_BROWSER_RESTARTS_PER_RECIPIENT) {
-            console.log(`[${recipientId}] Hit max browser restarts (${MAX_BROWSER_RESTARTS_PER_RECIPIENT}), skipping recipient.`);
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Max retries reached for recipient ${recipientId}, skipping.`);
             this.processedRecipients.push(recipientId);
             this.queue.shift();
             await this.saveToRedis();
@@ -376,10 +391,11 @@ class CampaignQueue {
         
         // Clean up Redis queue if completed
         await redis.del(`${QUEUE_PREFIX}${this.campaignId}`);
+        console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) completed. Total recipients processed: ${this.processedRecipients.length}`);
       }
       
     } catch (error) {
-      console.error(`Error processing campaign ${this.campaignId}:`, error);
+      console.error(`Error processing campaign ${this.campaignId} (${this.campaignName}):`, error);
     } finally {
       // Do not close the browser here, as it's managed by the DMWorker
     }
@@ -462,7 +478,20 @@ class DMWorker {
     for (const queueKey of queueKeys) {
       const campaignId = queueKey.split(':')[1];
       if (!campaignId) continue;
-      const campaignQueue = new CampaignQueue(campaignId);
+      // Fetch campaign name from DB
+      let campaignName = 'Unknown';
+      try {
+        const campaign = await prisma.message.findUnique({
+          where: { id: campaignId },
+          select: { campaignName: true }
+        });
+        if (campaign && campaign.campaignName) campaignName = campaign.campaignName;
+      } catch (e) {
+        console.error(`Error fetching campaign name for ${campaignId}:`, e);
+      }
+      // Log picking up campaign
+      console.log(`[${process.pid}] Attempting to process campaign ${campaignId} (${campaignName})`);
+      const campaignQueue = new CampaignQueue(campaignId, campaignName);
       await campaignQueue.loadFromRedis();
       if (campaignQueue.queue.length > 0 && campaignQueue.status === 'Running') {
         const lock = new Lock({
@@ -471,12 +500,12 @@ class DMWorker {
           lease: 60000 // 60 seconds
         });
         if (await lock.acquire()) {
-          console.log(`[${process.pid}] Acquired lock for campaign ${campaignId}, starting processing`);
+          console.log(`[${process.pid}] Acquired lock for campaign ${campaignId} (${campaignName}), starting processing`);
           let lockRenewal;
           try {
             lockRenewal = setInterval(() => {
               lock.extend(60000).catch(e => {
-                console.error(`Failed to extend lock for campaign ${campaignId}:`, e);
+                console.error(`Failed to extend lock for campaign ${campaignId} (${campaignName}):`, e);
               });
             }, 30000);
             this.isProcessing = true;
@@ -487,12 +516,15 @@ class DMWorker {
           } finally {
             clearInterval(lockRenewal);
             await lock.release();
-            console.log(`[${process.pid}] Released lock for campaign ${campaignId}`);
+            console.log(`[${process.pid}] Released lock for campaign ${campaignId} (${campaignName})`);
           }
           break;
         } else {
-          console.log(`[${process.pid}] Could not acquire lock for campaign ${campaignId}, skipping...`);
+          console.log(`[${process.pid}] Could not acquire lock for campaign ${campaignId} (${campaignName}), skipping...`);
         }
+      } else {
+        // Log skipping due to status
+        console.log(`[${process.pid}] Skipping campaign ${campaignId} (${campaignName}) because status is ${campaignQueue.status}`);
       }
     }
   }
@@ -503,18 +535,18 @@ class DMWorker {
       const messageRecord = await prisma.message.findUnique({
         where: { id: campaignId }
       });
-
+      const campaignName = messageRecord?.campaignName || 'Unknown';
       if (messageRecord) {
         const updatedMessages = messageRecord.messages.map(msg => 
           msg.recipientId === recipientId 
             ? { ...msg, status: true }
             : msg
         );
-
         await prisma.message.update({
           where: { id: campaignId },
           data: { messages: updatedMessages }
         });
+        console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Updated message status for recipient ${recipientId} in DB`);
       }
     } catch (error) {
       console.error('Failed to update message status:', error);
@@ -633,7 +665,7 @@ class DMWorker {
       return false; // Return false for non-memory errors
     } finally {
       if (page) {
-        console.log(`[${recipientId}] Cleaning up page`);
+        console.log(`[${this.currentCampaignId}] Cleaning up Puppeteer page for recipient ${recipientId}`);
         // Close page and clean up
         await page.removeAllListeners();
         await page.close();
