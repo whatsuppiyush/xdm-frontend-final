@@ -60,6 +60,7 @@ class CampaignQueue {
 
   async loadFromRedis() {
     console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Loading campaign state from Redis`);
+    console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Recipients left in queue: ${this.queue.length}`);
     const queueData = await redis.get(`${QUEUE_PREFIX}${this.campaignId}`);
     if (queueData) {
       this.queue = queueData.queue || [];
@@ -128,6 +129,7 @@ class CampaignQueue {
 
       while (this.queue.length > 0 && this.status === 'Running') {
         await this.loadFromRedis();
+        console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Recipients left in queue: ${this.queue.length}`);
         if (this.status !== 'Running') {
           console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) status changed to ${this.status} during delay, stopping processing`);
           break;
