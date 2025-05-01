@@ -489,8 +489,8 @@ class DMWorker {
       }
       const campaignQueue = new CampaignQueue(campaignId, campaignName);
       await campaignQueue.loadFromRedis();
-      // Only process if status is Running or Rate Limited
-      if (["Running", "Rate Limited"].includes(campaignQueue.status)) {
+      // Only process if status is Running
+      if (["Running"].includes(campaignQueue.status)) {
         // Log status transition only
         const lastStatus = this.lastStatusMap.get(campaignId);
         if (campaignQueue.status !== lastStatus) {
