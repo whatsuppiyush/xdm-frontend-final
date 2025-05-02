@@ -87,6 +87,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning data-oid="xib.ut5">
       <head>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: `window.lemonSqueezyAffiliateConfig = { store: "xautodm" };` }}></script>
         <script src="https://lmsqueezy.com/affiliate.js" defer></script>
