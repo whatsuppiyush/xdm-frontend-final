@@ -456,6 +456,8 @@ class DMWorker {
 
   async startProcessingLoop() {
     console.log('Starting processing loop...');
+    this.idleStart = null;
+    const idleTimeoutMs = 3 * 60 * 1000; // 3 minutes
     while (true) {
       try {
         if (!this.isProcessing) {
@@ -464,8 +466,8 @@ class DMWorker {
             if (!this.idleStart) {
               this.idleStart = Date.now();
             }
-            if (Date.now() - this.idleStart > this.idleTimeoutMs) {
-              console.log('No active campaigns for 5 minutes, exiting worker process');
+            if (Date.now() - this.idleStart > idleTimeoutMs) {
+              console.log('No active/running campaigns for this worker for 3 minutes, exiting now');
               process.exit(0);
             }
           } else {
