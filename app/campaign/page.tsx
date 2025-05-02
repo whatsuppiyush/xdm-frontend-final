@@ -563,16 +563,44 @@ export default function CampaignPage() {
         setIsCreating(true);
         
         // Set the selected lead
-        setSelectedLeadList({
-          id: leadData.id,
-          leadName: leadData.name,
+        setSelectedLeadList(prev => ({
+          id: prev?.id || leadData.id,
+          leadName: prev?.leadName || leadData.name,
+          createdAt: prev?.createdAt || new Date().toISOString(),
           totalLeads: 0,
-          createdAt: new Date().toISOString(),
           followers: []
-        });
+        }));
         
-        // Skip to step 2
+        // Move to step 2 and fetch lead details if autoStart is true
         setStep(2);
+        
+        // If autoStart is true, we need to fetch lead details
+        if (leadData.autoStart && leadData.id) {
+          const fetchLeadDetails = async () => {
+            try {
+              const response = await fetch(`/api/leads/details?id=${leadData.id}`);
+              if (response.ok) {
+                const details = await response.json();
+                // Update the lead with correct follower count
+                setSelectedLeadList(prev => ({
+                  ...prev,
+                  totalLeads: details.followers?.length || 0,
+                  followers: details.followers || []
+                }));
+                
+                // Set filtered leads to all followers
+                setFilteredLeads(details.followers || []);
+                
+                // After a short delay, advance to step 3 (Write Message)
+                
+              }
+            } catch (error) {
+              console.error("Error fetching lead details:", error);
+            }
+          };
+          
+          fetchLeadDetails();
+        }
         
         // Clear the stored data
         localStorage.removeItem('automationLead');
@@ -580,7 +608,7 @@ export default function CampaignPage() {
         console.error("Error parsing stored lead data:", error);
       }
     }
-  }, []);
+  }, [setFilteredLeads]);
 
   const sendDM = async () => {
     if (!selectedAccount?.cookies) {
