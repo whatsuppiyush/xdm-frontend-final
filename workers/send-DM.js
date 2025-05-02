@@ -421,6 +421,8 @@ class DMWorker {
     this.isProcessing = false;
     this.currentCampaignId = null;
     this.lastStatusMap = new Map();
+    this.idleStart = null;
+    this.idleTimeoutMs = 5 * 60 * 1000; // 5 minutes
     this.startHeartbeat();
   }
   
@@ -454,20 +456,25 @@ class DMWorker {
 
   async startProcessingLoop() {
     console.log('Starting processing loop...');
-    
-    // Run continuously
     while (true) {
       try {
         if (!this.isProcessing) {
-          // Check for new tasks
-          await this.processNextTask();
+          const hasActive = await this.processNextTask();
+          if (!hasActive) {
+            if (!this.idleStart) {
+              this.idleStart = Date.now();
+            }
+            if (Date.now() - this.idleStart > this.idleTimeoutMs) {
+              console.log('No active campaigns for 5 minutes, exiting worker process');
+              process.exit(0);
+            }
+          } else {
+            this.idleStart = null;
+          }
         }
-        
-        // Wait a bit before checking again to avoid hammering Redis
         await new Promise(resolve => setTimeout(resolve, 5000));
       } catch (error) {
         console.error('Error in processing loop:', error);
-        // Wait a bit longer on error
         await new Promise(resolve => setTimeout(resolve, 30000));
       }
     }
@@ -476,6 +483,7 @@ class DMWorker {
   async processNextTask() {
     const queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
     console.log(`Found ${queueKeys.length} campaign queues in Redis`);
+    let hasActive = false;
     for (const queueKey of queueKeys) {
       const campaignId = queueKey.split(':')[1];
       if (!campaignId) continue;
@@ -491,15 +499,13 @@ class DMWorker {
       }
       const campaignQueue = new CampaignQueue(campaignId, campaignName);
       await campaignQueue.loadFromRedis();
-      // Only process if status is Running
       if (["Running"].includes(campaignQueue.status)) {
-        // Log status transition only
+        hasActive = true;
         const lastStatus = this.lastStatusMap.get(campaignId);
         if (campaignQueue.status !== lastStatus) {
           console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
           this.lastStatusMap.set(campaignId, campaignQueue.status);
         }
-        // Add to active_campaigns set
         await redis.sadd('active_campaigns', campaignId);
         const lock = new Lock({
           id: `lock:campaign:${campaignId}`,
@@ -530,21 +536,18 @@ class DMWorker {
           console.log(`[${process.pid}] Could not acquire lock for campaign ${campaignId} (${campaignName}), skipping...`);
         }
       } else {
-        // Remove from active_campaigns set if not active
         await redis.srem('active_campaigns', campaignId);
-        // Delete stuck lock if exists
         const lockKey = `lock:campaign:${campaignId}`;
         await redis.del(lockKey);
-        // Log status transition only
         const lastStatus = this.lastStatusMap.get(campaignId);
         if (campaignQueue.status !== lastStatus) {
           console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
           this.lastStatusMap.set(campaignId, campaignQueue.status);
         }
-        // No log spam for every skip
         continue;
       }
     }
+    return hasActive;
   }
 
   async updateMessageStatus(campaignId, recipientId) {
