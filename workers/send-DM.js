@@ -499,54 +499,53 @@ class DMWorker {
       } catch (e) {
         console.error(`Error fetching campaign name for ${campaignId}:`, e);
       }
-      const campaignQueue = new CampaignQueue(campaignId, campaignName);
-      await campaignQueue.loadFromRedis();
-      if (["Running"].includes(campaignQueue.status)) {
-        hasActive = true;
-        const lastStatus = this.lastStatusMap.get(campaignId);
-        if (campaignQueue.status !== lastStatus) {
-          console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
-          this.lastStatusMap.set(campaignId, campaignQueue.status);
-        }
-        await redis.sadd('active_campaigns', campaignId);
-        const lock = new Lock({
-          id: `lock:campaign:${campaignId}`,
-          redis: redis,
-          lease: 60000
-        });
-        if (await lock.acquire()) {
-          console.log(`[${process.pid}] Acquired lock for campaign ${campaignId} (${campaignName}), starting processing`);
-          let lockRenewal;
-          try {
-            lockRenewal = setInterval(() => {
-              lock.extend(60000).catch(e => {
-                console.error(`Failed to extend lock for campaign ${campaignId} (${campaignName}):`, e);
-              });
-            }, 30000);
+      const lock = new Lock({
+        id: `lock:campaign:${campaignId}`,
+        redis: redis,
+        lease: 60000
+      });
+      if (await lock.acquire()) {
+        let lockRenewal;
+        try {
+          lockRenewal = setInterval(() => {
+            lock.extend(60000).catch(e => {
+              console.error(`Failed to extend lock for campaign ${campaignId} (${campaignName}):`, e);
+            });
+          }, 30000);
+          const campaignQueue = new CampaignQueue(campaignId, campaignName);
+          await campaignQueue.loadFromRedis();
+          if (["Running"].includes(campaignQueue.status)) {
+            hasActive = true;
+            const lastStatus = this.lastStatusMap.get(campaignId);
+            if (campaignQueue.status !== lastStatus) {
+              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
+              this.lastStatusMap.set(campaignId, campaignQueue.status);
+            }
+            await redis.sadd('active_campaigns', campaignId);
             this.isProcessing = true;
             this.currentCampaignId = campaignId;
             await campaignQueue.process(this);
             this.isProcessing = false;
             this.currentCampaignId = null;
-          } finally {
-            clearInterval(lockRenewal);
-            await lock.release();
-            console.log(`[${process.pid}] Released lock for campaign ${campaignId} (${campaignName})`);
+            break;
+          } else {
+            await redis.srem('active_campaigns', campaignId);
+            const lockKey = `lock:campaign:${campaignId}`;
+            await redis.del(lockKey);
+            const lastStatus = this.lastStatusMap.get(campaignId);
+            if (campaignQueue.status !== lastStatus) {
+              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
+              this.lastStatusMap.set(campaignId, campaignQueue.status);
+            }
+            continue;
           }
-          break;
-        } else {
-          console.log(`[${process.pid}] Could not acquire lock for campaign ${campaignId} (${campaignName}), skipping...`);
+        } finally {
+          clearInterval(lockRenewal);
+          await lock.release();
+          console.log(`[${process.pid}] Released lock for campaign ${campaignId} (${campaignName})`);
         }
       } else {
-        await redis.srem('active_campaigns', campaignId);
-        const lockKey = `lock:campaign:${campaignId}`;
-        await redis.del(lockKey);
-        const lastStatus = this.lastStatusMap.get(campaignId);
-        if (campaignQueue.status !== lastStatus) {
-          console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
-          this.lastStatusMap.set(campaignId, campaignQueue.status);
-        }
-        continue;
+        console.log(`[${process.pid}] Could not acquire lock for campaign ${campaignId} (${campaignName}), skipping...`);
       }
     }
     return hasActive;
