@@ -111,7 +111,7 @@ class CampaignQueue {
     let limitCheckCounter = 0;
     let recipientsToRetry = [];
     let consecutiveSkips = 0;
-    const SKIP_THRESHOLD = 10;
+    const SKIP_THRESHOLD = 4;
     
     try {
       // Launch browser if not already launched
