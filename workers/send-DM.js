@@ -209,8 +209,8 @@ class CampaignQueue {
         }
         limitCheckCounter++;
 
-        // Apply random delay between messages (2-2.5 minutes)
-        const delay = Math.floor(Math.random() * (150000 - 120000 + 1) + 120000);
+        // Apply random delay between messages (2-3 minutes)
+        const delay = Math.floor(Math.random() * (180000 - 120000 + 1) + 120000);
         console.log(`Waiting ${delay/60000} minutes before sending next message`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
