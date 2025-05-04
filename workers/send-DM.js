@@ -505,13 +505,18 @@ class DMWorker {
         lease: 60000
       });
       if (await lock.acquire()) {
+        const lockOwnerId = `${process.pid}-${Date.now()}`;
         let lockRenewal;
         try {
+          console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Acquired lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
+          // Set renewal interval to 20s for a 60s lease
           lockRenewal = setInterval(() => {
-            lock.extend(60000).catch(e => {
-              console.error(`Failed to extend lock for campaign ${campaignId} (${campaignName}):`, e);
+            lock.extend(60000).then(() => {
+              console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Lock renewed at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
+            }).catch(e => {
+              console.error(`[${process.pid}] [${campaignId} - ${campaignName}] Failed to extend lock:`, e, `(owner: ${lockOwnerId})`);
             });
-          }, 30000);
+          }, 20000);
           const campaignQueue = new CampaignQueue(campaignId, campaignName);
           await campaignQueue.loadFromRedis();
           if (["Running"].includes(campaignQueue.status)) {
@@ -530,8 +535,7 @@ class DMWorker {
             break;
           } else {
             await redis.srem('active_campaigns', campaignId);
-            const lockKey = `lock:campaign:${campaignId}`;
-            await redis.del(lockKey);
+            // Only delete the lock key if you are the owner (lock.release handles this)
             const lastStatus = this.lastStatusMap.get(campaignId);
             if (campaignQueue.status !== lastStatus) {
               console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
@@ -542,10 +546,10 @@ class DMWorker {
         } finally {
           clearInterval(lockRenewal);
           await lock.release();
-          console.log(`[${process.pid}] Released lock for campaign ${campaignId} (${campaignName})`);
+          console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Released lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
         }
       } else {
-        console.log(`[${process.pid}] Could not acquire lock for campaign ${campaignId} (${campaignName}), skipping...`);
+        console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Could not acquire lock at ${new Date().toISOString()}`);
       }
     }
     return hasActive;
