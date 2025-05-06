@@ -81,31 +81,9 @@ class CampaignQueue {
     await redis.set(`${QUEUE_PREFIX}${this.campaignId}`, queueState);
   }
 
-  async process(dmWorker) {
+  async process(dmWorker, maxMessagesPerRun = 160) {
     await this.loadFromRedis();
-    console.log(`[${process.pid}] Processing campaign ${this.campaignId} (${this.campaignName}), status: ${this.status}`);
-    
-    // Only proceed if status is Ready or Running
-    if (this.status === 'Stopped' || this.status === 'Paused') {
-      console.log(`[${process.pid}] Skipping campaign ${this.campaignId} (${this.campaignName}) because status is ${this.status}`);
-      return;
-    }
-    
-    // Set status to Running
-    this.status = 'Running';
-    console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) status changed to: Running`);
-    await this.saveToRedis();
-    
-    // Update message status in database to In Progress
-    try {
-      await prisma.message.update({
-        where: { id: this.campaignId },
-        data: { status: 'In Progress' }
-      });
-    } catch (error) {
-      console.error('Failed to update message status:', error);
-    }
-    
+    let sentCount = 0;
     let browserRestartCount = 0;
     let consecutiveMemoryErrors = 0;
     let limitCheckCounter = 0;
@@ -128,6 +106,12 @@ class CampaignQueue {
       }
 
       while (this.queue.length > 0 && this.status === 'Running') {
+        // Message count-based rotation
+        if (sentCount >= maxMessagesPerRun) {
+          console.log(`[${process.pid}] [${this.campaignId}] Max messages per run reached (${maxMessagesPerRun}), saving state and yielding`);
+          await this.saveToRedis();
+          break;
+        }
         await this.loadFromRedis();
         console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Recipients left in queue: ${this.queue.length}`);
         if (this.status !== 'Running') {
@@ -248,6 +232,7 @@ class CampaignQueue {
             this.composerErrorCounts[recipientId] = 0;
             consecutiveSkips = 0;
             console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} succeeded`);
+            sentCount++;
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
@@ -486,6 +471,7 @@ class DMWorker {
     const queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
     console.log(`Found ${queueKeys.length} campaign queues in Redis`);
     let hasActive = false;
+    const MAX_MESSAGES_PER_RUN = 160;
     for (const queueKey of queueKeys) {
       const campaignId = queueKey.split(':')[1];
       if (!campaignId) continue;
@@ -509,7 +495,6 @@ class DMWorker {
         let lockRenewal;
         try {
           console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Acquired lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
-          // Set renewal interval to 20s for a 60s lease
           lockRenewal = setInterval(() => {
             lock.extend(60000).then(() => {
               console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Lock renewed at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
@@ -529,7 +514,7 @@ class DMWorker {
             await redis.sadd('active_campaigns', campaignId);
             this.isProcessing = true;
             this.currentCampaignId = campaignId;
-            await campaignQueue.process(this);
+            await campaignQueue.process(this, MAX_MESSAGES_PER_RUN);
             this.isProcessing = false;
             this.currentCampaignId = null;
             break;
