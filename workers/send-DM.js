@@ -485,25 +485,36 @@ class DMWorker {
       } catch (e) {
         console.error(`Error fetching campaign name for ${campaignId}:`, e);
       }
+      // Generate a unique lock owner ID before acquiring the lock
+      const lockOwnerId = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const lock = new Lock({
         id: `lock:campaign:${campaignId}`,
         redis: redis,
-        lease: 60000
+        lease: 120000, // 2 minutes
+        owner: lockOwnerId
       });
       if (await lock.acquire()) {
-        const lockOwnerId = `${process.pid}-${Date.now()}`;
         let lockRenewal;
         try {
           console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Acquired lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
-          lockRenewal = setInterval(() => {
-            lock.extend(60000).then(() => {
+          lockRenewal = setInterval(async () => {
+            const extended = await lock.extend(120000);
+            if (extended) {
               console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Lock renewed at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
-            }).catch(e => {
-              console.error(`[${process.pid}] [${campaignId} - ${campaignName}] Failed to extend lock:`, e, `(owner: ${lockOwnerId})`);
-            });
-          }, 20000);
+            } else {
+              console.error(`[${process.pid}] [${campaignId} - ${campaignName}] Failed to extend lock (owner: ${lockOwnerId})`);
+            }
+          }, 40000);
           const campaignQueue = new CampaignQueue(campaignId, campaignName);
           await campaignQueue.loadFromRedis();
+          // Verify the lock is still held by this worker before processing
+          if (typeof lock.getOwner === 'function') {
+            const currentOwner = await lock.getOwner();
+            if (currentOwner !== lockOwnerId) {
+              console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Lock ownership lost before processing (expected: ${lockOwnerId}, got: ${currentOwner})`);
+              continue;
+            }
+          }
           if (["Running"].includes(campaignQueue.status)) {
             hasActive = true;
             const lastStatus = this.lastStatusMap.get(campaignId);
@@ -520,7 +531,6 @@ class DMWorker {
             break;
           } else {
             await redis.srem('active_campaigns', campaignId);
-            // Only delete the lock key if you are the owner (lock.release handles this)
             const lastStatus = this.lastStatusMap.get(campaignId);
             if (campaignQueue.status !== lastStatus) {
               console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
@@ -534,7 +544,7 @@ class DMWorker {
           console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Released lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
         }
       } else {
-        console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Could not acquire lock at ${new Date().toISOString()}`);
+        console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Could not acquire lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
       }
     }
     return hasActive;
