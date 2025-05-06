@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer-core');
 const { PrismaClient } = require('@prisma/client');
 const { Redis } = require('@upstash/redis');
 const http = require('http');
-const { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } = require('./planLimits');
+const { getUserDailyMessageLimit, getEnvironmentAdjustedLimit, isFreeUser } = require('./planLimits');
 const { Lock } = require("@upstash/lock");
 
 // Initialize Prisma client
@@ -81,36 +81,39 @@ class CampaignQueue {
     await redis.set(`${QUEUE_PREFIX}${this.campaignId}`, queueState);
   }
 
-  async process(dmWorker, maxMessagesPerRun = 160) {
+  async process(dmWorker) {
     await this.loadFromRedis();
-    let sentCount = 0;
     let browserRestartCount = 0;
     let consecutiveMemoryErrors = 0;
     let limitCheckCounter = 0;
     let recipientsToRetry = [];
     let consecutiveSkips = 0;
     const SKIP_THRESHOLD = 4;
+    let lastPreemptionCheck = Date.now();
+    const PREEMPTION_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3 hours
     
     try {
-      // Launch browser if not already launched
       if (!dmWorker.browser) {
         await dmWorker.launchBrowser();
       }
-      
-      // Add any recipients that need retry from previous browser crash
       if (recipientsToRetry.length > 0) {
         console.log(`Adding ${recipientsToRetry.length} recipients back to the queue for retry`);
         this.queue = [...recipientsToRetry, ...this.queue];
         recipientsToRetry = [];
         await this.saveToRedis();
       }
-
       while (this.queue.length > 0 && this.status === 'Running') {
-        // Message count-based rotation
-        if (sentCount >= maxMessagesPerRun) {
-          console.log(`[${process.pid}] [${this.campaignId}] Max messages per run reached (${maxMessagesPerRun}), saving state and yielding`);
-          await this.saveToRedis();
-          break;
+        // Preemption: check for new high-priority campaign every 3 hours
+        if (Date.now() - lastPreemptionCheck >= PREEMPTION_INTERVAL_MS) {
+          const highPriorityCampaignIds = await redis.smembers('high_priority_campaigns') || [];
+          if (
+            highPriorityCampaignIds.length > 0 &&
+            !highPriorityCampaignIds.includes(this.campaignId)
+          ) {
+            console.log(`[${process.pid}] Preempting campaign ${this.campaignId} for high-priority campaign ${highPriorityCampaignIds[0]}`);
+            return; // Immediately exit to allow worker to pick up high-priority campaign
+          }
+          lastPreemptionCheck = Date.now();
         }
         await this.loadFromRedis();
         console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Recipients left in queue: ${this.queue.length}`);
@@ -232,7 +235,6 @@ class CampaignQueue {
             this.composerErrorCounts[recipientId] = 0;
             consecutiveSkips = 0;
             console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} succeeded`);
-            sentCount++;
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
@@ -468,22 +470,40 @@ class DMWorker {
   }
 
   async processNextTask() {
-    const queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
-    console.log(`Found ${queueKeys.length} campaign queues in Redis`);
+    // Check high-priority campaigns first
+    const highPriorityCampaignIds = await redis.smembers('high_priority_campaigns') || [];
+    let queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
+    let prioritizedQueueKeys = [];
+    if (highPriorityCampaignIds.length > 0) {
+      prioritizedQueueKeys = queueKeys.filter(key => highPriorityCampaignIds.includes(key.split(':')[1]));
+      // Place high-priority campaigns at the front
+      queueKeys = [...prioritizedQueueKeys, ...queueKeys.filter(key => !highPriorityCampaignIds.includes(key.split(':')[1]))];
+    }
+    console.log(`Found ${queueKeys.length} campaign queues in Redis (high-priority: ${highPriorityCampaignIds.length})`);
     let hasActive = false;
-    const MAX_MESSAGES_PER_RUN = 160;
     for (const queueKey of queueKeys) {
       const campaignId = queueKey.split(':')[1];
       if (!campaignId) continue;
       let campaignName = 'Unknown';
+      let userPlanType = null;
       try {
         const campaign = await prisma.message.findUnique({
           where: { id: campaignId },
-          select: { campaignName: true }
+          select: { campaignName: true, userId: true }
         });
         if (campaign && campaign.campaignName) campaignName = campaign.campaignName;
+        if (campaign && campaign.userId) {
+          const userCredits = await prisma.userCredits.findUnique({ where: { userId: campaign.userId } });
+          userPlanType = userCredits?.planType;
+          // If free user, ensure campaignId is in high_priority_campaigns set
+          if (isFreeUser(userPlanType)) {
+            await redis.sadd('high_priority_campaigns', campaignId);
+          } else {
+            await redis.srem('high_priority_campaigns', campaignId);
+          }
+        }
       } catch (e) {
-        console.error(`Error fetching campaign name for ${campaignId}:`, e);
+        console.error(`Error fetching campaign/user info for ${campaignId}:`, e);
       }
       // Generate a unique lock owner ID before acquiring the lock
       const lockOwnerId = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -525,7 +545,18 @@ class DMWorker {
             await redis.sadd('active_campaigns', campaignId);
             this.isProcessing = true;
             this.currentCampaignId = campaignId;
-            await campaignQueue.process(this, MAX_MESSAGES_PER_RUN);
+            await campaignQueue.process(this);
+            // Remove from high-priority set if campaign is no longer running
+            const updatedQueue = await redis.get(`${QUEUE_PREFIX}${campaignId}`);
+            if (updatedQueue) {
+              const status = updatedQueue.status || campaignQueue.status;
+              if (["Paused", "Stopped", "Completed", "Rate Limited"].includes(status)) {
+                await redis.srem('high_priority_campaigns', campaignId);
+              }
+            } else {
+              // If queue is deleted, remove from high-priority set
+              await redis.srem('high_priority_campaigns', campaignId);
+            }
             this.isProcessing = false;
             this.currentCampaignId = null;
             break;

@@ -27,9 +27,14 @@ function getEnvironmentAdjustedLimit(limit) {
   return limit;
 }
 
+function isFreeUser(planType) {
+  return planType === 'free';
+}
+
 module.exports = {
   DAILY_MESSAGE_LIMIT,
   calculateDailyMessageLimit,
   getUserDailyMessageLimit,
-  getEnvironmentAdjustedLimit
+  getEnvironmentAdjustedLimit,
+  isFreeUser
 }; 
