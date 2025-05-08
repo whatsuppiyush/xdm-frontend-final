@@ -510,7 +510,7 @@ class DMWorker {
       const lock = new Lock({
         id: `lock:campaign:${campaignId}`,
         redis: redis,
-        lease: 120000, // 2 minutes
+        lease: 300000, // 5 minutes
         owner: lockOwnerId
       });
       if (await lock.acquire()) {
@@ -518,13 +518,13 @@ class DMWorker {
         try {
           console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Acquired lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
           lockRenewal = setInterval(async () => {
-            const extended = await lock.extend(120000);
+            const extended = await lock.extend(300000);
             if (extended) {
               console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Lock renewed at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
             } else {
               console.error(`[${process.pid}] [${campaignId} - ${campaignName}] Failed to extend lock (owner: ${lockOwnerId})`);
             }
-          }, 40000);
+          }, 90000);
           const campaignQueue = new CampaignQueue(campaignId, campaignName);
           await campaignQueue.loadFromRedis();
           // Verify the lock is still held by this worker before processing
