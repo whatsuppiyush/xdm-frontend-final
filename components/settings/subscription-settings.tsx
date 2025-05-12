@@ -30,7 +30,7 @@ interface Plan {
 const plans: Plan[] = [
   {
     name: "Starter",
-    price: "$87",
+    price: "$59",
     description: "For individuals getting started",
     features: [
       "450 DMs per day",
@@ -46,8 +46,8 @@ const plans: Plan[] = [
   },
   {
     name: "Growth",
-    price: "$67",
-    bundlePrice: "$201",
+    price: "$49",
+    bundlePrice: "$147",
     description: "For serious professionals",
     features: [
       "1350 DMs per day (450 × 3 accounts)",
