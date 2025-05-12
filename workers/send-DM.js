@@ -88,7 +88,7 @@ class CampaignQueue {
     let limitCheckCounter = 0;
     let recipientsToRetry = [];
     let consecutiveSkips = 0;
-    const SKIP_THRESHOLD = 4;
+    const SKIP_THRESHOLD = 7;
     let lastPreemptionCheck = Date.now();
     const PREEMPTION_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3 hours
     
