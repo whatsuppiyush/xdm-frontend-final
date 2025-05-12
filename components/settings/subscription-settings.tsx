@@ -65,8 +65,8 @@ const plans: Plan[] = [
   },
   {
     name: "Elite",
-    price: "$57",
-    bundlePrice: "$285",
+    price: "$39",
+    bundlePrice: "$195",
     description: "For power users & teams",
     features: [
       "2250 DMs per day (450 × 5 accounts)",

@@ -105,12 +105,12 @@ export async function POST(request: Request) {
             checkout_options: checkoutOptions,
             product_options: {
               name: planId === VARIANT_IDS.GROWTH ? "Growth Plan - 3 Accounts ($147/mo)" : 
-                   planId === VARIANT_IDS.ELITE ? "Elite Plan - 5 Accounts ($285/mo)" : 
+                   planId === VARIANT_IDS.ELITE ? "Elite Plan - 5 Accounts ($195/mo)" : 
                    "Starter Plan",
               description: planId === VARIANT_IDS.GROWTH ? 
                          "3 accounts at $49 each = $147/mo total. Includes 75,000 Lead Credits and 1350 DMs per day." :
                          planId === VARIANT_IDS.ELITE ? 
-                         "5 accounts at $57 each = $285/mo total. Includes 125,000 Lead Credits and 2250 DMs per day." :
+                         "5 accounts at $39 each = $195/mo total. Includes 125,000 Lead Credits and 2250 DMs per day." :
                          "Individual plan with 25,000 Lead Credits and 450 DMs per day."
             },
             expires_at: null,
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
               planId === VARIANT_IDS.ELITE ? "Elite Plan" : "Starter Plan",
       quantity: finalQuantity,
       total: planId === VARIANT_IDS.GROWTH ? "$147/mo" : 
-            planId === VARIANT_IDS.ELITE ? "$285/mo" : "$59/mo"
+            planId === VARIANT_IDS.ELITE ? "$195/mo" : "$59/mo"
     });
 
     // Extract the URL from the response
