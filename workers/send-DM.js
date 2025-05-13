@@ -103,6 +103,12 @@ class CampaignQueue {
         await this.saveToRedis();
       }
       while (this.queue.length > 0 && this.status === 'Running') {
+        // Check if browser refresh is imminent
+        if (Date.now() - dmWorker.lastBrowserRefresh > dmWorker.browserRefreshInterval - 60000) { // 1 minute buffer
+          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Pausing processing due to imminent browser refresh`);
+          return; // Exit to allow browser refresh to happen
+        }
+        
         // Preemption: check for new high-priority campaign every 3 hours
         if (Date.now() - lastPreemptionCheck >= PREEMPTION_INTERVAL_MS) {
           const highPriorityCampaignIds = await redis.smembers('high_priority_campaigns') || [];
@@ -410,6 +416,9 @@ class DMWorker {
     this.lastStatusMap = new Map();
     this.idleStart = null;
     this.idleTimeoutMs = 5 * 60 * 1000; // 5 minutes
+    this.lastBrowserRefresh = Date.now();
+    this.browserRefreshInterval = 6 * 60 * 60 * 1000; // 6 hours
+    this.cooldownPeriod = 10 * 60 * 1000; // 10 minutes
     this.startHeartbeat();
   }
   
@@ -437,6 +446,9 @@ class DMWorker {
     // Recovery logic - find any campaigns that were interrupted
     await this.recoverActiveCampaigns();
     
+    // Initialize the browser refresh timestamp
+    this.lastBrowserRefresh = Date.now();
+    
     // Start the processing loop
     this.startProcessingLoop();
   }
@@ -447,6 +459,11 @@ class DMWorker {
     const idleTimeoutMs = 3 * 60 * 1000; // 3 minutes
     while (true) {
       try {
+        // Check if browser refresh is needed (every 6 hours)
+        if (Date.now() - this.lastBrowserRefresh > this.browserRefreshInterval) {
+          await this.performScheduledBrowserRefresh();
+        }
+
         if (!this.isProcessing) {
           const hasActive = await this.processNextTask();
           if (!hasActive) {
@@ -469,7 +486,49 @@ class DMWorker {
     }
   }
 
+  async performScheduledBrowserRefresh() {
+    console.log('Starting scheduled browser refresh (every 6 hours)');
+    
+    // Release any locks if currently processing
+    if (this.isProcessing && this.currentCampaignId) {
+      console.log(`Releasing lock for campaign ${this.currentCampaignId} before browser refresh`);
+      // Reset processing state
+      this.isProcessing = false;
+      
+      // Find and clear the lock
+      try {
+        const lockId = `lock:campaign:${this.currentCampaignId}`;
+        await redis.del(lockId);
+        console.log(`Released lock ${lockId} for scheduled browser refresh`);
+      } catch (error) {
+        console.error(`Error releasing lock for campaign ${this.currentCampaignId}:`, error);
+      }
+      
+      this.currentCampaignId = null;
+    }
+    
+    // Close browser
+    await this.closeBrowser();
+    
+    // Cooldown period
+    console.log(`Starting cooldown period of ${this.cooldownPeriod/60000} minutes before restarting browser`);
+    await new Promise(resolve => setTimeout(resolve, this.cooldownPeriod));
+    
+    // Restart browser
+    await this.launchBrowser();
+    console.log('Browser successfully refreshed after cooldown');
+    
+    // Update the last refresh timestamp
+    this.lastBrowserRefresh = Date.now();
+  }
+
   async processNextTask() {
+    // Skip processing if we're about to do a browser refresh
+    if (Date.now() - this.lastBrowserRefresh > this.browserRefreshInterval - 30000) { // 30 seconds buffer
+      console.log('Scheduled browser refresh is imminent, skipping task processing');
+      return false;
+    }
+    
     // Check high-priority campaigns first
     const highPriorityCampaignIds = await redis.smembers('high_priority_campaigns') || [];
     let queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
