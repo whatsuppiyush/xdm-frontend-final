@@ -409,8 +409,13 @@ class DMWorker {
     this.currentCampaignId = null;
     this.lastStatusMap = new Map();
     this.idleStart = null;
-    this.idleTimeoutMs = 5 * 60 * 1000; // 5 minutes
+    // this.idleTimeoutMs = 5 * 60 * 1000; // Default idle timeout
     this.startHeartbeat();
+
+    // Added for periodic browser restart
+    this.lastBrowserRestartTime = Date.now();
+    this.browserRestartInterval = 4 * 60 * 60 * 1000; // 4 hours
+    this.browserRestartCooldown = 10 * 60 * 1000; // 10 minutes
   }
   
   async startHeartbeat() {
@@ -442,11 +447,41 @@ class DMWorker {
   }
 
   async startProcessingLoop() {
-    console.log('Starting processing loop...');
-    this.idleStart = null;
+    console.log(`[${process.pid}] Starting processing loop...`);
+    this.idleStart = null; 
     const idleTimeoutMs = 3 * 60 * 1000; // 3 minutes
+
     while (true) {
       try {
+        // Perform periodic browser restart if not currently processing a campaign
+        if (!this.isProcessing && (Date.now() - this.lastBrowserRestartTime > this.browserRestartInterval)) {
+          console.log(`[${process.pid}] Scheduled 4-hourly browser restart initiated.`);
+
+          console.log(`[${process.pid}] Closing browser for scheduled restart.`);
+          await this.closeBrowser();
+
+          // Regarding locks: Campaign-specific locks are lease-based (e.g., 5 minutes)
+          // and are normally released by processNextTask. The 10-minute cooldown
+          // ensures any unreleased lock held by this worker instance would expire.
+          // Direct deletion of lock keys is avoided to maintain lock system integrity.
+          console.log(`[${process.pid}] Entering ${this.browserRestartCooldown / 60000}-minute cooldown period. Existing campaign locks are expected to expire if not already released.`);
+          await new Promise(resolve => setTimeout(resolve, this.browserRestartCooldown));
+
+          console.log(`[${process.pid}] Cooldown finished. Relaunching browser.`);
+          const browserLaunched = await this.launchBrowser();
+          if (!browserLaunched) {
+            console.error(`[${process.pid}] Failed to relaunch browser after scheduled restart. Will retry in the next loop iteration after a short delay.`);
+            // Adjust restart time to attempt again relatively soon, e.g., in 1 minute.
+            this.lastBrowserRestartTime = Date.now() - this.browserRestartInterval + (1 * 60 * 1000);
+            await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute before continuing loop
+            continue;
+          }
+
+          this.lastBrowserRestartTime = Date.now(); // Reset timer only after successful restart
+          console.log(`[${process.pid}] Scheduled browser restart completed successfully.`);
+          // The loop will continue, and processNextTask will be called if conditions are met.
+        }
+
         if (!this.isProcessing) {
           const hasActive = await this.processNextTask();
           if (!hasActive) {
@@ -454,17 +489,21 @@ class DMWorker {
               this.idleStart = Date.now();
             }
             if (Date.now() - this.idleStart > idleTimeoutMs) {
-              console.log('No active/running campaigns for this worker for 3 minutes, exiting now');
+              console.log(`[${process.pid}] Worker idle for ${idleTimeoutMs / 60000} minutes, closing browser and exiting.`);
+              await this.closeBrowser(); // Ensure browser is closed before exiting
               process.exit(0);
             }
           } else {
-            this.idleStart = null;
+            this.idleStart = null; // Reset idle timer if a task was processed
           }
         }
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Main loop delay
       } catch (error) {
-        console.error('Error in processing loop:', error);
-        await new Promise(resolve => setTimeout(resolve, 30000));
+        console.error(`[${process.pid}] Error in main processing loop:`, error);
+        // To prevent immediate re-triggering of restart logic after a loop error,
+        // update lastBrowserRestartTime. This keeps the restart as a scheduled maintenance.
+        this.lastBrowserRestartTime = Date.now();
+        await new Promise(resolve => setTimeout(resolve, 30000)); // Wait before retrying loop
       }
     }
   }
