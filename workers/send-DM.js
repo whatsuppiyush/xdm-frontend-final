@@ -124,7 +124,7 @@ class CampaignQueue {
                   select: { 
                       email: true, 
                       twitterAccounts: { select: { twitterAccountName: true }, take: 1 },
-                      credits: { select: { planType: true } } // Fetch planType from UserCredits
+                      userCredits: { select: { planType: true } } // Fetch planType from UserCredits
                   }
               });
               if (user && user.email) {
@@ -136,8 +136,8 @@ class CampaignQueue {
                   console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} has a Twitter account linked, but twitterAccountName is missing.`);
               } 
               // Fetch and store planType
-              if (user && user.credits) {
-                campaignOwnerPlanType = user.credits.planType;
+              if (user && user.userCredits) {
+                campaignOwnerPlanType = user.userCredits.planType;
               } else if (user) {
                 console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} found, but UserCredits (for planType) not found.`);
               }
@@ -609,7 +609,7 @@ class DMWorker {
           // Fetch user email and twitter username
           const user = await prisma.user.findUnique({
               where: { id: campaign.userId },
-              select: { email: true, twitterAccounts: { select: { twitterAccountName: true }, take: 1 } }
+              select: { email: true, twitterAccounts: { select: { twitterAccountName: true }, take: 1 }, userCredits: { select: { planType: true } } }
           });
           if (user && user.email) {
               userEmail = user.email;
