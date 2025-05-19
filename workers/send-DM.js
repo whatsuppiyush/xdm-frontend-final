@@ -787,11 +787,19 @@ class DMWorker {
       // Use a more reliable typing method
       try {
         // Try direct typing first (most reliable)
-        console.log(`[${recipientId}] Trying page.type method, message: ${message}`);
-        await page.type('[data-testid="dmComposerTextInput"]', message);
-        console.log(`[${recipientId}] page.type succeeded, message typed: ${message}`);
+        console.log(`[${recipientId}] Typing message (line by line to handle newlines): ${message}`);
+        const lines = message.split('\n');
+        const composerSelector = '[data-testid="dmComposerTextInput"]';
+
+        for (let i = 0; i < lines.length; i++) {
+          await page.type(composerSelector, lines[i]);
+          if (i < lines.length - 1) { // If it's not the last line, press Enter
+            await page.keyboard.press('Enter');
+          }
+        }
+        console.log(`[${recipientId}] Message typed (line by line) successfully: ${message}`);
       } catch (error) {
-        console.log(`[${recipientId}] page.type failed: ${error.message}`);
+        console.log(`[${recipientId}] page.type (line by line) failed: ${error.message}`);
         // Fallback method using evaluate with better error checking
         console.log(`[${recipientId}] Trying evaluate method`);
         await page.evaluate((msg) => {
