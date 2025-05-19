@@ -103,6 +103,33 @@ class CampaignQueue {
         recipientsToRetry = [];
         await this.saveToRedis();
       }
+
+      // Fetch user email once at the start of processing a campaign for logging
+      // using the campaign's main userId.
+      try {
+          const campaignData = await prisma.message.findUnique({
+              where: { id: this.campaignId },
+              select: { userId: true }
+          });
+          if (campaignData && campaignData.userId) {
+              const user = await prisma.user.findUnique({
+                  where: { id: campaignData.userId },
+                  select: { email: true }
+              });
+              if (user && user.email) {
+                  userEmail = user.email;
+              } else if (user) {
+                  console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} (from campaign) found, but no email associated.`);
+              } else {
+                  console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} (from campaign) not found in database.`);
+              }
+          } else {
+              console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Could not retrieve userId for campaign to fetch email.`);
+          }
+      } catch (error) {
+          console.error(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Error fetching user email for campaign user:`, error);
+      }
+
       while (this.queue.length > 0 && this.status === 'Running') {
         // Preemption: check for new high-priority campaign every 3 hours
         if (Date.now() - lastPreemptionCheck >= PREEMPTION_INTERVAL_MS) {
