@@ -8,6 +8,15 @@ import { PrismaClient } from '@prisma/client';
 import redis from '../../lib/redis';
 import { getUserDailyMessageLimit, getEnvironmentAdjustedLimit } from '../../lib/planLimits';
 import { createServer } from 'http';
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 const prisma = new PrismaClient();
 const MAX_RETRIES = 2;
 
