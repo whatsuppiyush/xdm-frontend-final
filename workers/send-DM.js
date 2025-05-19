@@ -92,6 +92,7 @@ class CampaignQueue {
     let lastPreemptionCheck = Date.now();
     const PREEMPTION_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3 hours
     let userEmail = 'Unknown';
+    let twitterUsername = 'Unknown';
     
     try {
       if (!dmWorker.browser) {
@@ -104,7 +105,7 @@ class CampaignQueue {
         await this.saveToRedis();
       }
 
-      // Fetch user email once at the start of processing a campaign for logging
+      // Fetch user email and twitter username once at the start of processing a campaign for logging
       // using the campaign's main userId.
       try {
           const campaignData = await prisma.message.findUnique({
@@ -114,20 +115,25 @@ class CampaignQueue {
           if (campaignData && campaignData.userId) {
               const user = await prisma.user.findUnique({
                   where: { id: campaignData.userId },
-                  select: { email: true }
+                  select: { email: true, twitterAccounts: { select: { twitterAccountName: true }, take: 1 } }
               });
               if (user && user.email) {
                   userEmail = user.email;
+              }
+              if (user && user.twitterAccounts && user.twitterAccounts.length > 0 && user.twitterAccounts[0].twitterAccountName) {
+                  twitterUsername = user.twitterAccounts[0].twitterAccountName;
+              } else if (user && user.twitterAccounts && user.twitterAccounts.length > 0) {
+                  console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} has a Twitter account linked, but twitterAccountName is missing.`);
               } else if (user) {
-                  console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} (from campaign) found, but no email associated.`);
+                  console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} (from campaign) found, but no email or twitter account associated/retrieved.`);
               } else {
                   console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} (from campaign) not found in database.`);
               }
           } else {
-              console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Could not retrieve userId for campaign to fetch email.`);
+              console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Could not retrieve userId for campaign to fetch email/twitter username.`);
           }
       } catch (error) {
-          console.error(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Error fetching user email for campaign user:`, error);
+          console.error(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Error fetching user email/twitter username for campaign user:`, error);
       }
 
       while (this.queue.length > 0 && this.status === 'Running') {
@@ -212,8 +218,8 @@ class CampaignQueue {
             const planType = userCredits?.planType;
             const planLimit = getUserDailyMessageLimit(userCredits);
             const effectiveLimit = getEnvironmentAdjustedLimit(planLimit);
-            // Include user email in rate limit log
-            console.log(`RATE LIMIT: User ${userId} (plan: ${planType}, email: ${userEmail}) has sent ${limitCheck.currentCount} DMs, limit is ${effectiveLimit}. Campaign ${this.campaignId} will be set to Rate Limited.`);
+            // Include user email and twitter username in rate limit log
+            console.log(`RATE LIMIT: User ${userId} (plan: ${planType}, email: ${userEmail}, twitter: ${twitterUsername}) has sent ${limitCheck.currentCount} DMs, limit is ${effectiveLimit}. Campaign ${this.campaignId} will be set to Rate Limited.`);
             this.status = 'Rate Limited';
             await this.saveToRedis();
             await prisma.message.update({
@@ -238,8 +244,8 @@ class CampaignQueue {
         }
 
         try {
-          // Log DM attempt - Include user email
-          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] Attempting DM to recipient ${recipientId}`);
+          // Log DM attempt - Include user email and twitter username
+          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] [Twitter: ${twitterUsername}] Attempting DM to recipient ${recipientId}`);
           const result = await dmWorker.sendDM(recipientId, message, cookies);
           if (result === true) {
             if (userId) {
@@ -248,7 +254,7 @@ class CampaignQueue {
             }
             
             // Log DB update
-            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] Updating DB status for recipient ${recipientId}`);
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] [Twitter: ${twitterUsername}] Updating DB status for recipient ${recipientId}`);
             await dmWorker.updateMessageStatus(this.campaignId, recipientId);
             
             // Update processed recipients list
@@ -263,7 +269,7 @@ class CampaignQueue {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = 0;
             consecutiveSkips = 0;
-            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] DM to recipient ${recipientId} succeeded`);
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] [Twitter: ${twitterUsername}] DM to recipient ${recipientId} succeeded`);
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
@@ -278,7 +284,7 @@ class CampaignQueue {
                 this.status = 'Paused';
                 await this.saveToRedis();
                 await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-                console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
+                console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
                 break;
               }
               continue;
@@ -292,7 +298,7 @@ class CampaignQueue {
                 this.status = 'Paused';
                 await this.saveToRedis();
                 await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-                console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
+                console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
                 break;
               }
               continue;
@@ -305,7 +311,7 @@ class CampaignQueue {
               this.status = 'Paused';
               await this.saveToRedis();
               await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (send failure)`);
+              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (send failure)`);
               break;
             }
           }
@@ -314,7 +320,7 @@ class CampaignQueue {
           const MAX_BROWSER_RESTARTS_PER_RECIPIENT = 3;
           this.recipientErrorCounts[recipientId] = (this.recipientErrorCounts[recipientId] || 0) + 1;
           // Log the error reason
-          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] Retrying recipient ${recipientId} due to error: ${error.message}`);
+          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] [Twitter: ${twitterUsername}] Retrying recipient ${recipientId} due to error: ${error.message}`);
           if (this.recipientErrorCounts[recipientId] >= MAX_BROWSER_RESTARTS_PER_RECIPIENT) {
             console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Max retries reached for recipient ${recipientId}, skipping.`);
             this.processedRecipients.push(recipientId);
@@ -325,7 +331,7 @@ class CampaignQueue {
               this.status = 'Paused';
               await this.saveToRedis();
               await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (browser restart/cooldown)`);
+              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (browser restart/cooldown)`);
               break;
             }
             continue;
@@ -386,7 +392,7 @@ class CampaignQueue {
               this.status = 'Paused';
               await this.saveToRedis();
               await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (send error)`);
+              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (send error)`);
               break;
             }
           }
@@ -409,7 +415,7 @@ class CampaignQueue {
         
         // Clean up Redis queue if completed
         await redis.del(`${QUEUE_PREFIX}${this.campaignId}`);
-        console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) [User: ${userEmail}] completed. Total recipients processed: ${this.processedRecipients.length}`);
+        console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) [User: ${userEmail}] [Twitter: ${twitterUsername}] completed. Total recipients processed: ${this.processedRecipients.length}`);
       }
       
     } catch (error) {
@@ -555,6 +561,7 @@ class DMWorker {
       let campaignName = 'Unknown';
       let userPlanType = null;
       let userEmail = 'Unknown'; // Initialize userEmail
+      let twitterUsername = 'Unknown'; // Initialize twitterUsername
       try {
         const campaign = await prisma.message.findUnique({
           where: { id: campaignId },
@@ -562,15 +569,22 @@ class DMWorker {
         });
         if (campaign && campaign.campaignName) campaignName = campaign.campaignName;
         if (campaign && campaign.userId) {
-          // Fetch user email
+          // Fetch user email and twitter username
           const user = await prisma.user.findUnique({
               where: { id: campaign.userId },
-              select: { email: true }
+              select: { email: true, twitterAccounts: { select: { twitterAccountName: true }, take: 1 } }
           });
           if (user && user.email) {
               userEmail = user.email;
+          }
+          if (user && user.twitterAccounts && user.twitterAccounts.length > 0 && user.twitterAccounts[0].twitterAccountName) {
+              twitterUsername = user.twitterAccounts[0].twitterAccountName;
+          } else if (user && user.twitterAccounts && user.twitterAccounts.length > 0) {
+              console.warn(`[${process.pid}] Worker: User ID ${campaign.userId} has a Twitter account linked, but twitterAccountName is missing for campaign ${campaignId}.`);
+          } else if (user) {
+              console.warn(`[${process.pid}] Worker: User ID ${campaign.userId} found, but no email or twitter account associated/retrieved for campaign ${campaignId}.`);
           } else {
-            console.warn(`[${process.pid}] Could not fetch email for user ID: ${campaign.userId}`);
+              console.warn(`[${process.pid}] Worker: User ID ${campaign.userId} (from campaign ${campaignId}) not found in database.`);
           }
 
           const userCredits = await prisma.userCredits.findUnique({ where: { userId: campaign.userId } });
@@ -596,7 +610,7 @@ class DMWorker {
       if (await lock.acquire()) {
         let lockRenewal;
         try {
-          console.log(`[${process.pid}] [${campaignId} - ${campaignName}] [User: ${userEmail}] Acquired lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
+          console.log(`[${process.pid}] [${campaignId} - ${campaignName}] [User: ${userEmail}] [Twitter: ${twitterUsername}] Acquired lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
           lockRenewal = setInterval(async () => {
             const extended = await lock.extend(300000);
             if (extended) {
@@ -619,7 +633,7 @@ class DMWorker {
             hasActive = true;
             const lastStatus = this.lastStatusMap.get(campaignId);
             if (campaignQueue.status !== lastStatus) {
-              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) [User: ${userEmail}] status changed to: ${campaignQueue.status}`);
+              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) [User: ${userEmail}] [Twitter: ${twitterUsername}] status changed to: ${campaignQueue.status}`);
               this.lastStatusMap.set(campaignId, campaignQueue.status);
             }
             await redis.sadd('active_campaigns', campaignId);
@@ -644,7 +658,7 @@ class DMWorker {
             await redis.srem('active_campaigns', campaignId);
             const lastStatus = this.lastStatusMap.get(campaignId);
             if (campaignQueue.status !== lastStatus) {
-              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) [User: ${userEmail}] status changed to: ${campaignQueue.status}`);
+              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) [User: ${userEmail}] [Twitter: ${twitterUsername}] status changed to: ${campaignQueue.status}`);
               this.lastStatusMap.set(campaignId, campaignQueue.status);
             }
             continue;
