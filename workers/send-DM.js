@@ -21,6 +21,7 @@ const MAX_RETRIES = 2;
 const PROCESSING_QUEUE = 'dm:processing:queue';
 const QUEUE_PREFIX = 'queue:';
 const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
+const FREE_USER_CAMPAIGN_DM_LIMIT = parseInt(process.env.FREE_USER_CAMPAIGN_DM_LIMIT) || 150;
 
 // Handle any initialization failures gracefully
 process.on('unhandledRejection', (error) => {
@@ -56,6 +57,7 @@ class CampaignQueue {
     // Add error count tracking for browser restarts per recipient
     this.recipientErrorCounts = {};
     this.composerErrorCounts = {};
+    this.freeUserCampaignSentCount = 0; // Initialize campaign-specific DM count
   }
 
   async loadFromRedis() {
@@ -67,6 +69,7 @@ class CampaignQueue {
       this.processedRecipients = queueData.processedRecipients || [];
       this.status = queueData.status || 'Ready';
       this.totalAttempts = queueData.totalAttempts || 0;
+      this.freeUserCampaignSentCount = queueData.freeUserCampaignSentCount || 0; // Load campaign-specific DM count
     }
   }
 
@@ -76,7 +79,8 @@ class CampaignQueue {
       queue: this.queue,
       processedRecipients: this.processedRecipients,
       status: this.status,
-      totalAttempts: this.totalAttempts
+      totalAttempts: this.totalAttempts,
+      freeUserCampaignSentCount: this.freeUserCampaignSentCount // Save campaign-specific DM count
     };
     await redis.set(`${QUEUE_PREFIX}${this.campaignId}`, queueState);
   }
@@ -93,6 +97,8 @@ class CampaignQueue {
     const PREEMPTION_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3 hours
     let userEmail = 'Unknown';
     let twitterUsername = 'Unknown';
+    let campaignOwnerUserId = null;
+    let campaignOwnerPlanType = null;
     
     try {
       if (!dmWorker.browser) {
@@ -105,17 +111,21 @@ class CampaignQueue {
         await this.saveToRedis();
       }
 
-      // Fetch user email and twitter username once at the start of processing a campaign for logging
-      // using the campaign's main userId.
+      // Fetch user email, twitter username, and plan type once at the start of processing a campaign
       try {
           const campaignData = await prisma.message.findUnique({
               where: { id: this.campaignId },
               select: { userId: true }
           });
           if (campaignData && campaignData.userId) {
+              campaignOwnerUserId = campaignData.userId; // Store campaign owner's userId
               const user = await prisma.user.findUnique({
                   where: { id: campaignData.userId },
-                  select: { email: true, twitterAccounts: { select: { twitterAccountName: true }, take: 1 } }
+                  select: { 
+                      email: true, 
+                      twitterAccounts: { select: { twitterAccountName: true }, take: 1 },
+                      credits: { select: { planType: true } } // Fetch planType from UserCredits
+                  }
               });
               if (user && user.email) {
                   userEmail = user.email;
@@ -124,16 +134,24 @@ class CampaignQueue {
                   twitterUsername = user.twitterAccounts[0].twitterAccountName;
               } else if (user && user.twitterAccounts && user.twitterAccounts.length > 0) {
                   console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} has a Twitter account linked, but twitterAccountName is missing.`);
+              } 
+              // Fetch and store planType
+              if (user && user.credits) {
+                campaignOwnerPlanType = user.credits.planType;
               } else if (user) {
-                  console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} (from campaign) found, but no email or twitter account associated/retrieved.`);
-              } else {
+                console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} found, but UserCredits (for planType) not found.`);
+              }
+              
+              if (!userEmail && !twitterUsername && !campaignOwnerPlanType && user) {
+                console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} (from campaign) found, but no email, twitter account, or planType associated/retrieved.`);
+              } else if (!user) {
                   console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] User ID ${campaignData.userId} (from campaign) not found in database.`);
               }
           } else {
-              console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Could not retrieve userId for campaign to fetch email/twitter username.`);
+              console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Could not retrieve userId for campaign to fetch email/twitter username/planType.`);
           }
       } catch (error) {
-          console.error(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Error fetching user email/twitter username for campaign user:`, error);
+          console.error(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Error fetching user email/twitter username/planType for campaign user:`, error);
       }
 
       while (this.queue.length > 0 && this.status === 'Running') {
@@ -270,6 +288,25 @@ class CampaignQueue {
             this.composerErrorCounts[recipientId] = 0;
             consecutiveSkips = 0;
             console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] [Twitter: ${twitterUsername}] DM to recipient ${recipientId} succeeded`);
+
+            // Check and enforce free user campaign DM limit
+            if (campaignOwnerUserId && campaignOwnerPlanType && isFreeUser(campaignOwnerPlanType)) {
+              this.freeUserCampaignSentCount = (this.freeUserCampaignSentCount || 0) + 1;
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Incremented free user campaign DM count to ${this.freeUserCampaignSentCount}/${FREE_USER_CAMPAIGN_DM_LIMIT} for user ${userEmail} (ID: ${campaignOwnerUserId})`);
+              await this.saveToRedis(); // Save the incremented count immediately
+
+              if (this.freeUserCampaignSentCount >= FREE_USER_CAMPAIGN_DM_LIMIT) {
+                console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Free user campaign DM limit (${FREE_USER_CAMPAIGN_DM_LIMIT}) reached for user ${userEmail} (ID: ${campaignOwnerUserId}). Pausing campaign.`);
+                this.status = 'Paused';
+                await this.saveToRedis(); // Save the Paused status
+                await prisma.message.update({
+                  where: { id: this.campaignId },
+                  data: { status: 'Paused' }
+                });
+                console.log(`PAUSE EVENT: Campaign ${this.campaignId} (${this.campaignName}) for free user ${userEmail} (ID: ${campaignOwnerUserId}) paused due to reaching ${FREE_USER_CAMPAIGN_DM_LIMIT} DMs for this campaign.`);
+                break; // Exit the processing loop for this campaign
+              }
+            }
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
