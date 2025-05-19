@@ -91,6 +91,7 @@ class CampaignQueue {
     const SKIP_THRESHOLD = 7;
     let lastPreemptionCheck = Date.now();
     const PREEMPTION_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3 hours
+    let userEmail = 'Unknown';
     
     try {
       if (!dmWorker.browser) {
@@ -184,7 +185,8 @@ class CampaignQueue {
             const planType = userCredits?.planType;
             const planLimit = getUserDailyMessageLimit(userCredits);
             const effectiveLimit = getEnvironmentAdjustedLimit(planLimit);
-            console.log(`RATE LIMIT: User ${userId} (plan: ${planType}) has sent ${limitCheck.currentCount} DMs, limit is ${effectiveLimit}. Campaign ${this.campaignId} will be set to Rate Limited.`);
+            // Include user email in rate limit log
+            console.log(`RATE LIMIT: User ${userId} (plan: ${planType}, email: ${userEmail}) has sent ${limitCheck.currentCount} DMs, limit is ${effectiveLimit}. Campaign ${this.campaignId} will be set to Rate Limited.`);
             this.status = 'Rate Limited';
             await this.saveToRedis();
             await prisma.message.update({
@@ -209,8 +211,8 @@ class CampaignQueue {
         }
 
         try {
-          // Log DM attempt
-          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Attempting DM to recipient ${recipientId}`);
+          // Log DM attempt - Include user email
+          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] Attempting DM to recipient ${recipientId}`);
           const result = await dmWorker.sendDM(recipientId, message, cookies);
           if (result === true) {
             if (userId) {
@@ -219,7 +221,7 @@ class CampaignQueue {
             }
             
             // Log DB update
-            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Updating DB status for recipient ${recipientId}`);
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] Updating DB status for recipient ${recipientId}`);
             await dmWorker.updateMessageStatus(this.campaignId, recipientId);
             
             // Update processed recipients list
@@ -234,7 +236,7 @@ class CampaignQueue {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = 0;
             consecutiveSkips = 0;
-            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} succeeded`);
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] DM to recipient ${recipientId} succeeded`);
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
@@ -249,7 +251,7 @@ class CampaignQueue {
                 this.status = 'Paused';
                 await this.saveToRedis();
                 await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-                console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
+                console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
                 break;
               }
               continue;
@@ -263,7 +265,7 @@ class CampaignQueue {
                 this.status = 'Paused';
                 await this.saveToRedis();
                 await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-                console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
+                console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
                 break;
               }
               continue;
@@ -276,7 +278,7 @@ class CampaignQueue {
               this.status = 'Paused';
               await this.saveToRedis();
               await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-              console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (send failure)`);
+              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (send failure)`);
               break;
             }
           }
@@ -285,7 +287,7 @@ class CampaignQueue {
           const MAX_BROWSER_RESTARTS_PER_RECIPIENT = 3;
           this.recipientErrorCounts[recipientId] = (this.recipientErrorCounts[recipientId] || 0) + 1;
           // Log the error reason
-          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Retrying recipient ${recipientId} due to error: ${error.message}`);
+          console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] Retrying recipient ${recipientId} due to error: ${error.message}`);
           if (this.recipientErrorCounts[recipientId] >= MAX_BROWSER_RESTARTS_PER_RECIPIENT) {
             console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Max retries reached for recipient ${recipientId}, skipping.`);
             this.processedRecipients.push(recipientId);
@@ -296,7 +298,7 @@ class CampaignQueue {
               this.status = 'Paused';
               await this.saveToRedis();
               await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-              console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (browser restart/cooldown)`);
+              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (browser restart/cooldown)`);
               break;
             }
             continue;
@@ -357,7 +359,7 @@ class CampaignQueue {
               this.status = 'Paused';
               await this.saveToRedis();
               await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-              console.log(`Paused campaign ${this.campaignId} due to ${SKIP_THRESHOLD} consecutive skips (send error)`);
+              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] due to ${SKIP_THRESHOLD} consecutive skips (send error)`);
               break;
             }
           }
@@ -380,7 +382,7 @@ class CampaignQueue {
         
         // Clean up Redis queue if completed
         await redis.del(`${QUEUE_PREFIX}${this.campaignId}`);
-        console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) completed. Total recipients processed: ${this.processedRecipients.length}`);
+        console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) [User: ${userEmail}] completed. Total recipients processed: ${this.processedRecipients.length}`);
       }
       
     } catch (error) {
@@ -525,6 +527,7 @@ class DMWorker {
       if (!campaignId) continue;
       let campaignName = 'Unknown';
       let userPlanType = null;
+      let userEmail = 'Unknown'; // Initialize userEmail
       try {
         const campaign = await prisma.message.findUnique({
           where: { id: campaignId },
@@ -532,6 +535,17 @@ class DMWorker {
         });
         if (campaign && campaign.campaignName) campaignName = campaign.campaignName;
         if (campaign && campaign.userId) {
+          // Fetch user email
+          const user = await prisma.user.findUnique({
+              where: { id: campaign.userId },
+              select: { email: true }
+          });
+          if (user && user.email) {
+              userEmail = user.email;
+          } else {
+            console.warn(`[${process.pid}] Could not fetch email for user ID: ${campaign.userId}`);
+          }
+
           const userCredits = await prisma.userCredits.findUnique({ where: { userId: campaign.userId } });
           userPlanType = userCredits?.planType;
           // If free user, ensure campaignId is in high_priority_campaigns set
@@ -555,7 +569,7 @@ class DMWorker {
       if (await lock.acquire()) {
         let lockRenewal;
         try {
-          console.log(`[${process.pid}] [${campaignId} - ${campaignName}] Acquired lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
+          console.log(`[${process.pid}] [${campaignId} - ${campaignName}] [User: ${userEmail}] Acquired lock at ${new Date().toISOString()} (owner: ${lockOwnerId})`);
           lockRenewal = setInterval(async () => {
             const extended = await lock.extend(300000);
             if (extended) {
@@ -578,7 +592,7 @@ class DMWorker {
             hasActive = true;
             const lastStatus = this.lastStatusMap.get(campaignId);
             if (campaignQueue.status !== lastStatus) {
-              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
+              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) [User: ${userEmail}] status changed to: ${campaignQueue.status}`);
               this.lastStatusMap.set(campaignId, campaignQueue.status);
             }
             await redis.sadd('active_campaigns', campaignId);
@@ -603,7 +617,7 @@ class DMWorker {
             await redis.srem('active_campaigns', campaignId);
             const lastStatus = this.lastStatusMap.get(campaignId);
             if (campaignQueue.status !== lastStatus) {
-              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) status changed to: ${campaignQueue.status}`);
+              console.log(`[${process.pid}] Campaign ${campaignId} (${campaignName}) [User: ${userEmail}] status changed to: ${campaignQueue.status}`);
               this.lastStatusMap.set(campaignId, campaignQueue.status);
             }
             continue;
