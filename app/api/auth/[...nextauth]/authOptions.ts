@@ -18,6 +18,7 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       provider?: string;
+      planType?: string | null;
     }
   }
 }
@@ -253,6 +254,12 @@ export const authOptions: NextAuthOptions = {
           session.user.email = dbUser.email;
           session.user.name = dbUser.name || null;
           session.user.image = dbUser.image || null;
+
+          // Fetch userCredits to get planType
+          const userCredits = await prisma.userCredits.findUnique({
+            where: { userId: dbUser.id }
+          });
+          session.user.planType = userCredits?.planType || null;
         }
       }
       return session;

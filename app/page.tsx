@@ -7,6 +7,9 @@ import DashboardMetrics from "@/components/dashboard/metrics";
 import OnboardingChecklist from "@/components/dashboard/onboarding-checklist";
 import { useUser } from "@/contexts/user-context";
 import { motion } from "framer-motion";
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import UpgradePopup from '@/components/ui/UpgradePopup';
 
 // Tutorial type definition
 interface Tutorial {
@@ -99,6 +102,9 @@ export default function Dashboard() {
   const [selectedTutorial, setSelectedTutorial] = useState(tutorialVideos[0]);
   const [showTutorialSection, setShowTutorialSection] = useState(false);
   const { userId } = useUser();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [showUpgradePopup, setShowUpgradePopup] = useState(false);
 
   const handleVideoClick = () => {
     setIsVideoPlaying(true);
@@ -112,6 +118,46 @@ export default function Dashboard() {
   const toggleTutorialSection = () => {
     setShowTutorialSection(!showTutorialSection);
     setIsVideoPlaying(false);
+  };
+
+  useEffect(() => {
+    console.log("[Debug] Popup Effect - Status:", status);
+    console.log("[Debug] Popup Effect - Session Data:", session);
+
+    if (status === 'authenticated') {
+      console.log("[Debug] Popup Effect - User Plan Type:", session?.user?.planType);
+      if (session?.user?.planType === 'free') {
+        const popupShown = sessionStorage.getItem('upgradePopupShownThisSession');
+        console.log("[Debug] Popup Effect - Popup Shown This Session (from sessionStorage)?:", popupShown);
+        if (!popupShown) {
+          console.log("[Debug] Popup Effect - Conditions met, attempting to show popup.");
+          setShowUpgradePopup(true);
+          sessionStorage.setItem('upgradePopupShownThisSession', 'true');
+        } else {
+          console.log("[Debug] Popup Effect - Popup already shown this session.");
+        }
+      } else {
+        console.log("[Debug] Popup Effect - User is not on a free plan or planType is undefined.");
+      }
+    } else if (status === 'unauthenticated') {
+      // router.push('/login'); // Commenting out redirect for easier debugging if needed
+      console.log("[Debug] Popup Effect - User is unauthenticated.");
+    } else {
+      console.log("[Debug] Popup Effect - Status is loading or other.");
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    console.log("[Debug] showUpgradePopup state changed to:", showUpgradePopup);
+  }, [showUpgradePopup]);
+
+  const handleCloseUpgradePopup = () => {
+    setShowUpgradePopup(false);
+  };
+
+  const handleUpgrade = () => {
+    setShowUpgradePopup(false);
+    router.push('/settings?tab=subscription');
   };
 
   return (
@@ -384,6 +430,13 @@ export default function Dashboard() {
           )}
         </section>
       </main>
+      {showUpgradePopup && (
+        <UpgradePopup
+          isOpen={showUpgradePopup}
+          onClose={handleCloseUpgradePopup}
+          onUpgrade={handleUpgrade}
+        />
+      )}
     </div>
   );
 }
