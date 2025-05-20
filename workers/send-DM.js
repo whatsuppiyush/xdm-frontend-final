@@ -167,7 +167,7 @@ class CampaignQueue {
           }
           lastPreemptionCheck = Date.now();
         }
-        await this.loadFromRedis();
+
         console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Recipients left in queue: ${this.queue.length}`);
         if (this.status !== 'Running') {
           console.log(`[${process.pid}] Campaign ${this.campaignId} (${this.campaignName}) status changed to ${this.status} during delay, stopping processing`);
