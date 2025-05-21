@@ -68,8 +68,15 @@ class CampaignQueue {
       this.queue = queueData.queue || [];
       this.processedRecipients = queueData.processedRecipients || [];
       this.status = queueData.status || 'Ready';
-      this.totalAttempts = queueData.totalAttempts || 0;
-      this.freeUserCampaignSentCount = queueData.freeUserCampaignSentCount || 0; // Load campaign-specific DM count
+      this.totalAttempts = Number(queueData.totalAttempts || 0);
+      this.freeUserCampaignSentCount = Number(queueData.freeUserCampaignSentCount || 0);
+    } else {
+      // If no data in Redis, ensure defaults are set (constructor initializes, but good for clarity)
+      this.queue = [];
+      this.processedRecipients = [];
+      this.status = 'Ready';
+      this.totalAttempts = 0;
+      this.freeUserCampaignSentCount = 0;
     }
   }
 
@@ -79,8 +86,8 @@ class CampaignQueue {
       queue: this.queue,
       processedRecipients: this.processedRecipients,
       status: this.status,
-      totalAttempts: this.totalAttempts,
-      freeUserCampaignSentCount: this.freeUserCampaignSentCount // Save campaign-specific DM count
+      totalAttempts: Number(this.totalAttempts || 0),
+      freeUserCampaignSentCount: Number(this.freeUserCampaignSentCount || 0)
     };
     await redis.set(`${QUEUE_PREFIX}${this.campaignId}`, queueState);
   }
