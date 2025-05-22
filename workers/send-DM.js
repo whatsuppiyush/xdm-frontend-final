@@ -22,6 +22,12 @@ const PROCESSING_QUEUE = 'dm:processing:queue';
 const QUEUE_PREFIX = 'queue:';
 const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 
+// Helper function for random delays
+async function randomDelay(min = 50, max = 500) {
+  const delay = Math.floor(Math.random() * (max - min + 1) + min);
+  await new Promise(resolve => setTimeout(resolve, delay));
+}
+
 // Handle any initialization failures gracefully
 process.on('unhandledRejection', (error) => {
   console.error('unhandledRejection', error);
@@ -777,6 +783,8 @@ class DMWorker {
       console.log(`[${recipientId}] Starting DM process for campaign ${this.currentCampaignId}`);
       page = await this.browser.newPage();
       
+      await randomDelay(100, 300); // Delay before setting up request interception
+      
       // Block unnecessary resources - consider making this less aggressive
       await page.setRequestInterception(true);
       page.on('request', (req) => {
@@ -795,6 +803,7 @@ class DMWorker {
       const essentialCookies = cookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
       await page.setCookie(...essentialCookies);
       console.log(`[${recipientId}] Cookies set, essential count: ${essentialCookies.length}`);
+      await randomDelay();
       
       // Navigate directly with minimal wait
       console.log(`[${recipientId}] Navigating to DM page`);
@@ -802,6 +811,7 @@ class DMWorker {
         waitUntil: 'domcontentloaded', // Changed from 'networkidle0' for speed, but 'networkidle2' might be safer
         timeout: 60000
       });
+      await randomDelay(200, 700); // Longer delay after page navigation
       console.log(`[${recipientId}] Navigation complete`);
 
       // Check for account restriction warning
@@ -812,9 +822,12 @@ class DMWorker {
         const restrictedTextElement = await page.waitForXPath(restrictedAccountTextSelector, { timeout: 5000, visible: true });
         if (restrictedTextElement) {
           console.warn(`[${recipientId}] Account restriction detected for campaign ${this.currentCampaignId}. Attempting to click 'Yes, view profile'.`);
+          await randomDelay();
           const viewProfileButton = await page.waitForXPath(restrictedAccountButtonSelector, { timeout: 5000, visible: true });
           if (viewProfileButton) {
+            await randomDelay(50, 150);
             await viewProfileButton.click();
+            await randomDelay(200, 500);
             await page.waitForTimeout(5000); // Wait for page to potentially reload/change
             console.log(`[${recipientId}] Clicked 'Yes, view profile'.`);
             // Re-check if composer is now available or if restriction is gone.
@@ -841,6 +854,7 @@ class DMWorker {
           timeout: 60000, // Increased timeout for composer
           visible: true
         });
+        await randomDelay(100, 300); // Delay after composer is found
       } catch (e) {
         if (e.name === 'TimeoutError') {
           console.error(`[${recipientId}] DM composer not found. This could be due to a profile not accepting DMs, a page load issue, or a change in Twitter UI.`);
@@ -860,11 +874,13 @@ class DMWorker {
         const composerSelector = '[data-testid="dmComposerTextInput"]';
 
         for (let i = 0; i < lines.length; i++) {
-          await page.type(composerSelector, lines[i], { delay: 20 }); // Add small delay between keystrokes
+          await page.type(composerSelector, lines[i], { delay: Math.floor(Math.random() * (150 - 50 + 1) + 50) }); // Random char typing delay
+          await randomDelay(30, 100); // Small delay after typing a line part
           if (i < lines.length - 1) { // If it's not the last line
             await page.keyboard.down('Shift');
             await page.keyboard.press('Enter');
             await page.keyboard.up('Shift');
+            await randomDelay(50, 150); // Delay after newline
             await page.waitForTimeout(50); // Small delay after newline
           }
         }
@@ -906,12 +922,15 @@ class DMWorker {
       // Click send
       console.log(`[${recipientId}] Attempting to click send button, message: ${message}`);
       try {
+        await randomDelay(100, 400); // Delay before clicking send
         await page.click('[data-testid="dmComposerSendButton"]');
+        await randomDelay(50, 150); // Small delay after click
         console.log(`[${recipientId}] Send button clicked successfully, message: ${message}`);
       } catch (clickError) {
         console.error(`[${recipientId}] Error clicking send button: ${clickError.message}`);
       }
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(1000); // Existing delay, kept for now
+      await randomDelay(200, 600); // Final random delay before concluding success
       console.log(`[${recipientId}] Message sent successfully (browser action complete)`);
       
       return true;
