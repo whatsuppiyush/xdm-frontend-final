@@ -22,6 +22,11 @@ const PROCESSING_QUEUE = 'dm:processing:queue';
 const QUEUE_PREFIX = 'queue:';
 const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 
+// Helper function for random delays
+function randomDelay(min, max) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
 // Handle any initialization failures gracefully
 process.on('unhandledRejection', (error) => {
   console.error('unhandledRejection', error);
@@ -764,6 +769,27 @@ class DMWorker {
       const essentialCookies = cookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
       await page.setCookie(...essentialCookies);
       console.log(`[${recipientId}] Cookies set, essential count: ${essentialCookies.length}`);
+
+      // --- Human-like Navigation: Visit Profile First ---
+      const profileUrl = `https://twitter.com/i/user/${recipientId}`;
+      console.log(`[${recipientId}] Navigating to profile: ${profileUrl}`);
+      await page.goto(profileUrl, {
+        waitUntil: 'domcontentloaded',
+        timeout: 70000 // Increased timeout for profile load
+      });
+      console.log(`[${recipientId}] Profile page loaded. Simulating interaction.`);
+      await page.waitForTimeout(randomDelay(2000, 5000)); // Wait a bit on profile
+
+      // Simulate scrolling
+      for (let i = 0; i < randomDelay(1, 3); i++) {
+        await page.evaluate(() => {
+          window.scrollBy(0, window.innerHeight * (Math.random() * 0.5 + 0.2)); // Scroll 20-70% of viewport
+        });
+        await page.waitForTimeout(randomDelay(500, 1500));
+      }
+      console.log(`[${recipientId}] Profile interaction (scroll) complete. Waiting a bit more.`);
+      await page.waitForTimeout(randomDelay(3000, 8000)); // Longer pause after profile interaction
+      // --- End Human-like Navigation ---
       
       // Navigate directly with minimal wait
       console.log(`[${recipientId}] Navigating to DM page`);
@@ -771,10 +797,12 @@ class DMWorker {
         waitUntil: 'domcontentloaded',
         timeout: 60000
       });
-      console.log(`[${recipientId}] Navigation complete`);
+      console.log(`[${recipientId}] Navigation to DM page complete`);
       
       // Find composer with minimal DOM operations
       console.log(`[${recipientId}] Waiting for composer selector`);
+      await page.waitForTimeout(randomDelay(500, 2000)); // Small delay before looking for composer
+
       try {
         await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
           timeout: 60000,
@@ -796,13 +824,16 @@ class DMWorker {
         const lines = message.split('\n');
         const composerSelector = '[data-testid="dmComposerTextInput"]';
 
+        await page.focus(composerSelector); // Focus before typing
+        await page.waitForTimeout(randomDelay(300, 800));
+
         for (let i = 0; i < lines.length; i++) {
-          await page.type(composerSelector, lines[i], { delay: 20 }); // Add small delay between keystrokes
+          await page.type(composerSelector, lines[i], { delay: randomDelay(70, 180) }); // Randomized typing speed
           if (i < lines.length - 1) { // If it's not the last line
             await page.keyboard.down('Shift');
             await page.keyboard.press('Enter');
             await page.keyboard.up('Shift');
-            await page.waitForTimeout(50); // Small delay after newline
+            await page.waitForTimeout(randomDelay(80, 200)); // Small delay after newline
           }
         }
         console.log(`[${recipientId}] Message typed (line by line, Shift+Enter) successfully: ${message}`);
@@ -841,6 +872,7 @@ class DMWorker {
       const dmUrl = `https://twitter.com/messages/compose?recipient_id=${recipientId}`;
       console.log(`[${recipientId}] DM page URL: ${dmUrl}`);
       // Click send
+      await page.waitForTimeout(randomDelay(500, 1500)); // Delay before clicking send
       console.log(`[${recipientId}] Attempting to click send button, message: ${message}`);
       try {
         await page.click('[data-testid="dmComposerSendButton"]');
@@ -848,7 +880,7 @@ class DMWorker {
       } catch (clickError) {
         console.error(`[${recipientId}] Error clicking send button: ${clickError.message}`);
       }
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(randomDelay(1000, 2500)); // Wait a bit longer after sending
       console.log(`[${recipientId}] Message sent successfully (browser action complete)`);
       
       return true;
@@ -925,10 +957,8 @@ class DMWorker {
     return errorMessage.includes('Target.createTarget timed out') || 
       errorMessage.includes('out of memory') || 
       errorMessage.includes('TimeoutError') ||
-      errorMessage.includes('Browser closed') ||
       errorMessage.includes('Protocol error') || 
       errorMessage.includes('Increase the \'protocolTimeout\'') ||
-      errorMessage.includes('Waiting for selector') ||
       errorMessage.includes('Waiting failed:');
   }
 
