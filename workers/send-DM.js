@@ -777,37 +777,47 @@ class DMWorker {
         waitUntil: 'domcontentloaded',
         timeout: 70000 // Increased timeout for profile load
       });
-      console.log(`[${recipientId}] Profile page loaded. Simulating interaction.`);
-      await page.waitForTimeout(randomDelay(2000, 5000)); // Wait a bit on profile
+      console.log(`[${recipientId}] Profile page loaded.`);
+      const profileWaitDelay = randomDelay(2000, 5000);
+      console.log(`[${recipientId}] Waiting on profile for ${profileWaitDelay / 1000}s.`);
+      await page.waitForTimeout(profileWaitDelay); // Wait a bit on profile
 
       // Simulate scrolling
-      for (let i = 0; i < randomDelay(1, 3); i++) {
+      const scrollCount = randomDelay(1, 3);
+      console.log(`[${recipientId}] Simulating ${scrollCount} scroll(s) on profile.`);
+      for (let i = 0; i < scrollCount; i++) {
         await page.evaluate(() => {
           window.scrollBy(0, window.innerHeight * (Math.random() * 0.5 + 0.2)); // Scroll 20-70% of viewport
         });
-        await page.waitForTimeout(randomDelay(500, 1500));
+        const scrollDelay = randomDelay(500, 1500);
+        console.log(`[${recipientId}] Scrolled ${i + 1}/${scrollCount}. Waiting ${scrollDelay / 1000}s.`);
+        await page.waitForTimeout(scrollDelay);
       }
-      console.log(`[${recipientId}] Profile interaction (scroll) complete. Waiting a bit more.`);
-      await page.waitForTimeout(randomDelay(3000, 8000)); // Longer pause after profile interaction
+      const afterScrollWaitDelay = randomDelay(3000, 8000);
+      console.log(`[${recipientId}] Profile interaction (scroll) complete. Waiting ${afterScrollWaitDelay / 1000}s before navigating to DM page.`);
+      await page.waitForTimeout(afterScrollWaitDelay); // Longer pause after profile interaction
       // --- End Human-like Navigation ---
       
       // Navigate directly with minimal wait
-      console.log(`[${recipientId}] Navigating to DM page`);
+      console.log(`[${recipientId}] Navigating to DM page: https://twitter.com/messages/compose?recipient_id=${recipientId}`);
       await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
         waitUntil: 'domcontentloaded',
         timeout: 60000
       });
-      console.log(`[${recipientId}] Navigation to DM page complete`);
+      console.log(`[${recipientId}] Navigation to DM page complete.`);
       
       // Find composer with minimal DOM operations
-      console.log(`[${recipientId}] Waiting for composer selector`);
-      await page.waitForTimeout(randomDelay(500, 2000)); // Small delay before looking for composer
+      const composerWaitDelay = randomDelay(500, 2000);
+      console.log(`[${recipientId}] Waiting for composer selector for ${composerWaitDelay / 1000}s.`);
+      await page.waitForTimeout(composerWaitDelay); // Small delay before looking for composer
 
       try {
+        console.log(`[${recipientId}] Attempting to find selector: [data-testid="dmComposerTextInput"]`);
         await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
           timeout: 60000,
           visible: true
         });
+        console.log(`[${recipientId}] Selector [data-testid="dmComposerTextInput"] found.`);
       } catch (e) {
         if (e.name === 'TimeoutError') {
           console.error(`[${recipientId}] DM composer not found, incrementing composer error count`);
@@ -815,28 +825,37 @@ class DMWorker {
         }
         throw e;
       }
-      console.log(`[${recipientId}] Composer found, attempting to type`);
+      console.log(`[${recipientId}] Composer found, attempting to type message: "${message}"`);
       
       // Use a more reliable typing method
       try {
         // Try direct typing first (most reliable)
-        console.log(`[${recipientId}] Typing message (line by line, Shift+Enter for newlines): ${message}`);
         const lines = message.split('\n');
         const composerSelector = '[data-testid="dmComposerTextInput"]';
 
+        console.log(`[${recipientId}] Focusing on composer: ${composerSelector}`);
         await page.focus(composerSelector); // Focus before typing
-        await page.waitForTimeout(randomDelay(300, 800));
+        const focusDelay = randomDelay(300, 800);
+        console.log(`[${recipientId}] Composer focused. Waiting ${focusDelay / 1000}s before typing.`);
+        await page.waitForTimeout(focusDelay);
 
         for (let i = 0; i < lines.length; i++) {
-          await page.type(composerSelector, lines[i], { delay: randomDelay(70, 180) }); // Randomized typing speed
+          const line = lines[i];
+          const typeDelay = randomDelay(70, 180);
+          console.log(`[${recipientId}] Typing line ${i + 1}/${lines.length}: "${line}" with char delay ${typeDelay}ms`);
+          await page.type(composerSelector, line, { delay: typeDelay }); // Randomized typing speed
+          console.log(`[${recipientId}] Line ${i + 1} typed.`);
           if (i < lines.length - 1) { // If it's not the last line
+            console.log(`[${recipientId}] Pressing Shift+Enter for newline.`);
             await page.keyboard.down('Shift');
             await page.keyboard.press('Enter');
             await page.keyboard.up('Shift');
-            await page.waitForTimeout(randomDelay(80, 200)); // Small delay after newline
+            const newlineDelay = randomDelay(80, 200);
+            console.log(`[${recipientId}] Newline created. Waiting ${newlineDelay / 1000}s.`);
+            await page.waitForTimeout(newlineDelay); // Small delay after newline
           }
         }
-        console.log(`[${recipientId}] Message typed (line by line, Shift+Enter) successfully: ${message}`);
+        console.log(`[${recipientId}] Full message typed (line by line, Shift+Enter) successfully.`);
       } catch (error) {
         console.log(`[${recipientId}] page.type (line by line, Shift+Enter) failed: ${error.message}`);
         // Fallback method using evaluate with better error checking
@@ -870,18 +889,23 @@ class DMWorker {
       }
       // Log the DM page URL
       const dmUrl = `https://twitter.com/messages/compose?recipient_id=${recipientId}`;
-      console.log(`[${recipientId}] DM page URL: ${dmUrl}`);
+      console.log(`[${recipientId}] DM page URL (for reference): ${dmUrl}`);
       // Click send
-      await page.waitForTimeout(randomDelay(500, 1500)); // Delay before clicking send
-      console.log(`[${recipientId}] Attempting to click send button, message: ${message}`);
+      const preSendDelay = randomDelay(500, 1500);
+      console.log(`[${recipientId}] Waiting ${preSendDelay / 1000}s before clicking send button.`);
+      await page.waitForTimeout(preSendDelay); // Delay before clicking send
+      console.log(`[${recipientId}] Attempting to click send button [data-testid="dmComposerSendButton"].`);
       try {
         await page.click('[data-testid="dmComposerSendButton"]');
-        console.log(`[${recipientId}] Send button clicked successfully, message: ${message}`);
+        console.log(`[${recipientId}] Send button clicked successfully.`);
       } catch (clickError) {
         console.error(`[${recipientId}] Error clicking send button: ${clickError.message}`);
+        // Optionally rethrow or handle if critical, for now just logging
       }
-      await page.waitForTimeout(randomDelay(1000, 2500)); // Wait a bit longer after sending
-      console.log(`[${recipientId}] Message sent successfully (browser action complete)`);
+      const postSendDelay = randomDelay(1000, 2500);
+      console.log(`[${recipientId}] Waiting ${postSendDelay / 1000}s after clicking send (assuming message sent).`);
+      await page.waitForTimeout(postSendDelay); // Wait a bit longer after sending
+      console.log(`[${recipientId}] Message sending process considered complete (browser action finished).`);
       
       return true;
     } catch (error) {
