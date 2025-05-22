@@ -22,6 +22,32 @@ const PROCESSING_QUEUE = 'dm:processing:queue';
 const QUEUE_PREFIX = 'queue:';
 const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+  // Firefox User Agents
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:108.0) Gecko/20100101 Firefox/108.0',
+  'Mozilla/5.0 (X11; Linux i686; rv:108.0) Gecko/20100101 Firefox/108.0',
+  'Mozilla/5.0 (Linux x86_64; rv:108.0) Gecko/20100101 Firefox/108.0',
+  'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:108.0) Gecko/20100101 Firefox/108.0',
+  // Safari User Agents (Note: Safari on Windows is outdated and not recommended)
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_2_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Safari/605.1.15',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+];
+
+// Utility function for random delays
+async function randomDelay(min, max) {
+  const delay = Math.floor(Math.random() * (max - min + 1) + min);
+  await new Promise(resolve => setTimeout(resolve, delay));
+}
+
 // Handle any initialization failures gracefully
 process.on('unhandledRejection', (error) => {
   console.error('unhandledRejection', error);
@@ -51,7 +77,7 @@ class CampaignQueue {
     this.queue = [];
     this.processedRecipients = [];
     this.totalAttempts = 0;
-    this.status = 'Ready'; // Ready, Running, Paused, Stopped, Rate Limited
+    this.status = 'Ready'; // Ready, Running, Paused, Stopped, Rate Limited, Account Issue
     this.browser = null;
     // Add error count tracking for browser restarts per recipient
     this.recipientErrorCounts = {};
@@ -67,12 +93,17 @@ class CampaignQueue {
       this.processedRecipients = queueData.processedRecipients || [];
       this.status = queueData.status || 'Ready';
       this.totalAttempts = Number(queueData.totalAttempts || 0);
+      // Ensure recipientErrorCounts and composerErrorCounts are loaded if they exist
+      this.recipientErrorCounts = queueData.recipientErrorCounts || {};
+      this.composerErrorCounts = queueData.composerErrorCounts || {};
     } else {
       // If no data in Redis, ensure defaults are set (constructor initializes, but good for clarity)
       this.queue = [];
       this.processedRecipients = [];
       this.status = 'Ready';
       this.totalAttempts = 0;
+      this.recipientErrorCounts = {};
+      this.composerErrorCounts = {};
     }
   }
 
@@ -82,7 +113,9 @@ class CampaignQueue {
       queue: this.queue,
       processedRecipients: this.processedRecipients,
       status: this.status,
-      totalAttempts: Number(this.totalAttempts || 0)
+      totalAttempts: Number(this.totalAttempts || 0),
+      recipientErrorCounts: this.recipientErrorCounts,
+      composerErrorCounts: this.composerErrorCounts
     };
     await redis.set(`${QUEUE_PREFIX}${this.campaignId}`, queueState);
   }
@@ -94,23 +127,45 @@ class CampaignQueue {
     let limitCheckCounter = 0;
     let recipientsToRetry = [];
     let consecutiveSkips = 0;
-    const SKIP_THRESHOLD = 7;
+    const SKIP_THRESHOLD = 3;
     let lastPreemptionCheck = Date.now();
     const PREEMPTION_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3 hours
     let userEmail = 'Unknown';
     let twitterUsername = 'Unknown';
     let campaignOwnerUserId = null;
     let campaignOwnerPlanType = null;
+    let browserContext = null; // For browser context isolation
     
     try {
-      if (!dmWorker.browser) {
-        await dmWorker.launchBrowser();
+      if (!dmWorker.browser || dmWorker.browser.isConnected() === false) {
+        console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Browser not launched or disconnected. Attempting to launch.`);
+        const launched = await dmWorker.launchBrowser();
+        if (!launched) {
+            console.error(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Failed to launch browser. Exiting processing for this campaign.`);
+            this.status = 'Paused'; // Or some error status
+            await this.saveToRedis();
+            return;
+        }
       }
-      if (recipientsToRetry.length > 0) {
-        console.log(`Adding ${recipientsToRetry.length} recipients back to the queue for retry`);
-        this.queue = [...recipientsToRetry, ...this.queue];
-        recipientsToRetry = [];
-        await this.saveToRedis();
+
+      // Create a new browser context for this campaign processing session
+      console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Creating new browser context.`);
+      browserContext = await dmWorker.browser.createIncognitoBrowserContext(); // Use incognito for better isolation
+      
+      // Set cookies for this context if there are items in the queue
+      if (this.queue.length > 0) {
+        const { cookies: firstItemCookies } = this.queue[0];
+        if (firstItemCookies && Array.isArray(firstItemCookies)) {
+            const essentialCookies = firstItemCookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
+            if (essentialCookies.length > 0) {
+                await browserContext.addCookies(essentialCookies.map(c => ({ ...c, domain: '.twitter.com', path: '/', secure: true, httpOnly: true })));
+                console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Set ${essentialCookies.length} essential cookies on browser context.`);
+            } else {
+                console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] No essential cookies (auth_token, ct0) found for the first item. DM sending might fail.`);
+            }
+        } else {
+             console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] No cookies found for the first item in queue. Cannot set cookies on context.`);
+        }
       }
 
       // Fetch user email, twitter username, and plan type once at the start of processing a campaign
@@ -251,11 +306,12 @@ class CampaignQueue {
         }
         limitCheckCounter++;
 
-        // Apply random delay between messages (2.7-4 minutes)
-        const delay = Math.floor(Math.random() * (240000 - 162000 + 1) + 162000);
-        console.log(`Waiting ${delay/60000} minutes before sending next message`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
+        // Apply random delay between messages (2.7-4 minutes) - This is the main inter-DM delay
+        const interDmDelay = Math.floor(Math.random() * (240000 - 162000 + 1) + 162000);
+        console.log(`Waiting ${interDmDelay/60000} minutes before sending next message`);
+        await new Promise(resolve => setTimeout(resolve, interDmDelay));
+        await randomDelay(500, 1500); // Small additional random jitter
+
         // Reload queue state after delay to check for status changes
         await this.loadFromRedis();
         if (this.status !== 'Running') {
@@ -266,7 +322,7 @@ class CampaignQueue {
         try {
           // Log DM attempt - Include user email and twitter username
           console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] [Twitter: ${twitterUsername}] Attempting DM to recipient ${recipientId}`);
-          const result = await dmWorker.sendDM(recipientId, message, cookies);
+          const result = await dmWorker.sendDM(browserContext, recipientId, message); // Pass context instead of cookies
           if (result === true) {
             if (userId) {
               await dmWorker.incrementDailyLimit(userId);
@@ -315,11 +371,12 @@ class CampaignQueue {
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
-            if (this.composerErrorCounts[recipientId] >= 3) {
-              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Skipping recipient ${recipientId} due to: composer_not_found (max errors)`);
+            if (this.composerErrorCounts[recipientId] >= 2) { // Reduced retries for composer not found
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Skipping recipient ${recipientId} due to: composer_not_found (max errors - 2 attempts)`);
+              await dmWorker.updateMessageStatus(this.campaignId, recipientId, 'failed_composer_not_found');
               this.processedRecipients.push(recipientId);
               this.queue.shift();
-              this.totalAttempts = 0;
+              this.totalAttempts = 0; // Reset for next recipient
               await this.saveToRedis();
               consecutiveSkips++;
               if (consecutiveSkips >= SKIP_THRESHOLD) {
@@ -329,31 +386,59 @@ class CampaignQueue {
                 console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
                 break;
               }
-              continue;
+              continue; // Continue to next iteration, which will process the next recipient or this one if re-added.
             } else {
-              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Composer not found for recipient ${recipientId}, will retry (attempt ${this.composerErrorCounts[recipientId]})`);
-              // Wait a short time before retrying
-              await new Promise(resolve => setTimeout(resolve, 10000));
-              await this.saveToRedis();
-              consecutiveSkips++;
-              if (consecutiveSkips >= SKIP_THRESHOLD) {
-                this.status = 'Paused';
-                await this.saveToRedis();
-                await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-                console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
-                break;
-              }
-              continue;
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Composer not found for recipient ${recipientId}, will retry (attempt ${this.composerErrorCounts[recipientId]} of 2)`);
+              // No immediate retry from here, let the loop continue with a delay
+              // Move to next recipient or retry after main loop delay.
+              // To retry this specific recipient, it needs to be re-added or not shifted.
+              // For simplicity, we'll let it be skipped if it fails twice.
+              // To retry immediately, you'd manage it like other errors.
+              // For now, let's just log and it will be picked up again or shifted after max attempts.
+              // Adding a small delay before continuing the loop might be good if you intend to retry the same user.
+              // However, current logic will retry the *next* user after the main delay.
+              // To retry *this* user, move it to the end of the queue or handle like other retries.
+              // For now, we'll let it proceed to the next recipient or fail out.
+              // This means it won't retry the same user immediately for composer_not_found.
+              // The current structure would require shifting and re-adding to retry.
+              // Let's assume for now that 2 failed attempts means we skip.
+               this.queue.shift(); // Remove from queue
+               this.queue.push({ recipientId, message, cookies, userId }); // Add to end of queue for later retry
+               await this.saveToRedis();
+               console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Recipient ${recipientId} moved to end of queue for later retry (composer_not_found).`);
+               consecutiveSkips++;
+               if (consecutiveSkips >= SKIP_THRESHOLD) {
+                 this.status = 'Paused';
+                 await this.saveToRedis();
+                 await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
+                 console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
+                 break;
+               }
+               continue; // Continue to next iteration, which will process the next recipient or this one if re-added.
             }
+          } else if (result === 'account_restricted') {
+            console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Account associated with this campaign is RESTRICTED. Pausing campaign and putting account on cooldown.`);
+            this.status = 'Account Issue'; // New status
+            await this.saveToRedis();
+            await prisma.message.update({
+              where: { id: this.campaignId },
+              data: { status: 'Account Issue' } // Update DB status
+            });
+            // Implement account cooldown logic here (e.g., add account ID to a Redis set with an expiry)
+            // For now, we just pause the campaign. The worker should not pick up 'Account Issue' campaigns
+            // until this status is manually or automatically cleared after a cooldown.
+            console.log(`ACCOUNT RESTRICTION: Campaign ${this.campaignId} for user ${userEmail} (Twitter: ${twitterUsername}) paused due to account restriction.`);
+            // Potentially log which cookies/account caused this if you have that mapping.
+            break; // Stop processing this campaign
           } else {
-            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} failed, will retry if under max attempts`);
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} failed (result: ${result}), will retry if under max attempts`);
             this.handleFailedAttempt(recipientId);
             consecutiveSkips++;
             if (consecutiveSkips >= SKIP_THRESHOLD) {
               this.status = 'Paused';
               await this.saveToRedis();
               await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (send failure)`);
+              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (send error)`);
               break;
             }
           }
@@ -462,8 +547,18 @@ class CampaignQueue {
       
     } catch (error) {
       console.error(`Error processing campaign ${this.campaignId} (${this.campaignName}):`, error);
+      this.status = 'Paused'; // Or a specific error status
+      await this.saveToRedis();
     } finally {
-      // Do not close the browser here, as it's managed by the DMWorker
+      if (browserContext) {
+        console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Closing browser context.`);
+        try {
+            await browserContext.close();
+        } catch (closeError) {
+            console.error(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Error closing browser context:`, closeError);
+        }
+      }
+      // Do not close the main browser here, as it's managed by the DMWorker
     }
   }
 
@@ -686,7 +781,7 @@ class DMWorker {
             const updatedQueue = await redis.get(`${QUEUE_PREFIX}${campaignId}`);
             if (updatedQueue) {
               const status = updatedQueue.status || campaignQueue.status;
-              if (["Paused", "Stopped", "Completed", "Rate Limited"].includes(status)) {
+              if (["Paused", "Stopped", "Completed", "Rate Limited", "Account Issue"].includes(status)) {
                 await redis.srem('high_priority_campaigns', campaignId);
               }
             } else {
@@ -717,7 +812,7 @@ class DMWorker {
     return hasActive;
   }
 
-  async updateMessageStatus(campaignId, recipientId) {
+  async updateMessageStatus(campaignId, recipientId, statusOverride = null) {
     try {
       // Find and update the message for this specific campaign
       const messageRecord = await prisma.message.findUnique({
@@ -727,7 +822,7 @@ class DMWorker {
       if (messageRecord) {
         const updatedMessages = messageRecord.messages.map(msg => 
           msg.recipientId === recipientId 
-            ? { ...msg, status: true }
+            ? { ...msg, status: statusOverride ? statusOverride : true } // Use statusOverride if provided
             : msg
         );
         await prisma.message.update({
@@ -741,50 +836,91 @@ class DMWorker {
     }
   }
 
-  async sendDM(recipientId, message, cookies) {
+  async sendDM(browserContext, recipientId, message) { // Accept browserContext
     let page = null;
     
     try {
-      console.log(`[${recipientId}] Starting DM process for campaign ${this.currentCampaignId}`);
-      page = await this.browser.newPage();
+      console.log(`[${recipientId}] Starting DM process for campaign ${this.currentCampaignId} using provided context.`);
+      await randomDelay(200, 800); // Delay before creating new page
+      page = await browserContext.newPage(); // Create page from context
       
-      // Block unnecessary resources
+      // Block unnecessary resources - consider making this less aggressive
       await page.setRequestInterception(true);
       page.on('request', (req) => {
         const resourceType = req.resourceType();
-        if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
+        // Reduced blocking: allow stylesheets and fonts, as real browsers load them.
+        // Consider further reducing blocking or making it random.
+        if (['image', 'media', 'other'].includes(resourceType)) {
           req.abort();
         } else {
           req.continue();
         }
       });
       
-      // Set minimal viewport
-      await page.setViewport({ width: 800, height: 600 });
-      const essentialCookies = cookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
-      await page.setCookie(...essentialCookies);
-      console.log(`[${recipientId}] Cookies set, essential count: ${essentialCookies.length}`);
+      // Set minimal viewport - consider randomizing this
+      await page.setViewport({ width: 800, height: 600 }); // Consider randomizing
+      // Cookies are now set on the context, so page.setCookie is not needed here.
+      // const essentialCookies = cookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
+      // await page.setCookie(...essentialCookies);
+      // console.log(`[${recipientId}] Cookies set on page (via context), essential count: ${essentialCookies.length}`);
       
       // Navigate directly with minimal wait
       console.log(`[${recipientId}] Navigating to DM page`);
+      await randomDelay(300, 1200); // Delay before navigation
       await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'domcontentloaded', // Changed from 'networkidle0' for speed, but 'networkidle2' might be safer
         timeout: 60000
       });
       console.log(`[${recipientId}] Navigation complete`);
+      await randomDelay(500, 1500); // Delay after navigation
+
+      // Check for account restriction warning
+      try {
+        const restrictedAccountTextSelector = '//span[contains(text(), "Caution: This account is temporarily restricted")]';
+        const restrictedAccountButtonSelector = '//span[contains(text(), "Yes, view profile")]/ancestor::div[@role="button"]';
+        
+        const restrictedTextElement = await page.waitForXPath(restrictedAccountTextSelector, { timeout: 5000, visible: true });
+        if (restrictedTextElement) {
+          console.warn(`[${recipientId}] Account restriction detected for campaign ${this.currentCampaignId}. Attempting to click 'Yes, view profile'.`);
+          await randomDelay(200, 600); // Delay before clicking
+          const viewProfileButton = await page.waitForXPath(restrictedAccountButtonSelector, { timeout: 5000, visible: true });
+          if (viewProfileButton) {
+            await viewProfileButton.click();
+            await randomDelay(500, 1000); // Delay after click
+            await page.waitForTimeout(5000); // Wait for page to potentially reload/change
+            console.log(`[${recipientId}] Clicked 'Yes, view profile'.`);
+            // Re-check if composer is now available or if restriction is gone.
+            // For now, we will assume the action might take time to reflect or may not resolve immediately.
+            return 'account_restricted'; // Signal that account encountered a restriction.
+          } else {
+             console.warn(`[${recipientId}] Account restriction text found, but 'Yes, view profile' button not found.`);
+             return 'account_restricted'; // Still signal restriction
+          }
+        }
+      } catch (e) {
+        // Not an error if selectors are not found, means no restriction page (or different layout)
+        if (e.name === 'TimeoutError') {
+          console.log(`[${recipientId}] No account restriction warning detected (or selectors timed out).`);
+        } else {
+          console.log(`[${recipientId}] Minor error checking for restriction: ${e.message}`);
+        }
+      }
       
       // Find composer with minimal DOM operations
       console.log(`[${recipientId}] Waiting for composer selector`);
+      await randomDelay(100, 400); // Delay before waiting for selector
       try {
         await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
-          timeout: 60000,
+          timeout: 60000, // Increased timeout for composer
           visible: true
         });
       } catch (e) {
         if (e.name === 'TimeoutError') {
-          console.error(`[${recipientId}] DM composer not found, incrementing composer error count`);
-          return 'composer_not_found';
+          console.error(`[${recipientId}] DM composer not found. This could be due to a profile not accepting DMs, a page load issue, or a change in Twitter UI.`);
+          return 'composer_not_found'; // Specific return for composer issues
         }
+        // For other errors during waitForSelector, rethrow to be caught by the main try-catch
+        console.error(`[${recipientId}] Error waiting for composer: ${e.message}`);
         throw e;
       }
       console.log(`[${recipientId}] Composer found, attempting to type`);
@@ -795,14 +931,15 @@ class DMWorker {
         console.log(`[${recipientId}] Typing message (line by line, Shift+Enter for newlines): ${message}`);
         const lines = message.split('\n');
         const composerSelector = '[data-testid="dmComposerTextInput"]';
+        await randomDelay(200, 700); // Delay before typing
 
         for (let i = 0; i < lines.length; i++) {
-          await page.type(composerSelector, lines[i], { delay: 20 }); // Add small delay between keystrokes
+          await page.type(composerSelector, lines[i], { delay: Math.floor(Math.random() * (120 - 50 + 1) + 50) }); // Randomized char delay
           if (i < lines.length - 1) { // If it's not the last line
             await page.keyboard.down('Shift');
             await page.keyboard.press('Enter');
             await page.keyboard.up('Shift');
-            await page.waitForTimeout(50); // Small delay after newline
+            await randomDelay(80, 250); // Delay after newline
           }
         }
         console.log(`[${recipientId}] Message typed (line by line, Shift+Enter) successfully: ${message}`);
@@ -842,13 +979,16 @@ class DMWorker {
       console.log(`[${recipientId}] DM page URL: ${dmUrl}`);
       // Click send
       console.log(`[${recipientId}] Attempting to click send button, message: ${message}`);
+      await randomDelay(300, 900); // Delay before clicking send
       try {
         await page.click('[data-testid="dmComposerSendButton"]');
         console.log(`[${recipientId}] Send button clicked successfully, message: ${message}`);
       } catch (clickError) {
         console.error(`[${recipientId}] Error clicking send button: ${clickError.message}`);
+        // Even if click fails, we might have sent it, or it's a genuine error.
+        // Consider if this should return false or rethrow. For now, it continues.
       }
-      await page.waitForTimeout(1000);
+      await randomDelay(1000, 2500); // Longer delay after sending
       console.log(`[${recipientId}] Message sent successfully (browser action complete)`);
       
       return true;
@@ -860,14 +1000,19 @@ class DMWorker {
       if (this.isMemoryError(error)) {
         throw error; // Rethrow memory errors
       }
+      // Check if the error indicates a navigation timeout or other critical browser issue
+      if (error.message.includes('Navigation timeout') || error.message.includes('Target closed') || error.message.includes('Session closed')) {
+        console.error(`[${recipientId}] Critical browser/navigation error: ${error.message}. Rethrowing to trigger browser restart logic.`);
+        throw error; // Rethrow to be handled by the CampaignQueue's error handling
+      }
       
-      return false; // Return false for non-memory errors
+      return false; // Return false for other non-memory errors
     } finally {
       if (page) {
         console.log(`[${this.currentCampaignId}] Cleaning up Puppeteer page for recipient ${recipientId}`);
+        await randomDelay(100, 300); // Delay before closing page
         // Close page and clean up
         await page.removeAllListeners();
-        await page.close();
       }
     }
   }
@@ -884,6 +1029,9 @@ class DMWorker {
         'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
         await chromium.executablePath();
 
+      const selectedUserAgent = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+      console.log(`[${process.pid}] Launching browser with User-Agent: ${selectedUserAgent}`);
+
       this.browser = await puppeteer.launch({
         args: [
           ...chromium.args,
@@ -892,10 +1040,11 @@ class DMWorker {
           '--disable-dev-shm-usage',
           '--js-flags="--max-old-space-size=256"',
           '--single-process',
+          `--user-agent=${selectedUserAgent}` // Set user agent here
         ],
         executablePath,
-        headless: isLocal ? false : chromium.headless,
-        defaultViewport: { width: 800, height: 600 },
+        headless: isLocal ? false : chromium.headless, // Should be true for production
+        defaultViewport: { width: 800, height: 600 }, // Consider randomizing viewport too
         protocolTimeout: 180000,
         timeout: 180000
       });
