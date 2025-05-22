@@ -320,7 +320,7 @@ class CampaignQueue {
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
-            if (this.composerErrorCounts[recipientId] >= 3) {
+            if (this.composerErrorCounts[recipientId] >= 2) {
               console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Skipping recipient ${recipientId} due to: composer_not_found (max errors)`);
               this.processedRecipients.push(recipientId);
               this.queue.shift();
