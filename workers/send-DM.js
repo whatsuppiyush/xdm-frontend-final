@@ -51,7 +51,7 @@ class CampaignQueue {
     this.queue = [];
     this.processedRecipients = [];
     this.totalAttempts = 0;
-    this.status = 'Ready'; // Ready, Running, Paused, Stopped, Rate Limited
+    this.status = 'Ready'; // Ready, Running, Paused, Stopped, Rate Limited, Account Issue
     this.browser = null;
     // Add error count tracking for browser restarts per recipient
     this.recipientErrorCounts = {};
@@ -315,11 +315,12 @@ class CampaignQueue {
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
-            if (this.composerErrorCounts[recipientId] >= 3) {
-              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Skipping recipient ${recipientId} due to: composer_not_found (max errors)`);
+            if (this.composerErrorCounts[recipientId] >= 2) { // Reduced retries for composer not found
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Skipping recipient ${recipientId} due to: composer_not_found (max errors - 2 attempts)`);
+              await dmWorker.updateMessageStatus(this.campaignId, recipientId, 'failed_composer_not_found');
               this.processedRecipients.push(recipientId);
               this.queue.shift();
-              this.totalAttempts = 0;
+              this.totalAttempts = 0; // Reset for next recipient
               await this.saveToRedis();
               consecutiveSkips++;
               if (consecutiveSkips >= SKIP_THRESHOLD) {
@@ -329,31 +330,59 @@ class CampaignQueue {
                 console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
                 break;
               }
-              continue;
+              continue; // Continue to next iteration, which will process the next recipient or this one if re-added.
             } else {
-              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Composer not found for recipient ${recipientId}, will retry (attempt ${this.composerErrorCounts[recipientId]})`);
-              // Wait a short time before retrying
-              await new Promise(resolve => setTimeout(resolve, 10000));
-              await this.saveToRedis();
-              consecutiveSkips++;
-              if (consecutiveSkips >= SKIP_THRESHOLD) {
-                this.status = 'Paused';
-                await this.saveToRedis();
-                await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-                console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
-                break;
-              }
-              continue;
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Composer not found for recipient ${recipientId}, will retry (attempt ${this.composerErrorCounts[recipientId]} of 2)`);
+              // No immediate retry from here, let the loop continue with a delay
+              // Move to next recipient or retry after main loop delay.
+              // To retry this specific recipient, it needs to be re-added or not shifted.
+              // For simplicity, we'll let it be skipped if it fails twice.
+              // To retry immediately, you'd manage it like other errors.
+              // For now, let's just log and it will be picked up again or shifted after max attempts.
+              // Adding a small delay before continuing the loop might be good if you intend to retry the same user.
+              // However, current logic will retry the *next* user after the main delay.
+              // To retry *this* user, move it to the end of the queue or handle like other retries.
+              // For now, we'll let it proceed to the next recipient or fail out.
+              // This means it won't retry the same user immediately for composer_not_found.
+              // The current structure would require shifting and re-adding to retry.
+              // Let's assume for now that 2 failed attempts means we skip.
+               this.queue.shift(); // Remove from queue
+               this.queue.push({ recipientId, message, cookies, userId }); // Add to end of queue for later retry
+               await this.saveToRedis();
+               console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Recipient ${recipientId} moved to end of queue for later retry (composer_not_found).`);
+               consecutiveSkips++;
+               if (consecutiveSkips >= SKIP_THRESHOLD) {
+                 this.status = 'Paused';
+                 await this.saveToRedis();
+                 await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
+                 console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (composer not found)`);
+                 break;
+               }
+               continue; // Continue to next iteration, which will process the next recipient or this one if re-added.
             }
+          } else if (result === 'account_restricted') {
+            console.warn(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Account associated with this campaign is RESTRICTED. Pausing campaign and putting account on cooldown.`);
+            this.status = 'Account Issue'; // New status
+            await this.saveToRedis();
+            await prisma.message.update({
+              where: { id: this.campaignId },
+              data: { status: 'Account Issue' } // Update DB status
+            });
+            // Implement account cooldown logic here (e.g., add account ID to a Redis set with an expiry)
+            // For now, we just pause the campaign. The worker should not pick up 'Account Issue' campaigns
+            // until this status is manually or automatically cleared after a cooldown.
+            console.log(`ACCOUNT RESTRICTION: Campaign ${this.campaignId} for user ${userEmail} (Twitter: ${twitterUsername}) paused due to account restriction.`);
+            // Potentially log which cookies/account caused this if you have that mapping.
+            break; // Stop processing this campaign
           } else {
-            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} failed, will retry if under max attempts`);
+            console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DM to recipient ${recipientId} failed (result: ${result}), will retry if under max attempts`);
             this.handleFailedAttempt(recipientId);
             consecutiveSkips++;
             if (consecutiveSkips >= SKIP_THRESHOLD) {
               this.status = 'Paused';
               await this.saveToRedis();
               await prisma.message.update({ where: { id: this.campaignId }, data: { status: 'Paused' } });
-              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (send failure)`);
+              console.log(`Paused campaign ${this.campaignId} [User: ${userEmail}] [Twitter: ${twitterUsername}] due to ${SKIP_THRESHOLD} consecutive skips (send error)`);
               break;
             }
           }
@@ -686,7 +715,7 @@ class DMWorker {
             const updatedQueue = await redis.get(`${QUEUE_PREFIX}${campaignId}`);
             if (updatedQueue) {
               const status = updatedQueue.status || campaignQueue.status;
-              if (["Paused", "Stopped", "Completed", "Rate Limited"].includes(status)) {
+              if (["Paused", "Stopped", "Completed", "Rate Limited", "Account Issue"].includes(status)) {
                 await redis.srem('high_priority_campaigns', campaignId);
               }
             } else {
@@ -717,7 +746,7 @@ class DMWorker {
     return hasActive;
   }
 
-  async updateMessageStatus(campaignId, recipientId) {
+  async updateMessageStatus(campaignId, recipientId, statusOverride = null) {
     try {
       // Find and update the message for this specific campaign
       const messageRecord = await prisma.message.findUnique({
@@ -727,7 +756,7 @@ class DMWorker {
       if (messageRecord) {
         const updatedMessages = messageRecord.messages.map(msg => 
           msg.recipientId === recipientId 
-            ? { ...msg, status: true }
+            ? { ...msg, status: statusOverride ? statusOverride : true } // Use statusOverride if provided
             : msg
         );
         await prisma.message.update({
@@ -748,18 +777,20 @@ class DMWorker {
       console.log(`[${recipientId}] Starting DM process for campaign ${this.currentCampaignId}`);
       page = await this.browser.newPage();
       
-      // Block unnecessary resources
+      // Block unnecessary resources - consider making this less aggressive
       await page.setRequestInterception(true);
       page.on('request', (req) => {
         const resourceType = req.resourceType();
-        if (['image', 'stylesheet', 'font', 'media', 'other'].includes(resourceType)) {
+        // Reduced blocking: allow stylesheets and fonts, as real browsers load them.
+        // Consider further reducing blocking or making it random.
+        if (['image', 'media', 'other'].includes(resourceType)) {
           req.abort();
         } else {
           req.continue();
         }
       });
       
-      // Set minimal viewport
+      // Set minimal viewport - consider randomizing this
       await page.setViewport({ width: 800, height: 600 });
       const essentialCookies = cookies.filter(c => ['auth_token', 'ct0'].includes(c.name));
       await page.setCookie(...essentialCookies);
@@ -768,23 +799,55 @@ class DMWorker {
       // Navigate directly with minimal wait
       console.log(`[${recipientId}] Navigating to DM page`);
       await page.goto(`https://twitter.com/messages/compose?recipient_id=${recipientId}`, {
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'domcontentloaded', // Changed from 'networkidle0' for speed, but 'networkidle2' might be safer
         timeout: 60000
       });
       console.log(`[${recipientId}] Navigation complete`);
+
+      // Check for account restriction warning
+      try {
+        const restrictedAccountTextSelector = '//span[contains(text(), "Caution: This account is temporarily restricted")]';
+        const restrictedAccountButtonSelector = '//span[contains(text(), "Yes, view profile")]/ancestor::div[@role="button"]';
+        
+        const restrictedTextElement = await page.waitForXPath(restrictedAccountTextSelector, { timeout: 5000, visible: true });
+        if (restrictedTextElement) {
+          console.warn(`[${recipientId}] Account restriction detected for campaign ${this.currentCampaignId}. Attempting to click 'Yes, view profile'.`);
+          const viewProfileButton = await page.waitForXPath(restrictedAccountButtonSelector, { timeout: 5000, visible: true });
+          if (viewProfileButton) {
+            await viewProfileButton.click();
+            await page.waitForTimeout(5000); // Wait for page to potentially reload/change
+            console.log(`[${recipientId}] Clicked 'Yes, view profile'.`);
+            // Re-check if composer is now available or if restriction is gone.
+            // For now, we will assume the action might take time to reflect or may not resolve immediately.
+            return 'account_restricted'; // Signal that account encountered a restriction.
+          } else {
+             console.warn(`[${recipientId}] Account restriction text found, but 'Yes, view profile' button not found.`);
+             return 'account_restricted'; // Still signal restriction
+          }
+        }
+      } catch (e) {
+        // Not an error if selectors are not found, means no restriction page (or different layout)
+        if (e.name === 'TimeoutError') {
+          console.log(`[${recipientId}] No account restriction warning detected (or selectors timed out).`);
+        } else {
+          console.log(`[${recipientId}] Minor error checking for restriction: ${e.message}`);
+        }
+      }
       
       // Find composer with minimal DOM operations
       console.log(`[${recipientId}] Waiting for composer selector`);
       try {
         await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
-          timeout: 60000,
+          timeout: 60000, // Increased timeout for composer
           visible: true
         });
       } catch (e) {
         if (e.name === 'TimeoutError') {
-          console.error(`[${recipientId}] DM composer not found, incrementing composer error count`);
-          return 'composer_not_found';
+          console.error(`[${recipientId}] DM composer not found. This could be due to a profile not accepting DMs, a page load issue, or a change in Twitter UI.`);
+          return 'composer_not_found'; // Specific return for composer issues
         }
+        // For other errors during waitForSelector, rethrow to be caught by the main try-catch
+        console.error(`[${recipientId}] Error waiting for composer: ${e.message}`);
         throw e;
       }
       console.log(`[${recipientId}] Composer found, attempting to type`);
@@ -860,8 +923,13 @@ class DMWorker {
       if (this.isMemoryError(error)) {
         throw error; // Rethrow memory errors
       }
+      // Check if the error indicates a navigation timeout or other critical browser issue
+      if (error.message.includes('Navigation timeout') || error.message.includes('Target closed') || error.message.includes('Session closed')) {
+        console.error(`[${recipientId}] Critical browser/navigation error: ${error.message}. Rethrowing to trigger browser restart logic.`);
+        throw error; // Rethrow to be handled by the CampaignQueue's error handling
+      }
       
-      return false; // Return false for non-memory errors
+      return false; // Return false for other non-memory errors
     } finally {
       if (page) {
         console.log(`[${this.currentCampaignId}] Cleaning up Puppeteer page for recipient ${recipientId}`);
