@@ -21,7 +21,6 @@ const MAX_RETRIES = 2;
 const PROCESSING_QUEUE = 'dm:processing:queue';
 const QUEUE_PREFIX = 'queue:';
 const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
-const FREE_USER_CAMPAIGN_DM_LIMIT = parseInt(process.env.FREE_USER_CAMPAIGN_DM_LIMIT) || 150;
 
 // Handle any initialization failures gracefully
 process.on('unhandledRejection', (error) => {
@@ -57,7 +56,6 @@ class CampaignQueue {
     // Add error count tracking for browser restarts per recipient
     this.recipientErrorCounts = {};
     this.composerErrorCounts = {};
-    this.freeUserCampaignSentCount = 0; // Initialize campaign-specific DM count
   }
 
   async loadFromRedis() {
@@ -69,14 +67,12 @@ class CampaignQueue {
       this.processedRecipients = queueData.processedRecipients || [];
       this.status = queueData.status || 'Ready';
       this.totalAttempts = Number(queueData.totalAttempts || 0);
-      this.freeUserCampaignSentCount = Number(queueData.freeUserCampaignSentCount || 0);
     } else {
       // If no data in Redis, ensure defaults are set (constructor initializes, but good for clarity)
       this.queue = [];
       this.processedRecipients = [];
       this.status = 'Ready';
       this.totalAttempts = 0;
-      this.freeUserCampaignSentCount = 0;
     }
   }
 
@@ -86,8 +82,7 @@ class CampaignQueue {
       queue: this.queue,
       processedRecipients: this.processedRecipients,
       status: this.status,
-      totalAttempts: Number(this.totalAttempts || 0),
-      freeUserCampaignSentCount: Number(this.freeUserCampaignSentCount || 0)
+      totalAttempts: Number(this.totalAttempts || 0)
     };
     await redis.set(`${QUEUE_PREFIX}${this.campaignId}`, queueState);
   }
@@ -296,24 +291,27 @@ class CampaignQueue {
             consecutiveSkips = 0;
             console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] [User: ${userEmail}] [Twitter: ${twitterUsername}] DM to recipient ${recipientId} succeeded`);
 
-            // Check and enforce free user campaign DM limit
+            // --- Free User Campaign DM Limit Logic (Applied only to free users) ---
             if (campaignOwnerUserId && campaignOwnerPlanType && isFreeUser(campaignOwnerPlanType)) {
-              this.freeUserCampaignSentCount = (this.freeUserCampaignSentCount || 0) + 1;
-              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Incremented free user campaign DM count to ${this.freeUserCampaignSentCount}/${FREE_USER_CAMPAIGN_DM_LIMIT} for user ${userEmail} (ID: ${campaignOwnerUserId})`);
-              await this.saveToRedis(); // Save the incremented count immediately
+              const campaignDmCountKey = `campaign:${this.campaignId}:sentDMs`;
+              const currentCampaignDMSentCount = await redis.incr(campaignDmCountKey);
+              console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] DMs sent for this free user campaign: ${currentCampaignDMSentCount} (Limit: 150)`);
 
-              if (this.freeUserCampaignSentCount >= FREE_USER_CAMPAIGN_DM_LIMIT) {
-                console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Free user campaign DM limit (${FREE_USER_CAMPAIGN_DM_LIMIT}) reached for user ${userEmail} (ID: ${campaignOwnerUserId}). Pausing campaign.`);
+              if (currentCampaignDMSentCount >= 150) {
+                console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Free user campaign DM limit (150) reached for user ${userEmail} (ID: ${campaignOwnerUserId}). Pausing campaign.`);
                 this.status = 'Paused';
-                await this.saveToRedis(); // Save the Paused status
+                await this.saveToRedis(); 
+                
                 await prisma.message.update({
                   where: { id: this.campaignId },
                   data: { status: 'Paused' }
                 });
-                console.log(`PAUSE EVENT: Campaign ${this.campaignId} (${this.campaignName}) for free user ${userEmail} (ID: ${campaignOwnerUserId}) paused due to reaching ${FREE_USER_CAMPAIGN_DM_LIMIT} DMs for this campaign.`);
-                break; // Exit the processing loop for this campaign
+                console.log(`PAUSE EVENT: Campaign ${this.campaignId} (${this.campaignName}) for free user ${userEmail} (ID: ${campaignOwnerUserId}) paused due to reaching 150 DMs for this campaign.`);
+                break; 
               }
             }
+            // --- End Free User Logic ---
+
           } else if (result === 'composer_not_found') {
             this.composerErrorCounts = this.composerErrorCounts || {};
             this.composerErrorCounts[recipientId] = (this.composerErrorCounts[recipientId] || 0) + 1;
