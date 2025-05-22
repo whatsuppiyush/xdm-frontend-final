@@ -812,6 +812,7 @@ class DMWorker {
       await page.waitForTimeout(composerWaitDelay); // Small delay before looking for composer
 
       try {
+        console.log(`[${recipientId}] Current page URL before finding composer: ${page.url()}`);
         console.log(`[${recipientId}] Attempting to find selector: [data-testid="dmComposerTextInput"]`);
         await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
           timeout: 60000,
@@ -820,6 +821,10 @@ class DMWorker {
         console.log(`[${recipientId}] Selector [data-testid="dmComposerTextInput"] found.`);
       } catch (e) {
         if (e.name === 'TimeoutError') {
+          const currentUrl = page.url();
+          const pageContent = await page.content();
+          console.error(`[${recipientId}] DM composer not found at URL: ${currentUrl}. Page HTML:`);
+          console.error(pageContent.substring(0, 2000)); // Log first 2000 chars of HTML
           console.error(`[${recipientId}] DM composer not found, incrementing composer error count`);
           return 'composer_not_found';
         }
@@ -868,6 +873,7 @@ class DMWorker {
             return true;
           } else {
             // Try alternative selectors
+            console.log(`[${recipientId}] Primary selector [data-testid="dmComposerTextInput"] not found in evaluate. Trying alternatives.`);
             const alternatives = [
               '[role="textbox"]',
               '[contenteditable="true"]',
@@ -876,11 +882,13 @@ class DMWorker {
             for (const selector of alternatives) {
               const element = document.querySelector(selector);
               if (element) {
+                console.log(`[${recipientId}] Found alternative selector in evaluate: ${selector}`);
                 element.innerText = msg;
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 return true;
               }
             }
+            console.log(`[${recipientId}] No alternative selectors found in evaluate either.`);
             return false;
           }
         }, message).then(result => {
@@ -911,6 +919,17 @@ class DMWorker {
     } catch (error) {
       console.error(`[${recipientId}] FAILED: ${error.message}`);
       console.error(`[${recipientId}] Error stack: ${error.stack.split('\n')[0]}`);
+      
+      // Log page URL and content on general failure as well for more context
+      try {
+        const currentUrl = page.url();
+        const pageContent = await page.content();
+        console.error(`[${recipientId}] Page URL at time of failure: ${currentUrl}`);
+        console.error(`[${recipientId}] Page HTML at time of failure (first 2000 chars):`);
+        console.error(pageContent.substring(0, 2000));
+      } catch (logError) {
+        console.error(`[${recipientId}] Error while trying to log page content on failure: ${logError.message}`);
+      }
       
       // Check if it's a memory-related error and rethrow it so the outer catch block can handle it
       if (this.isMemoryError(error)) {
