@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    python3-full \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a symlink for python command
@@ -15,13 +16,17 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 # Set the working directory
 WORKDIR /app
 
+# Create and activate virtual environment
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
 # Copy package.json and package-lock.json for better caching
 COPY package*.json ./
 RUN npm ci --only=production
 
 # Copy Python requirements first (for better Docker layer caching)
 COPY backend/requirements.txt ./backend/requirements.txt
-RUN pip3 install --no-cache-dir -r backend/requirements.txt
+RUN . /app/venv/bin/activate && pip3 install --no-cache-dir -r backend/requirements.txt
 
 # Copy the Prisma schema folder
 COPY prisma ./prisma
@@ -43,7 +48,8 @@ RUN chmod +x backend/*.py
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/tmp && \
-    chown -R pptruser:pptruser /app
+    chown -R pptruser:pptruser /app && \
+    chown -R pptruser:pptruser /app/venv
 
 # Switch back to the default non-root user
 USER pptruser
