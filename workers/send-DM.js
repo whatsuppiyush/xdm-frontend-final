@@ -109,7 +109,7 @@ class CampaignQueue {
     
     try {
       if (!dmWorker.browser) {
-        await dmWorker.launchBrowser();
+        await dmWorker.launchBrowsers();
       }
       if (recipientsToRetry.length > 0) {
         console.log(`Adding ${recipientsToRetry.length} recipients back to the queue for retry`);
@@ -312,6 +312,8 @@ class CampaignQueue {
                   data: { status: 'Paused' }
                 });
                 console.log(`PAUSE EVENT: Campaign ${this.campaignId} (${this.campaignName}) for free user ${userEmail} (ID: ${campaignOwnerUserId}) paused due to reaching 150 DMs for this campaign.`);
+                await redis.del(campaignDmCountKey);
+                console.log(`[${process.pid}] [${this.campaignId} - ${this.campaignName}] Resetting DM counter for free user campaign after pausing.`);
                 break; 
               }
             }
@@ -408,7 +410,7 @@ class CampaignQueue {
             console.log(`Cooling down for ${cooldownMinutes} minutes before restarting browser`);
             
             // Close browser BEFORE cooldown to free up memory
-            await dmWorker.closeBrowser();
+            await dmWorker.closeAllBrowsers();
             
             // Perform the actual cooldown
             await new Promise(resolve => setTimeout(resolve, cooldownMinutes * 60000));
@@ -416,7 +418,7 @@ class CampaignQueue {
             
             // Restart browser
             try {
-              await dmWorker.launchBrowser();
+              await dmWorker.launchBrowsers();
               console.log("Browser restarted successfully after cooldown");
               
               // Add failed recipients back to the beginning of the queue
@@ -486,15 +488,15 @@ class CampaignQueue {
 
 class DMWorker {
   constructor() {
-    this.browser = null;
+    this.browsers = []; // Initialize as an array for multiple browsers
+    this.nextBrowserIndex = 0; // For round-robin selection
+    this.maxBrowsers = parseInt(process.env.MAX_BROWSERS) || 2; // Configurable max browsers
     this.isProcessing = false;
     this.currentCampaignId = null;
     this.lastStatusMap = new Map();
     this.idleStart = null;
-    // this.idleTimeoutMs = 5 * 60 * 1000; // Default idle timeout
     this.startHeartbeat();
 
-    // Added for periodic browser restart
     this.lastBrowserRestartTime = Date.now();
     this.browserRestartInterval = 4 * 60 * 60 * 1000; // 4 hours
     this.browserRestartCooldown = 10 * 60 * 1000; // 10 minutes
@@ -539,8 +541,8 @@ class DMWorker {
         if (!this.isProcessing && (Date.now() - this.lastBrowserRestartTime > this.browserRestartInterval)) {
           console.log(`[${process.pid}] Scheduled 4-hourly browser restart initiated.`);
 
-          console.log(`[${process.pid}] Closing browser for scheduled restart.`);
-          await this.closeBrowser();
+          console.log(`[${process.pid}] Closing all browsers for scheduled restart.`);
+          await this.closeAllBrowsers(); // Changed from closeBrowser
 
           // Regarding locks: Campaign-specific locks are lease-based (e.g., 5 minutes)
           // and are normally released by processNextTask. The 10-minute cooldown
@@ -549,10 +551,10 @@ class DMWorker {
           console.log(`[${process.pid}] Entering ${this.browserRestartCooldown / 60000}-minute cooldown period. Existing campaign locks are expected to expire if not already released.`);
           await new Promise(resolve => setTimeout(resolve, this.browserRestartCooldown));
 
-          console.log(`[${process.pid}] Cooldown finished. Relaunching browser.`);
-          const browserLaunched = await this.launchBrowser();
-          if (!browserLaunched) {
-            console.error(`[${process.pid}] Failed to relaunch browser after scheduled restart. Will retry in the next loop iteration after a short delay.`);
+          console.log(`[${process.pid}] Cooldown finished. Relaunching browsers.`);
+          const browsersLaunched = await this.launchBrowsers(); // Changed from launchBrowser
+          if (!browsersLaunched) {
+            console.error(`[${process.pid}] Failed to relaunch browsers after scheduled restart. Will retry in the next loop iteration after a short delay.`);
             // Adjust restart time to attempt again relatively soon, e.g., in 1 minute.
             this.lastBrowserRestartTime = Date.now() - this.browserRestartInterval + (1 * 60 * 1000);
             await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute before continuing loop
@@ -571,8 +573,8 @@ class DMWorker {
               this.idleStart = Date.now();
             }
             if (Date.now() - this.idleStart > idleTimeoutMs) {
-              console.log(`[${process.pid}] Worker idle for ${idleTimeoutMs / 60000} minutes, closing browser and exiting.`);
-              await this.closeBrowser(); // Ensure browser is closed before exiting
+              console.log(`[${process.pid}] Worker idle for ${idleTimeoutMs / 60000} minutes, closing all browsers and exiting.`);
+              await this.closeAllBrowsers(); // Changed from closeBrowser
               process.exit(0);
             }
           } else {
@@ -748,10 +750,16 @@ class DMWorker {
 
   async sendDM(recipientId, message, cookies) {
     let page = null;
+    let browserInstance = null; // To store the specific browser instance used
     
     try {
-      console.log(`[${recipientId}] Starting DM process for campaign ${this.currentCampaignId}`);
-      page = await this.browser.newPage();
+      browserInstance = await this.getBrowser();
+      if (!browserInstance) {
+        console.error(`[${recipientId}] No browser instance available for campaign ${this.currentCampaignId}. Skipping DM.`);
+        return false; // Or handle error appropriately
+      }
+      console.log(`[${recipientId}] Starting DM process for campaign ${this.currentCampaignId} using one of the available browser instances.`);
+      page = await browserInstance.newPage();
       
       // Block unnecessary resources
       await page.setRequestInterception(true);
@@ -812,7 +820,6 @@ class DMWorker {
       await page.waitForTimeout(composerWaitDelay); // Small delay before looking for composer
 
       try {
-        console.log(`[${recipientId}] Current page URL before finding composer: ${page.url()}`);
         console.log(`[${recipientId}] Attempting to find selector: [data-testid="dmComposerTextInput"]`);
         await page.waitForSelector('[data-testid="dmComposerTextInput"]', {
           timeout: 60000,
@@ -821,10 +828,6 @@ class DMWorker {
         console.log(`[${recipientId}] Selector [data-testid="dmComposerTextInput"] found.`);
       } catch (e) {
         if (e.name === 'TimeoutError') {
-          const currentUrl = page.url();
-          const pageContent = await page.content();
-          console.error(`[${recipientId}] DM composer not found at URL: ${currentUrl}. Page HTML:`);
-          console.error(pageContent.substring(0, 2000)); // Log first 2000 chars of HTML
           console.error(`[${recipientId}] DM composer not found, incrementing composer error count`);
           return 'composer_not_found';
         }
@@ -873,7 +876,6 @@ class DMWorker {
             return true;
           } else {
             // Try alternative selectors
-            console.log(`[${recipientId}] Primary selector [data-testid="dmComposerTextInput"] not found in evaluate. Trying alternatives.`);
             const alternatives = [
               '[role="textbox"]',
               '[contenteditable="true"]',
@@ -882,13 +884,11 @@ class DMWorker {
             for (const selector of alternatives) {
               const element = document.querySelector(selector);
               if (element) {
-                console.log(`[${recipientId}] Found alternative selector in evaluate: ${selector}`);
                 element.innerText = msg;
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 return true;
               }
             }
-            console.log(`[${recipientId}] No alternative selectors found in evaluate either.`);
             return false;
           }
         }, message).then(result => {
@@ -920,21 +920,13 @@ class DMWorker {
       console.error(`[${recipientId}] FAILED: ${error.message}`);
       console.error(`[${recipientId}] Error stack: ${error.stack.split('\n')[0]}`);
       
-      // Log page URL and content on general failure as well for more context
-      try {
-        const currentUrl = page.url();
-        const pageContent = await page.content();
-        console.error(`[${recipientId}] Page URL at time of failure: ${currentUrl}`);
-        console.error(`[${recipientId}] Page HTML at time of failure (first 2000 chars):`);
-        console.error(pageContent.substring(0, 2000));
-      } catch (logError) {
-        console.error(`[${recipientId}] Error while trying to log page content on failure: ${logError.message}`);
-      }
-      
       // Check if it's a memory-related error and rethrow it so the outer catch block can handle it
       if (this.isMemoryError(error)) {
         throw error; // Rethrow memory errors
       }
+      
+      // For memory errors, the browserInstance might be compromised.
+      // The main error handling in CampaignQueue.process should handle closing/relaunching all browsers.
       
       return false; // Return false for non-memory errors
     } finally {
@@ -947,52 +939,91 @@ class DMWorker {
     }
   }
 
-  async launchBrowser() {
-    if (this.browser) {
-      await this.closeBrowser();
-    }
+  async launchBrowsers() { // Renamed from launchBrowser
+    await this.closeAllBrowsers(); // Close existing browsers first
+    this.browsers = []; // Reset the browsers array
     
+    let launchedCount = 0;
+    console.log(`[${process.pid}] Attempting to launch up to ${this.maxBrowsers} browser instances.`);
+
+    for (let i = 0; i < this.maxBrowsers; i++) {
     try {
       const isLocal = process.env.NEXT_PUBLIC_APP_ENV === 'local';
       const isWindows = process.platform === 'win32';
       const executablePath = isLocal && isWindows ? 
-        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : 
+          'C:\Program Files\Google\Chrome\Application\chrome.exe' : 
         await chromium.executablePath();
 
-      this.browser = await puppeteer.launch({
+        const browser = await puppeteer.launch({
         args: [
           ...chromium.args,
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--js-flags="--max-old-space-size=256"',
-          '--single-process',
+            '--js-flags="--max-old-space-size=256"', // Consider if this needs adjustment per browser
+            '--single-process', // This might be problematic for multiple robust browsers. Test thoroughly.
         ],
         executablePath,
         headless: isLocal ? false : chromium.headless,
         defaultViewport: { width: 800, height: 600 },
-        protocolTimeout: 180000,
-        timeout: 180000
+          protocolTimeout: 180000, // Increased timeout
+          timeout: 180000 // General timeout for launch
       });
 
-      console.log('Browser launched successfully');
-      return true;
+        this.browsers.push(browser);
+        launchedCount++;
+        console.log(`[${process.pid}] Browser instance ${launchedCount}/${this.maxBrowsers} launched successfully.`);
     } catch (error) {
-      console.error('Failed to launch browser:', error);
+        console.error(`[${process.pid}] Failed to launch browser instance ${i + 1}:`, error);
+        // Continue trying to launch other instances
+      }
+    }
+
+    if (launchedCount > 0) {
+      console.log(`[${process.pid}] Successfully launched ${launchedCount} browser instances.`);
+      this.nextBrowserIndex = 0; // Reset index
+      return true;
+    } else {
+      console.error(`[${process.pid}] Failed to launch any browser instances.`);
       return false;
     }
   }
 
-  async closeBrowser() {
-    if (this.browser) {
+  async closeAllBrowsers() { // Renamed from closeBrowser
+    if (this.browsers.length > 0) {
+      console.log(`[${process.pid}] Closing ${this.browsers.length} browser instances.`);
+      for (let i = 0; i < this.browsers.length; i++) {
       try {
-        await this.browser.close();
-        this.browser = null;
-        console.log('Browser closed successfully');
+          if (this.browsers[i]) {
+            await this.browsers[i].close();
+            console.log(`[${process.pid}] Browser instance ${i + 1} closed.`);
+          }
       } catch (error) {
-        console.error('Error closing browser:', error);
+          console.error(`[${process.pid}] Error closing browser instance ${i + 1}:`, error);
       }
     }
+      this.browsers = [];
+      this.nextBrowserIndex = 0;
+      console.log('[${process.pid}] All browser instances closed and pool cleared.');
+    } else {
+      // console.log('[${process.pid}] No active browser instances to close.');
+    }
+  }
+
+  async getBrowser() {
+    if (this.browsers.length === 0) {
+      console.log(`[${process.pid}] No browsers available in the pool. Attempting to launch.`);
+      const launched = await this.launchBrowsers();
+      if (!launched || this.browsers.length === 0) {
+        console.error(`[${process.pid}] Failed to launch browsers for getBrowser. No instance available.`);
+        return null; // Or throw an error
+      }
+    }
+
+    const browserInstance = this.browsers[this.nextBrowserIndex];
+    this.nextBrowserIndex = (this.nextBrowserIndex + 1) % this.browsers.length;
+    // console.log(`[${process.pid}] Providing browser instance. Next index: ${this.nextBrowserIndex}`);
+    return browserInstance;
   }
 
   isMemoryError(error) {
