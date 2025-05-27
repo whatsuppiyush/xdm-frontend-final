@@ -164,6 +164,8 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
         return;
       }
       
+      console.log(`Starting scrape for ${twitterProfiles[0].handle} with ${requestedCount} followers using ${selectedFilter} filter`);
+      
       // Call scrape-followers API with selected filter type
       const response = await fetch("/api/twitter/scrape-followers", {
         method: "POST",
@@ -180,8 +182,12 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
         }),
       });
       
-      // Wait for response to ensure API was called
-      await response.json();
+      const result = await response.json();
+      console.log('Scrape API response:', result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to start scraping');
+      }
       
       // Refresh leads list before navigating back
       if (refreshLeads) {

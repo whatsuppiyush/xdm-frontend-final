@@ -25,6 +25,14 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({ isOpen, onClose, onUpgrade 
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+            <p className="text-lg font-semibold text-purple-700 dark:text-purple-300">
+              Special Offer!
+            </p>
+            <p className="text-sm text-purple-600 dark:text-purple-400">
+              Get the Starter Plan for just <span className="line-through text-red-500/80">$89</span> <span className="font-bold text-xl">$57</span>/month!
+            </p>
+          </div>
           <p className="text-sm text-muted-foreground">
             Your current free plan includes:
           </p>
