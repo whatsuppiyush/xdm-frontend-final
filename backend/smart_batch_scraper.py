@@ -154,10 +154,14 @@ class SmartBatchScraper:
             # Two accounts - one for each purpose
             self.followers_accounts = [active_accounts[0]]
             self.dm_check_accounts = [active_accounts[1]]
+        elif total_accounts == 3:
+            # Three accounts - 2 for followers, 1 for DM checks (better balance)
+            self.followers_accounts = active_accounts[:2]
+            self.dm_check_accounts = [active_accounts[2]]
         else:
             # Multiple accounts - distribute optimally
-            # Use 1/3 for followers (less rate limited), 2/3 for DM checks (more rate limited)
-            followers_count = max(1, total_accounts // 3)
+            # Use 1/2 for followers (less rate limited), 1/2 for DM checks (more rate limited)
+            followers_count = max(1, total_accounts // 2)
             self.followers_accounts = active_accounts[:followers_count]
             self.dm_check_accounts = active_accounts[followers_count:]
         
@@ -375,13 +379,17 @@ class SmartBatchScraper:
             print("No followers accounts available", file=sys.stderr)
             return followers, next_cursor
         
-        # Try each followers account until we get enough data
-        for account in self.followers_accounts:
+        # Get available followers accounts (not in queue)
+        available_accounts = [acc for acc in self.followers_accounts if not acc.in_queue and acc.is_active]
+        
+        if not available_accounts:
+            print("All followers accounts are in queue or inactive", file=sys.stderr)
+            return followers, next_cursor
+        
+        # Try each available followers account until we get enough data
+        for account in available_accounts:
             if len(followers) >= limit:
                 break
-                
-            if account.in_queue or not account.is_active:
-                continue
                 
             try:
                 count = 0
@@ -421,10 +429,14 @@ class SmartBatchScraper:
                 account.last_used = datetime.now()
                 account.consecutive_failures = 0  # Reset on success
                 
+                # If we got a good amount, break to avoid overusing one account
+                if count >= remaining_needed // 2 and len(followers) > 0:
+                    break
+                
                 # If we didn't get many new followers, we might be hitting duplicates
                 if count < remaining_needed // 10 and fetched_count > 0:
-                    print(f"⚠️  Low new follower rate ({count}/{fetched_count}), may be reaching end of unique followers", file=sys.stderr)
-                    break
+                    print(f"⚠️  Low new follower rate ({count}/{fetched_count}) from {account.account_name}, trying next account", file=sys.stderr)
+                    continue
                 
             except Exception as e:
                 error_msg = str(e)
@@ -643,15 +655,24 @@ class SmartBatchScraper:
                         print(f"⏳ All followers accounts in queue. Next ready in {wait_time:.0f}s (wait #{consecutive_queue_waits})", file=sys.stderr)
                         print(f"📊 Current progress: {len(all_dm_followers)} DM followers found from {total_processed} processed", file=sys.stderr)
                         
-                        # If we've been waiting too long, save progress and potentially exit
-                        if consecutive_queue_waits > 10:  # 5+ minutes of waiting
-                            print(f"⚠️  Long queue wait detected. Consider increasing account limits or retry later.", file=sys.stderr)
+                        # More patient with longer waits - allow up to 20 minutes of waiting
+                        max_wait_cycles = 20 if wait_time > 300 else 10  # More patience for long waits
+                        
+                        if consecutive_queue_waits > max_wait_cycles:
+                            print(f"⚠️  Extended queue wait detected ({consecutive_queue_waits} cycles). Returning current results.", file=sys.stderr)
                             if len(all_dm_followers) > 0:
                                 print(f"💾 Returning partial results: {len(all_dm_followers)} DM followers found so far", file=sys.stderr)
                                 return all_dm_followers
+                            else:
+                                print(f"❌ No results found yet, continuing to wait...", file=sys.stderr)
                         
-                        # Smart wait - wait until account is ready or max 60 seconds
-                        wait_duration = min(wait_time + 10, 60) if wait_time > 0 else 30
+                        # Smart wait - for long waits, wait longer intervals
+                        if wait_time > 600:  # More than 10 minutes
+                            wait_duration = min(wait_time + 30, 300)  # Wait up to 5 minutes at a time
+                            print(f"⏰ Long rate limit detected. Waiting {wait_duration:.0f}s before next check...", file=sys.stderr)
+                        else:
+                            wait_duration = min(wait_time + 10, 60) if wait_time > 0 else 30
+                        
                         await asyncio.sleep(wait_duration)
                         continue
                     else:

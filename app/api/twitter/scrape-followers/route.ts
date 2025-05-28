@@ -111,7 +111,7 @@ export async function POST(request: Request) {
           const pythonProcess = spawn(pythonExecutable, [
             scriptPath,
             username,
-            String(Math.min(1000, updatedCount / 2)), // Limit to 1000 DM-available followers max
+            String(updatedCount / 2), // Use user's requested count (divided by 2 since not all will be DM-available)
             '--accounts-json', accountsString,
             '--debug' // Enable debug logging to see what's happening
           ]);
