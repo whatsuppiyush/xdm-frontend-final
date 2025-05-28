@@ -133,7 +133,21 @@ export async function POST(request: Request) {
               if (code === 0) {
                 try {
                   const items = JSON.parse(scriptOutput);
-                  console.log(`Python script returned ${items.length} followers`);
+                  console.log(`Python script returned ${items.length} followers (requested ${updatedCount / 2})`);
+                  
+                  // Check if we got significantly fewer results than expected
+                  const expectedCount = updatedCount / 2;
+                  const actualCount = items.length;
+                  const completionRate = actualCount / expectedCount;
+                  
+                  if (completionRate < 0.1 && expectedCount > 100) {
+                    console.warn(`⚠️  Low completion rate: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount})`);
+                    console.warn(`This may indicate rate limits, account issues, or exhausted followers`);
+                  } else if (completionRate < 0.5 && expectedCount > 50) {
+                    console.log(`📊 Partial completion: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount})`);
+                  } else {
+                    console.log(`✅ Good completion rate: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount})`);
+                  }
                   
                   // The python script now returns data in the exact format the frontend expects
                   transformedFollowers = items.map((item: any) => ({
@@ -148,8 +162,18 @@ export async function POST(request: Request) {
                   }));
                   
                   console.log(`Transformed ${transformedFollowers.length} followers for database storage`);
-                  runStatus = 'SUCCEEDED';
-                  runStatusMessage = 'Python script completed successfully.';
+                  
+                  // Even if we got fewer results than expected, consider it successful if we got some results
+                  if (transformedFollowers.length > 0) {
+                    runStatus = 'SUCCEEDED';
+                    runStatusMessage = `Python script completed successfully with ${transformedFollowers.length} followers.`;
+                  } else {
+                    runStatus = 'FAILED';
+                    runStatusMessage = 'Python script completed but returned no followers.';
+                    reject(new Error(runStatusMessage));
+                    return;
+                  }
+                  
                   resolve();
                 } catch (parseError) {
                   console.error('Error parsing Python script output:', parseError);

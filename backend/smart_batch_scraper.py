@@ -397,11 +397,18 @@ class SmartBatchScraper:
                 
                 print(f"📥 Fetching followers using {account.account_name} (need {remaining_needed} more)...", file=sys.stderr)
                 
-                # Use a much larger multiplier to account for duplicates and filtering
-                fetch_limit = remaining_needed * 5
+                # Use a reasonable multiplier to account for duplicates and filtering
+                fetch_limit = min(remaining_needed * 3, 1000)  # Cap at 1000 to avoid excessive fetching
                 fetched_count = 0
                 
-                async for follower in account.api.followers(user_id, limit=fetch_limit):
+                # Use cursor for pagination if available
+                follower_iterator = account.api.followers(user_id, limit=fetch_limit)
+                if cursor:
+                    # Try to resume from cursor - note: twscrape may not support direct cursor passing
+                    # We'll track our own position instead
+                    print(f"🔄 Attempting to use cursor for pagination", file=sys.stderr)
+                
+                async for follower in follower_iterator:
                     fetched_count += 1
                     follower_id = str(follower.id)
                     
@@ -421,6 +428,9 @@ class SmartBatchScraper:
                     else:
                         # Still add to seen_user_ids to avoid checking again
                         seen_user_ids.add(follower_id)
+                    
+                    # Update cursor position - use last processed follower ID as cursor
+                    next_cursor = follower_id
                 
                 print(f"✅ Got {count} new followers from {account.account_name} (fetched {fetched_count}, skipped {fetched_count - count} duplicates/filtered)", file=sys.stderr)
                 
@@ -433,9 +443,13 @@ class SmartBatchScraper:
                 if count >= remaining_needed // 2 and len(followers) > 0:
                     break
                 
-                # If we didn't get many new followers, we might be hitting duplicates
-                if count < remaining_needed // 10 and fetched_count > 0:
+                # If we didn't get many new followers, we might be hitting duplicates or end of data
+                if count < max(1, remaining_needed // 20) and fetched_count > 0:
                     print(f"⚠️  Low new follower rate ({count}/{fetched_count}) from {account.account_name}, trying next account", file=sys.stderr)
+                    # Don't continue immediately - this might be end of unique data
+                    if fetched_count < fetch_limit // 2:  # If we got much less than requested
+                        print(f"⚠️  Fetched significantly less than requested ({fetched_count} < {fetch_limit//2}), likely end of data", file=sys.stderr)
+                        break
                     continue
                 
             except Exception as e:
@@ -619,6 +633,10 @@ class SmartBatchScraper:
             consecutive_empty_batches = 0
             consecutive_queue_waits = 0  # Track how long we've been waiting
             
+            # Initialize tracking variables
+            self._recent_batch_sizes = []
+            max_seen_ids = 50000  # Limit memory usage by capping seen IDs
+            
             if resume_cursor:
                 print(f"🔄 Resuming from cursor: {resume_cursor[:20]}...", file=sys.stderr)
             
@@ -687,17 +705,32 @@ class SmartBatchScraper:
                 
                 if not followers_batch:
                     consecutive_empty_batches += 1
+                    print(f"⚠️  Empty batch #{consecutive_empty_batches}, cursor: {cursor[:20] if cursor else 'None'}", file=sys.stderr)
+                    
                     if consecutive_empty_batches >= 3:
                         print("⚠️  Multiple empty batches, likely reached end of available followers", file=sys.stderr)
                         break
+                    
+                    # If we have a cursor but getting empty batches, we might be at the end
+                    if cursor and consecutive_empty_batches >= 2:
+                        print("⚠️  Have cursor but getting empty batches, likely at end of data", file=sys.stderr)
+                        break
+                        
                     continue
                 else:
                     consecutive_empty_batches = 0
                 
-                print(f"📊 Processing batch of {len(followers_batch)} followers", file=sys.stderr)
+                print(f"📊 Processing batch of {len(followers_batch)} followers (cursor: {cursor[:20] if cursor else 'None'})", file=sys.stderr)
                 
                 # Update total processed count
                 total_processed += len(followers_batch)
+                
+                # Manage memory by limiting seen_user_ids size
+                if len(seen_user_ids) > max_seen_ids:
+                    # Keep only the most recent half of seen IDs
+                    seen_list = list(seen_user_ids)
+                    seen_user_ids = set(seen_list[-max_seen_ids//2:])
+                    print(f"🧹 Trimmed seen_user_ids from {len(seen_list)} to {len(seen_user_ids)} to manage memory", file=sys.stderr)
                 
                 user_ids = [str(follower.id) for follower in followers_batch]
                 
@@ -746,14 +779,36 @@ class SmartBatchScraper:
                     next_ready_str = queue_status['next_ready'].strftime('%H:%M:%S') if queue_status['next_ready'] else 'unknown'
                     print(f"⏳ Queue status: {queue_status['total_queued']} accounts queued, next ready at {next_ready_str}", file=sys.stderr)
                 
-                # Check if we're making progress
+                # Check if we're making progress and detect end conditions
                 if len(followers_batch) < batch_limit // 5:
                     print(f"⚠️  Small batch size ({len(followers_batch)}) may indicate approaching end of unique followers", file=sys.stderr)
-                    
-                # Check if we've processed enough followers
+                
+                # Enhanced termination conditions
+                # 1. Check if we've processed enough followers
                 if total_processed >= limit:
                     print(f"✅ Reached target: processed {total_processed} followers, found {len(all_dm_followers)} DM-available", file=sys.stderr)
                     break
+                
+                # 2. Check if we're getting very few new followers despite having accounts available
+                if (len(followers_batch) < 10 and active_followers_accounts > 0 and 
+                    total_processed > 500):  # Only after processing a reasonable amount
+                    print(f"⚠️  Very small batch ({len(followers_batch)}) with active accounts available, likely exhausted unique followers", file=sys.stderr)
+                    break
+                
+                # 3. Check if we've seen too many duplicates in recent batches
+                if hasattr(self, '_recent_batch_sizes'):
+                    self._recent_batch_sizes.append(len(followers_batch))
+                    if len(self._recent_batch_sizes) > 5:
+                        self._recent_batch_sizes.pop(0)
+                    
+                    # If last 3 batches were all very small, we're likely at the end
+                    if (len(self._recent_batch_sizes) >= 3 and 
+                        all(size < 20 for size in self._recent_batch_sizes[-3:]) and
+                        total_processed > 300):
+                        print(f"⚠️  Consistently small batches detected, likely reached end of unique data", file=sys.stderr)
+                        break
+                else:
+                    self._recent_batch_sizes = [len(followers_batch)]
             
             print(f"🎉 Completed! Found {len(all_dm_followers)} DM-available followers from {total_processed} total processed", file=sys.stderr)
             return all_dm_followers
