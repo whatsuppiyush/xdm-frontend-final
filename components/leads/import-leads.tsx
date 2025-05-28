@@ -614,7 +614,6 @@ export default function ImportLeads({ onBack, refreshLeads }: ImportLeadsProps) 
                           </p>
                           {option.key === "followers" && (
                             <div className="mt-2 text-sm text-red-600 dark:text-red-400 font-semibold">
-                              Currently facing an outage with this feature.
                             </div>
                           )}
                         </div>
