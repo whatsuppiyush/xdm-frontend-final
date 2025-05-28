@@ -186,9 +186,15 @@ class SmartBatchScraper:
         now = datetime.now()
         ready_accounts = []
         
+        if len(self.rate_limit_queue) == 0:
+            return ready_accounts
+        
+        print(f"🔍 Processing queue with {len(self.rate_limit_queue)} accounts at {now.strftime('%H:%M:%S')}", file=sys.stderr)
+        
         # Process queue and remove expired entries
         while self.rate_limit_queue:
             queued_request = self.rate_limit_queue[0]
+            wait_remaining = (queued_request.retry_after - now).total_seconds()
             
             # Check if account is ready
             if now >= queued_request.retry_after:
@@ -211,7 +217,11 @@ class SmartBatchScraper:
                 print(f"❌ Account {account.account_name} removed from queue (timeout)", file=sys.stderr)
             else:
                 # Account not ready yet, stop processing (queue is ordered by time)
+                print(f"⏳ Account {queued_request.account.account_name} still waiting: {wait_remaining:.0f}s remaining", file=sys.stderr)
                 break
+        
+        if ready_accounts:
+            print(f"✅ Released {len(ready_accounts)} accounts from queue", file=sys.stderr)
         
         return ready_accounts
 
@@ -595,24 +605,60 @@ class SmartBatchScraper:
             total_processed = 0  # Track total followers processed, not just DM-available
             cursor = resume_cursor  # Resume from where we left off
             consecutive_empty_batches = 0
+            consecutive_queue_waits = 0  # Track how long we've been waiting
             
             if resume_cursor:
                 print(f"🔄 Resuming from cursor: {resume_cursor[:20]}...", file=sys.stderr)
             
             while total_processed < limit:
+                # ALWAYS process queue first to check for ready accounts
+                ready_accounts = self.process_queue()
+                
+                # Re-add ready accounts to their pools if needed
+                for account in ready_accounts:
+                    # For single account setups, the account should already be in both pools
+                    # Just make sure it's marked as active and not in queue
+                    account.is_active = True
+                    account.in_queue = False
+                    account.consecutive_failures = 0
+                    print(f"🔄 Account {account.account_name} is now ready and active", file=sys.stderr)
+                
                 # Check if we have any active accounts
                 active_followers_accounts = len([a for a in self.followers_accounts if a.is_active and not a.in_queue])
                 active_dm_accounts = len([a for a in self.dm_check_accounts if a.is_active and not a.in_queue])
                 
+                # Debug account states (only log if there are issues)
+                if active_followers_accounts == 0 and len(self.followers_accounts) > 0:
+                    for i, account in enumerate(self.followers_accounts):
+                        queue_until = account.queue_until.strftime('%H:%M:%S') if account.queue_until else 'N/A'
+                        status = "ACTIVE" if (account.is_active and not account.in_queue) else f"INACTIVE(active={account.is_active}, in_queue={account.in_queue}, queue_until={queue_until})"
+                        print(f"🔍 Follower account {i+1} ({account.account_name}): {status}", file=sys.stderr)
+                
                 if active_followers_accounts == 0:
                     queue_status = self.get_queue_status()
                     if queue_status['total_queued'] > 0:
-                        print(f"⏳ All followers accounts in queue. Waiting for next available account...", file=sys.stderr)
-                        await asyncio.sleep(30)  # Wait and check queue again
+                        consecutive_queue_waits += 1
+                        wait_time = (queue_status['next_ready'] - datetime.now()).total_seconds() if queue_status['next_ready'] else 30
+                        
+                        print(f"⏳ All followers accounts in queue. Next ready in {wait_time:.0f}s (wait #{consecutive_queue_waits})", file=sys.stderr)
+                        print(f"📊 Current progress: {len(all_dm_followers)} DM followers found from {total_processed} processed", file=sys.stderr)
+                        
+                        # If we've been waiting too long, save progress and potentially exit
+                        if consecutive_queue_waits > 10:  # 5+ minutes of waiting
+                            print(f"⚠️  Long queue wait detected. Consider increasing account limits or retry later.", file=sys.stderr)
+                            if len(all_dm_followers) > 0:
+                                print(f"💾 Returning partial results: {len(all_dm_followers)} DM followers found so far", file=sys.stderr)
+                                return all_dm_followers
+                        
+                        # Smart wait - wait until account is ready or max 60 seconds
+                        wait_duration = min(wait_time + 10, 60) if wait_time > 0 else 30
+                        await asyncio.sleep(wait_duration)
                         continue
                     else:
-                        print("❌ No active followers accounts available, stopping", file=sys.stderr)
+                        print("❌ No active followers accounts available and none in queue, stopping", file=sys.stderr)
                         break
+                else:
+                    consecutive_queue_waits = 0  # Reset wait counter when accounts are available
                 
                 batch_limit = min(self.batch_size, limit - total_processed)
                 
@@ -633,6 +679,9 @@ class SmartBatchScraper:
                 total_processed += len(followers_batch)
                 
                 user_ids = [str(follower.id) for follower in followers_batch]
+                
+                # Re-check DM account availability after processing queue
+                active_dm_accounts = len([a for a in self.dm_check_accounts if a.is_active and not a.in_queue])
                 
                 if not self.dm_check_accounts or active_dm_accounts == 0:
                     print(f"⚠️  No DM check accounts available, skipping DM verification for this batch", file=sys.stderr)
@@ -673,7 +722,8 @@ class SmartBatchScraper:
                 queue_status = self.get_queue_status()
                 print(f"📊 Account status: {active_followers_accounts}/{len(self.followers_accounts)} followers accounts, {active_dm_accounts}/{len(self.dm_check_accounts)} DM check accounts available", file=sys.stderr)
                 if queue_status['total_queued'] > 0:
-                    print(f"⏳ Queue status: {queue_status['total_queued']} accounts queued, {queue_status['ready_soon']} ready soon", file=sys.stderr)
+                    next_ready_str = queue_status['next_ready'].strftime('%H:%M:%S') if queue_status['next_ready'] else 'unknown'
+                    print(f"⏳ Queue status: {queue_status['total_queued']} accounts queued, next ready at {next_ready_str}", file=sys.stderr)
                 
                 # Check if we're making progress
                 if len(followers_batch) < batch_limit // 5:
@@ -689,6 +739,10 @@ class SmartBatchScraper:
             
         except Exception as e:
             print(f"❌ Scraping error: {str(e)[:100]}", file=sys.stderr)
+            # Return partial results if we have any
+            if len(all_dm_followers) > 0:
+                print(f"💾 Returning partial results due to error: {len(all_dm_followers)} DM followers", file=sys.stderr)
+                return all_dm_followers
             return []
 
 async def scrape_with_smart_batch(username: str, limit: int, accounts_data: List[Dict], user_id: str = None, job_id: str = None) -> List[Dict[str, Any]]:
