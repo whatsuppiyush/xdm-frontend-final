@@ -367,24 +367,24 @@ class SmartBatchScraper:
         print(f"🔄 Using {selected_account.account_name} for {request_type} (usage: {selected_account.followers_requests if request_type == 'followers' else selected_account.dm_check_requests})", file=sys.stderr)
         return selected_account
 
-    async def get_followers_batch(self, user_id: str, limit: int, seen_user_ids: Set[str] = None, cursor: str = None) -> tuple[List[Any], str]:
-        """Get a batch of followers using available accounts with rotation and cursor support"""
+    async def get_followers_batch(self, user_id: str, limit: int, seen_user_ids: Set[str] = None, offset: int = 0) -> tuple[List[Any], int]:
+        """Get a batch of followers using available accounts with offset-based pagination"""
         followers = []
-        next_cursor = cursor
+        next_offset = offset
         
         if seen_user_ids is None:
             seen_user_ids = set()
         
         if not self.followers_accounts:
             print("No followers accounts available", file=sys.stderr)
-            return followers, next_cursor
+            return followers, next_offset
         
         # Get available followers accounts (not in queue)
         available_accounts = [acc for acc in self.followers_accounts if not acc.in_queue and acc.is_active]
         
         if not available_accounts:
             print("All followers accounts are in queue or inactive", file=sys.stderr)
-            return followers, next_cursor
+            return followers, next_offset
         
         # Try each available followers account until we get enough data
         for account in available_accounts:
@@ -395,25 +395,30 @@ class SmartBatchScraper:
                 count = 0
                 remaining_needed = limit - len(followers)
                 
-                print(f"📥 Fetching followers using {account.account_name} (need {remaining_needed} more)...", file=sys.stderr)
+                print(f"📥 Fetching followers using {account.account_name} (need {remaining_needed} more, offset: {offset})...", file=sys.stderr)
                 
-                # Use a reasonable multiplier to account for duplicates and filtering
-                fetch_limit = min(remaining_needed * 3, 1000)  # Cap at 1000 to avoid excessive fetching
+                # Use a larger fetch limit to account for filtering and duplicates
+                # But also account for the offset to avoid fetching too much
+                fetch_limit = min(remaining_needed * 4 + offset, 2000)  # Cap at 2000 to avoid excessive fetching
                 fetched_count = 0
+                skipped_count = 0
+                current_offset = 0
                 
-                # Use cursor for pagination if available
-                follower_iterator = account.api.followers(user_id, limit=fetch_limit)
-                if cursor:
-                    # Try to resume from cursor - note: twscrape may not support direct cursor passing
-                    # We'll track our own position instead
-                    print(f"🔄 Attempting to use cursor for pagination", file=sys.stderr)
-                
-                async for follower in follower_iterator:
+                # Use twscrape's followers method with a larger limit to get more data
+                async for follower in account.api.followers(user_id, limit=fetch_limit):
                     fetched_count += 1
+                    
+                    # Skip followers until we reach our offset
+                    if current_offset < offset:
+                        current_offset += 1
+                        skipped_count += 1
+                        continue
+                    
                     follower_id = str(follower.id)
                     
                     # Skip if we've already seen this user
                     if follower_id in seen_user_ids:
+                        skipped_count += 1
                         continue
                     
                     if self.is_likely_dm_available(follower):
@@ -428,11 +433,12 @@ class SmartBatchScraper:
                     else:
                         # Still add to seen_user_ids to avoid checking again
                         seen_user_ids.add(follower_id)
+                        skipped_count += 1
                     
-                    # Update cursor position - use last processed follower ID as cursor
-                    next_cursor = follower_id
+                    # Update offset for next batch
+                    next_offset = offset + fetched_count - skipped_count
                 
-                print(f"✅ Got {count} new followers from {account.account_name} (fetched {fetched_count}, skipped {fetched_count - count} duplicates/filtered)", file=sys.stderr)
+                print(f"✅ Got {count} new followers from {account.account_name} (fetched {fetched_count}, skipped {skipped_count} for offset/duplicates/filtered)", file=sys.stderr)
                 
                 # Update account usage
                 account.followers_requests += 1
@@ -445,10 +451,10 @@ class SmartBatchScraper:
                 
                 # If we didn't get many new followers, we might be hitting duplicates or end of data
                 if count < max(1, remaining_needed // 20) and fetched_count > 0:
-                    print(f"⚠️  Low new follower rate ({count}/{fetched_count}) from {account.account_name}, trying next account", file=sys.stderr)
-                    # Don't continue immediately - this might be end of unique data
-                    if fetched_count < fetch_limit // 2:  # If we got much less than requested
-                        print(f"⚠️  Fetched significantly less than requested ({fetched_count} < {fetch_limit//2}), likely end of data", file=sys.stderr)
+                    print(f"⚠️  Low new follower rate ({count}/{fetched_count}) from {account.account_name}", file=sys.stderr)
+                    # If we fetched significantly less than requested, we might be at the end
+                    if fetched_count < fetch_limit // 3:  # If we got much less than requested
+                        print(f"⚠️  Fetched significantly less than requested ({fetched_count} < {fetch_limit//3}), likely end of data", file=sys.stderr)
                         break
                     continue
                 
@@ -462,7 +468,126 @@ class SmartBatchScraper:
                     print(f"❌ Error with {account.account_name}: {error_msg[:50]}", file=sys.stderr)
                     account.consecutive_failures += 1
                     
-        return followers, next_cursor
+        return followers, next_offset
+
+    async def get_followers_batch_multi_start(self, user_id: str, limit: int, seen_user_ids: Set[str] = None, batch_number: int = 0) -> tuple[List[Any], int]:
+        """Get followers using multiple accounts with different starting strategies"""
+        followers = []
+        
+        if seen_user_ids is None:
+            seen_user_ids = set()
+        
+        if not self.followers_accounts:
+            print("No followers accounts available", file=sys.stderr)
+            return followers, batch_number + 1
+        
+        # Get available followers accounts (not in queue)
+        available_accounts = [acc for acc in self.followers_accounts if not acc.in_queue and acc.is_active]
+        
+        if not available_accounts:
+            print("All followers accounts are in queue or inactive", file=sys.stderr)
+            return followers, batch_number + 1
+        
+        # Use different strategies for different accounts and batch numbers
+        strategies = [
+            ("recent", "Get most recent followers"),
+            ("offset", "Get followers with offset"),
+            ("large_fetch", "Get large batch and filter")
+        ]
+        
+        strategy_index = batch_number % len(strategies)
+        strategy, description = strategies[strategy_index]
+        
+        print(f"📥 Using strategy '{strategy}' ({description}) for batch {batch_number}", file=sys.stderr)
+        
+        for account_idx, account in enumerate(available_accounts):
+            if len(followers) >= limit:
+                break
+                
+            try:
+                count = 0
+                remaining_needed = limit - len(followers)
+                
+                print(f"📥 Fetching followers using {account.account_name} (need {remaining_needed} more)...", file=sys.stderr)
+                
+                # Adjust fetch strategy based on batch number and account
+                if strategy == "recent":
+                    # Get recent followers (default behavior)
+                    fetch_limit = min(remaining_needed * 3, 1000)
+                    skip_count = 0
+                elif strategy == "offset":
+                    # Skip some followers to get different sets
+                    fetch_limit = min(remaining_needed * 4, 1500)
+                    skip_count = (batch_number * 200) + (account_idx * 100)
+                else:  # large_fetch
+                    # Get a large batch and filter more aggressively
+                    fetch_limit = min(remaining_needed * 6, 2000)
+                    skip_count = batch_number * 50
+                
+                fetched_count = 0
+                skipped_count = 0
+                current_skip = 0
+                
+                print(f"🔄 Strategy: {strategy}, fetch_limit: {fetch_limit}, skip_count: {skip_count}", file=sys.stderr)
+                
+                # Use twscrape's followers method
+                async for follower in account.api.followers(user_id, limit=fetch_limit):
+                    fetched_count += 1
+                    
+                    # Skip followers based on strategy
+                    if current_skip < skip_count:
+                        current_skip += 1
+                        skipped_count += 1
+                        continue
+                    
+                    follower_id = str(follower.id)
+                    
+                    # Skip if we've already seen this user
+                    if follower_id in seen_user_ids:
+                        skipped_count += 1
+                        continue
+                    
+                    if self.is_likely_dm_available(follower):
+                        # Avoid duplicates within this batch too
+                        if not any(str(f.id) == follower_id for f in followers):
+                            followers.append(follower)
+                            seen_user_ids.add(follower_id)
+                            count += 1
+                            
+                            if len(followers) >= limit:
+                                break
+                    else:
+                        # Still add to seen_user_ids to avoid checking again
+                        seen_user_ids.add(follower_id)
+                        skipped_count += 1
+                
+                print(f"✅ Got {count} new followers from {account.account_name} (fetched {fetched_count}, skipped {skipped_count})", file=sys.stderr)
+                
+                # Update account usage
+                account.followers_requests += 1
+                account.last_used = datetime.now()
+                account.consecutive_failures = 0  # Reset on success
+                
+                # If we got a good amount, break to avoid overusing one account
+                if count >= remaining_needed // 2 and len(followers) > 0:
+                    break
+                
+                # If we didn't get many new followers, try next account
+                if count < max(1, remaining_needed // 20) and fetched_count > 0:
+                    print(f"⚠️  Low new follower rate ({count}/{fetched_count}) from {account.account_name}", file=sys.stderr)
+                    continue
+                
+            except Exception as e:
+                error_msg = str(e)
+                if "rate limit" in error_msg.lower() or "429" in error_msg or "No account available" in error_msg:
+                    print(f"🚫 Rate limit hit on {account.account_name}, adding to queue", file=sys.stderr)
+                    self.add_account_to_queue(account, 'followers', 15)
+                    continue
+                else:
+                    print(f"❌ Error with {account.account_name}: {error_msg[:50]}", file=sys.stderr)
+                    account.consecutive_failures += 1
+                    
+        return followers, batch_number + 1
 
     async def check_single_dm_availability(self, api: API, user_id: str) -> tuple[str, Optional[bool]]:
         """Check DM availability for a single user"""
@@ -595,8 +720,8 @@ class SmartBatchScraper:
         except Exception:
             return None
 
-    async def scrape_smart_batch(self, username: str, limit: int, resume_cursor: str = None) -> List[Dict[str, Any]]:
-        """Optimized main scraping function with queue-based rate limit handling"""
+    async def scrape_smart_batch(self, username: str, limit: int, resume_offset: int = 0) -> List[Dict[str, Any]]:
+        """Optimized main scraping function with offset-based pagination"""
         try:
             if not self.followers_accounts:
                 print("No accounts available for followers API", file=sys.stderr)
@@ -629,7 +754,7 @@ class SmartBatchScraper:
             all_dm_followers = []
             seen_user_ids = set()
             total_processed = 0  # Track total followers processed, not just DM-available
-            cursor = resume_cursor  # Resume from where we left off
+            offset = resume_offset  # Resume from where we left off
             consecutive_empty_batches = 0
             consecutive_queue_waits = 0  # Track how long we've been waiting
             
@@ -637,8 +762,8 @@ class SmartBatchScraper:
             self._recent_batch_sizes = []
             max_seen_ids = 50000  # Limit memory usage by capping seen IDs
             
-            if resume_cursor:
-                print(f"🔄 Resuming from cursor: {resume_cursor[:20]}...", file=sys.stderr)
+            if resume_offset > 0:
+                print(f"🔄 Resuming from offset: {resume_offset}", file=sys.stderr)
             
             while total_processed < limit:
                 # ALWAYS process queue first to check for ready accounts
@@ -701,26 +826,33 @@ class SmartBatchScraper:
                 
                 batch_limit = min(self.batch_size, limit - total_processed)
                 
-                followers_batch, cursor = await self.get_followers_batch(user.id, batch_limit, seen_user_ids, cursor)
+                # Switch to multi-start strategy if we're getting too many duplicates
+                if consecutive_empty_batches > 0 or (hasattr(self, '_recent_batch_sizes') and 
+                    len(self._recent_batch_sizes) >= 2 and 
+                    all(size < 50 for size in self._recent_batch_sizes[-2:])):
+                    print(f"🔄 Switching to multi-start strategy due to low batch sizes", file=sys.stderr)
+                    followers_batch, offset = await self.get_followers_batch_multi_start(user.id, batch_limit, seen_user_ids, offset)
+                else:
+                    followers_batch, offset = await self.get_followers_batch(user.id, batch_limit, seen_user_ids, offset)
                 
                 if not followers_batch:
                     consecutive_empty_batches += 1
-                    print(f"⚠️  Empty batch #{consecutive_empty_batches}, cursor: {cursor[:20] if cursor else 'None'}", file=sys.stderr)
+                    print(f"⚠️  Empty batch #{consecutive_empty_batches}, offset: {offset}", file=sys.stderr)
                     
                     if consecutive_empty_batches >= 3:
                         print("⚠️  Multiple empty batches, likely reached end of available followers", file=sys.stderr)
                         break
                     
-                    # If we have a cursor but getting empty batches, we might be at the end
-                    if cursor and consecutive_empty_batches >= 2:
-                        print("⚠️  Have cursor but getting empty batches, likely at end of data", file=sys.stderr)
+                    # If we have an offset but getting empty batches, we might be at the end
+                    if offset > 0 and consecutive_empty_batches >= 2:
+                        print("⚠️  Have offset but getting empty batches, likely at end of data", file=sys.stderr)
                         break
                         
                     continue
                 else:
                     consecutive_empty_batches = 0
                 
-                print(f"📊 Processing batch of {len(followers_batch)} followers (cursor: {cursor[:20] if cursor else 'None'})", file=sys.stderr)
+                print(f"📊 Processing batch of {len(followers_batch)} followers (offset: {offset})", file=sys.stderr)
                 
                 # Update total processed count
                 total_processed += len(followers_batch)

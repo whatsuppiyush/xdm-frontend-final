@@ -111,7 +111,7 @@ export async function POST(request: Request) {
           const pythonProcess = spawn(pythonExecutable, [
             scriptPath,
             username,
-            String(updatedCount / 2), // Use user's requested count (divided by 2 since not all will be DM-available)
+            String(updatedCount), // Use full requested count since we now have better pagination
             '--accounts-json', accountsString,
             '--debug' // Enable debug logging to see what's happening
           ]);
@@ -133,10 +133,10 @@ export async function POST(request: Request) {
               if (code === 0) {
                 try {
                   const items = JSON.parse(scriptOutput);
-                  console.log(`Python script returned ${items.length} followers (requested ${updatedCount / 2})`);
+                  console.log(`Python script returned ${items.length} followers (requested ${updatedCount})`);
                   
                   // Check if we got significantly fewer results than expected
-                  const expectedCount = updatedCount / 2;
+                  const expectedCount = updatedCount;
                   const actualCount = items.length;
                   const completionRate = actualCount / expectedCount;
                   
