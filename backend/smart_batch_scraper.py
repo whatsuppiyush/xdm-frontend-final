@@ -370,85 +370,142 @@ class SmartBatchScraper:
     async def get_followers_batch(self, user_id: str, limit: int, seen_user_ids: Set[str] = None, cursor: str = None) -> tuple[List[Any], str]:
         """Get a batch of followers using available accounts with rotation and cursor support"""
         followers = []
-        next_cursor = cursor
+        current_cursor = cursor # Use a new variable for the current batch's cursor
+        next_cursor_for_return = cursor # This will be updated if a new cursor is found
         
         if seen_user_ids is None:
             seen_user_ids = set()
         
         if not self.followers_accounts:
             print("No followers accounts available", file=sys.stderr)
-            return followers, next_cursor
+            return followers, next_cursor_for_return
         
-        # Get available followers accounts (not in queue)
         available_accounts = [acc for acc in self.followers_accounts if not acc.in_queue and acc.is_active]
         
         if not available_accounts:
             print("All followers accounts are in queue or inactive", file=sys.stderr)
-            return followers, next_cursor
+            return followers, next_cursor_for_return
         
-        # Try each available followers account until we get enough data
-        for account in available_accounts:
+        for account_info in available_accounts:
             if len(followers) >= limit:
                 break
-                
+            
             try:
                 count = 0
                 remaining_needed = limit - len(followers)
+                print(f"📥 Fetching followers using {account_info.account_name} (need {remaining_needed} more, cursor: {str(current_cursor)[:20]}...)", file=sys.stderr)
                 
-                print(f"📥 Fetching followers using {account.account_name} (need {remaining_needed} more)...", file=sys.stderr)
-                
-                # Use a much larger multiplier to account for duplicates and filtering
-                fetch_limit = remaining_needed * 5
-                fetched_count = 0
-                
-                async for follower in account.api.followers(user_id, limit=fetch_limit):
-                    fetched_count += 1
-                    follower_id = str(follower.id)
-                    
-                    # Skip if we've already seen this user
-                    if follower_id in seen_user_ids:
-                        continue
-                    
-                    if self.is_likely_dm_available(follower):
-                        # Avoid duplicates within this batch too
-                        if not any(str(f.id) == follower_id for f in followers):
-                            followers.append(follower)
-                            seen_user_ids.add(follower_id)
-                            count += 1
+                fetch_limit = remaining_needed * 5 # Keep a higher fetch limit
+                fetched_this_call = 0
+                processed_this_call = 0
+
+                # Use followers_raw and iterate through responses
+                async for resp in account_info.api.followers_raw(user_id, limit=fetch_limit, cursor=current_cursor):
+                    if resp.status_code == 200:
+                        raw_data = resp.json()
+                        # Path to entries and cursor can vary, this is a common structure
+                        # Assuming instructions -> timelineAddEntries -> entries
+                        # Or instructions -> replaceEntry -> entry (for some cursor types)
+                        entries = []
+                        timeline_instructions = raw_data.get('data', {}).get('user', {}).get('result', {}).get('timeline_v2', {}).get('timeline', {}).get('instructions', [])
+                        
+                        for instruction in timeline_instructions:
+                            if instruction.get('type') == 'TimelineAddEntries':
+                                entries.extend(instruction.get('entries', []))
+                            elif instruction.get('type') == 'TimelinePinEntry': # Pinned tweet, skip
+                                pass 
+
+                        new_cursor_found_in_batch = False
+                        for entry in entries:
+                            entry_id = entry.get('entryId', '')
+                            if entry_id.startswith('cursor-bottom-') or entry_id.startswith('sq-cursor-bottom'):
+                                new_cursor_value = entry.get('content', {}).get('value')
+                                if new_cursor_value:
+                                    next_cursor_for_return = new_cursor_value
+                                    new_cursor_found_in_batch = True
+                                    # print(f"DEBUG: Found new bottom cursor: {str(next_cursor_for_return)[:30]}...", file=sys.stderr)
+                                continue # Skip cursor entries from user processing
                             
-                            if len(followers) >= limit:
-                                break
+                            # Extract user from itemContent or content
+                            item_content = entry.get('content', {}).get('itemContent', {})
+                            if not item_content:
+                                item_content = entry.get('content', {}).get('content', {}).get('itemContent', {})
+                            
+                            user_results = item_content.get('user_results', {}).get('result', {})
+                            if user_results:
+                                legacy_user_data = user_results.get('legacy', {})
+                                if legacy_user_data:
+                                    fetched_this_call +=1
+                                    # Simulate a User object or adapt extract_user_data
+                                    # For simplicity, creating a mock object with necessary fields
+                                    from types import SimpleNamespace
+                                    follower = SimpleNamespace(
+                                        id=user_results.get('rest_id'),
+                                        # Map other fields as needed by is_likely_dm_available and extract_user_data
+                                        # This requires knowing what fields those functions expect.
+                                        # For now, we'll assume 'id' is primary for seen_user_ids and is_likely_dm_available handles missing fields.
+                                        username=legacy_user_data.get('screen_name'),
+                                        followersCount=legacy_user_data.get('followers_count'),
+                                        followingCount=legacy_user_data.get('friends_count'),
+                                        verified=user_results.get('is_blue_verified'), # or legacy_user_data.get('verified')
+                                        protected=legacy_user_data.get('protected')
+                                    )
+                                    
+                                    if follower.id:
+                                        follower_id_str = str(follower.id)
+                                        if follower_id_str in seen_user_ids:
+                                            continue
+                                        
+                                        if self.is_likely_dm_available(follower):
+                                            if not any(str(f.id) == follower_id_str for f in followers):
+                                                followers.append(follower)
+                                                seen_user_ids.add(follower_id_str)
+                                                count += 1
+                                                processed_this_call += 1
+                                                if len(followers) >= limit:
+                                                    break
+                                        else:
+                                            seen_user_ids.add(follower_id_str) # Still mark as seen
+                        
+                        if len(followers) >= limit or not new_cursor_found_in_batch:
+                            # If we have enough or no new cursor, stop this account's turn
+                            if not new_cursor_found_in_batch and fetched_this_call > 0 :
+                                print(f"⚠️ No new cursor found in batch from {account_info.account_name}, might be end.", file=sys.stderr)
+                            break 
+                        else:
+                            current_cursor = next_cursor_for_return # Use the new cursor for the next raw API call with THIS account
+
+                    elif resp.status_code == 429: # Rate limit
+                        print(f"🚫 Rate limit hit on {account_info.account_name} (raw fetch), adding to queue", file=sys.stderr)
+                        self.add_account_to_queue(account_info, 'followers', 15)
+                        break # Stop using this account for now
                     else:
-                        # Still add to seen_user_ids to avoid checking again
-                        seen_user_ids.add(follower_id)
+                        print(f"❌ HTTP Error {resp.status_code} with {account_info.account_name} (raw fetch): {str(resp.text)[:100]}", file=sys.stderr)
+                        account_info.consecutive_failures += 1
+                        break # Stop using this account for now
                 
-                print(f"✅ Got {count} new followers from {account.account_name} (fetched {fetched_count}, skipped {fetched_count - count} duplicates/filtered)", file=sys.stderr)
+                print(f"✅ Got {count} new followers from {account_info.account_name} (fetched raw {fetched_this_call}, processed {processed_this_call})", file=sys.stderr)
+                account_info.followers_requests += 1
+                account_info.last_used = datetime.now()
+                account_info.consecutive_failures = 0
                 
-                # Update account usage
-                account.followers_requests += 1
-                account.last_used = datetime.now()
-                account.consecutive_failures = 0  # Reset on success
-                
-                # If we got a good amount, break to avoid overusing one account
                 if count >= remaining_needed // 2 and len(followers) > 0:
                     break
-                
-                # If we didn't get many new followers, we might be hitting duplicates
-                if count < remaining_needed // 10 and fetched_count > 0:
-                    print(f"⚠️  Low new follower rate ({count}/{fetched_count}) from {account.account_name}, trying next account", file=sys.stderr)
+                if count < remaining_needed // 10 and fetched_this_call > 0:
+                    print(f"⚠️ Low new follower rate ({count}/{fetched_this_call}) from {account_info.account_name}, trying next account", file=sys.stderr)
                     continue
-                
+            
             except Exception as e:
                 error_msg = str(e)
                 if "rate limit" in error_msg.lower() or "429" in error_msg or "No account available" in error_msg:
-                    print(f"🚫 Rate limit hit on {account.account_name}, adding to queue", file=sys.stderr)
-                    self.add_account_to_queue(account, 'followers', 15)
+                    print(f"🚫 Rate limit hit on {account_info.account_name}, adding to queue", file=sys.stderr)
+                    self.add_account_to_queue(account_info, 'followers', 15)
                     continue
                 else:
-                    print(f"❌ Error with {account.account_name}: {error_msg[:50]}", file=sys.stderr)
-                    account.consecutive_failures += 1
-                    
-        return followers, next_cursor
+                    print(f"❌ Error with {account_info.account_name}: {error_msg[:150]} at line {e.__traceback__.tb_lineno if e.__traceback__ else 'N/A'}", file=sys.stderr)
+                    account_info.consecutive_failures += 1
+        
+        return followers, next_cursor_for_return
 
     async def check_single_dm_availability(self, api: API, user_id: str) -> tuple[str, Optional[bool]]:
         """Check DM availability for a single user"""
@@ -644,7 +701,7 @@ class SmartBatchScraper:
                     for i, account in enumerate(self.followers_accounts):
                         queue_until = account.queue_until.strftime('%H:%M:%S') if account.queue_until else 'N/A'
                         status = "ACTIVE" if (account.is_active and not account.in_queue) else f"INACTIVE(active={account.is_active}, in_queue={account.in_queue}, queue_until={queue_until})"
-                        print(f"🔍 Follower account {i+1} ({account.account_name}): {status}", file=sys.stderr)
+                        print(f" Follower account {i+1} ({account.account_name}): {status}", file=sys.stderr)
                 
                 if active_followers_accounts == 0:
                     queue_status = self.get_queue_status()
@@ -799,16 +856,13 @@ async def main():
     args = parser.parse_args()
     
     if args.debug:
-        # Re-enable logging for debug mode
         logging.disable(logging.NOTSET)
         set_log_level("INFO")
         for logger_name in ['twscrape', 'httpx', 'httpcore']:
             logging.getLogger(logger_name).disabled = False
             logging.getLogger(logger_name).setLevel(logging.INFO)
     else:
-        # Keep all logs completely suppressed
         set_log_level("CRITICAL")
-        # Ensure twscrape internal logging is disabled
         try:
             from twscrape.logger import logger as tws_logger
             tws_logger.disabled = True
