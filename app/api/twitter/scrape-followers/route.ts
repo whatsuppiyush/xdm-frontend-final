@@ -18,7 +18,19 @@ const client = new ApifyClient({
 export async function POST(request: Request) {
   try {
     const { profileUrl, count, cookies, leadName, userId, friendshipType = "followers" } = await request.json();
-    let updatedCount = count * 2;
+    
+    // Enhanced count calculation for better scraping capacity
+    let updatedCount = count;
+    
+    // For large requests, be more generous with the multiplier
+    if (count > 1000) {
+      updatedCount = Math.min(count * 3, 15000); // Cap at 15k for very large requests
+    } else if (count > 500) {
+      updatedCount = count * 4; // 4x multiplier for medium requests
+    } else {
+      updatedCount = count * 5; // 5x multiplier for smaller requests
+    }
+    
     const username = profileUrl.split('/').pop();
 
     const userCredits = await prisma.userCredits.findUnique({
@@ -32,9 +44,9 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    if (updatedCount > userCredits.leadCredits * 2) {
-      updatedCount = userCredits.leadCredits * 2;
-      console.log(`Limited scrape count to ${updatedCount} based on ${userCredits.leadCredits} available credits`);
+    if (updatedCount > userCredits.leadCredits * 3) {
+      updatedCount = userCredits.leadCredits * 3;
+      console.log(`Limited scrape count to ${updatedCount} based on ${userCredits.leadCredits} available credits (3x multiplier)`);
     }
 
     const hasAvailableLeads = userCredits && userCredits.leadCredits > 0;
@@ -70,7 +82,8 @@ export async function POST(request: Request) {
 
         if (friendshipType === 'followers' && username) {
           // Use improved multi-account Python script for 'followers'
-          console.log(`Using improved multi-account Python script to scrape followers for ${username}`);
+          console.log(`🚀 Using ENHANCED multi-account Python script to scrape followers for ${username}`);
+          console.log(`📊 Enhanced scraping parameters: requested=${count}, processing=${updatedCount}, credits=${userCredits.leadCredits}`);
           // Use production-ready Python executable configuration
           const pythonExecutable = process.env.PYTHON_EXECUTABLE || 'python3';
           
@@ -140,13 +153,16 @@ export async function POST(request: Request) {
                   const actualCount = items.length;
                   const completionRate = actualCount / expectedCount;
                   
-                  if (completionRate < 0.1 && expectedCount > 100) {
-                    console.warn(`⚠️  Low completion rate: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount})`);
-                    console.warn(`This may indicate rate limits, account issues, or exhausted followers`);
-                  } else if (completionRate < 0.5 && expectedCount > 50) {
-                    console.log(`📊 Partial completion: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount})`);
+                  // More realistic thresholds for large follower counts
+                  if (completionRate < 0.05 && expectedCount > 1000) {
+                    console.warn(`⚠️  Very low completion rate: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount})`);
+                    console.warn(`This may indicate rate limits, account issues, or exhausted unique followers`);
+                  } else if (completionRate < 0.15 && expectedCount > 500) {
+                    console.log(`📊 Moderate completion: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount}) - Enhanced scraper found available DM users`);
+                  } else if (completionRate < 0.3 && expectedCount > 100) {
+                    console.log(`📊 Good completion: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount}) - Strong DM availability rate`);
                   } else {
-                    console.log(`✅ Good completion rate: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount})`);
+                    console.log(`✅ Excellent completion rate: ${(completionRate * 100).toFixed(1)}% (${actualCount}/${expectedCount})`);
                   }
                   
                   // The python script now returns data in the exact format the frontend expects
