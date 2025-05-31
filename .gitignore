@@ -7,7 +7,8 @@
 
 # testing
 /coverage
-
+examples
+.cursorrules
 # next.js
 /.next/
 /out/
@@ -42,3 +43,7 @@ next-env.d.ts
 /prisma/migrations/
 .cache
 screenshots
+
+# SQLite databases (not needed since we use MongoDB)
+*.db
+backend/accounts.db

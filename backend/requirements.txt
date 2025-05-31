@@ -1,0 +1,5 @@
+twscrape==0.17.0
+asyncio
+aiohttp
+httpx
+python-dateutil 

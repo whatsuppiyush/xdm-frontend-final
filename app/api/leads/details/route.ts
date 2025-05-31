@@ -6,6 +6,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
+    console.log(`Fetching lead details for ID: ${id}`);
+
     if (!id) {
       return NextResponse.json({ error: "Lead ID is required" }, { status: 400 });
     }
@@ -22,6 +24,8 @@ export async function GET(request: Request) {
       }
     });
 
+    console.log(`Found in AutomatedLead: ${leadDetails ? 'Yes' : 'No'}`);
+
     // If not found in AutomatedLead, try PublicLeads
     if (!leadDetails) {
       leadDetails = await prisma.publicLeads.findUnique({
@@ -34,11 +38,15 @@ export async function GET(request: Request) {
           followers: true
         }
       });
+      console.log(`Found in PublicLeads: ${leadDetails ? 'Yes' : 'No'}`);
     }
 
     if (!leadDetails) {
+      console.log(`Lead not found with ID: ${id}`);
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
+
+    console.log(`Returning lead details for ${leadDetails.leadName} with ${Array.isArray(leadDetails.followers) ? leadDetails.followers.length : 'unknown'} followers`);
 
     return NextResponse.json(leadDetails);
   } catch (error) {

@@ -1,9 +1,10 @@
 services:
   - type: web
-    name: xdm-frontend
-    env: node
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    name: xdm-frontend-final-preprod
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/healthz
     envVars:
       - key: NODE_ENV
         value: production
@@ -24,4 +25,10 @@ services:
       - key: OPENAI_API_KEY
         sync: false # User needs to add their OpenAI API key
       - key: RESEND_API_KEY
-        sync: false # User needs to add their Resend API key 
+        sync: false # User needs to add their Resend API key
+      - key: PYTHON_EXECUTABLE
+        value: python3
+      - key: TWS_RAISE_WHEN_NO_ACCOUNT
+        value: "1"
+      - key: PORT
+        value: "3000" 
