@@ -255,7 +255,19 @@ export async function POST(request: Request) {
           }
 
           const { items } = await client.dataset(run.defaultDatasetId).listItems();
-          const dmableFollowers = items.filter((item: any) => item.can_dm === true);
+          let processedItems = items; // Initialize with all items
+
+          if (friendshipType === "verifiedFollowers") {
+            // Filter for blue-verified users if that's the requested friendshipType
+            console.log(`Initial item count for verifiedFollowers from Apify: ${items.length}`);
+            processedItems = items.filter((item: any) => item.is_blue_verified === true);
+            console.log(`After is_blue_verified filter for verifiedFollowers: ${processedItems.length}`);
+          }
+          
+          const dmableFollowers = processedItems.filter((item: any) => item.can_dm === true);
+          if (friendshipType === "verifiedFollowers") {
+            console.log(`After can_dm filter (for verifiedFollowers): ${dmableFollowers.length}`);
+          }
           
           transformedFollowers = dmableFollowers.map((item: any) => ({
             id: item.userId || item.id,
@@ -264,8 +276,9 @@ export async function POST(request: Request) {
             bio: item.description || item.bio || "",
             followers: item.followers_count || item.followersCount || 0,
             following: item.following_count || item.followingCount || 0,
-            canDM: item.can_dm || item.canDM || false,
-            status: "Active"
+            canDM: item.can_dm || item.canDM || false, // Should be true due to the filter
+            status: "Active",
+            isVerified: item.is_blue_verified === true // Store verification status
           }));
 
           // Save cursor for Apify runs
