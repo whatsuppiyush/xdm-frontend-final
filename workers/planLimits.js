@@ -10,13 +10,13 @@ function calculateDailyMessageLimit(planType, quantity = 1) {
     } else if (planType === "Elite") {
       limit = DAILY_MESSAGE_LIMIT * 5;
     } else if (planType === "free") {
-      limit = 10;
+      limit = 0;
     }
   }
   return limit;
 }
 
-function getUserDailyMessageLimit(userCredits, defaultLimit = 10) {
+function getUserDailyMessageLimit(userCredits, defaultLimit = 0) {
   if (!userCredits) return defaultLimit;
   const { planType, quantity } = userCredits;
   return calculateDailyMessageLimit(planType, quantity);
