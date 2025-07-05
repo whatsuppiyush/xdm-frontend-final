@@ -37,7 +37,7 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({ isOpen, onClose, onUpgrade 
             Your current free plan includes:
           </p>
           <ul className="list-disc list-inside space-y-1 text-sm">
-            <li>Send 50 DMs/day</li>
+            <li>Send 10 DMs/day</li>
             <li>Campaigns need manual resumption after 72 hours</li>
             <li>Limited lead extraction</li>
           </ul>

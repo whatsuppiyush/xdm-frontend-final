@@ -411,7 +411,7 @@ export default function SubscriptionSettings() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                           <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
-                          <span>50 DMs per day (1,500/month)</span>
+                          <span>10 DMs per day (300/month)</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Check className="h-4 w-4 shrink-0 text-primary dark:text-purple-400" />
