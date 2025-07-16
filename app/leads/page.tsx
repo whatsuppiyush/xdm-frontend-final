@@ -10,8 +10,9 @@ import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { CookieRefreshDialog } from "@/components/ui/cookie-refresh-dialog";
 import LeadDetailsDialog from "@/components/leads/lead-details-dialog";
+import CSVImportDialog from "@/components/leads/csv-import-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Database, PlusCircle, Search } from "lucide-react";
+import { Database, PlusCircle, Search, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface LeadList {
@@ -53,6 +54,7 @@ export default function LeadsPage() {
     loading: true,
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
@@ -251,13 +253,23 @@ export default function LeadsPage() {
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Manage your Leads</h1>
-        <Button
-          onClick={() => setIsImporting(true)}
-          className="dark:bg-purple-600 dark:hover:bg-purple-700 text-white w-full sm:w-auto"
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add new leads
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button
+            onClick={() => setCsvImportOpen(true)}
+            variant="outline"
+            className="dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Import CSV
+          </Button>
+          <Button
+            onClick={() => setIsImporting(true)}
+            className="dark:bg-purple-600 dark:hover:bg-purple-700 text-white"
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add new leads
+          </Button>
+        </div>
       </div>
 
       <Card className="border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
@@ -435,6 +447,13 @@ export default function LeadsPage() {
           }}
         />
       )}
+
+      {/* CSV Import Dialog */}
+      <CSVImportDialog
+        isOpen={csvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
+        onSuccess={refreshLeads}
+      />
     </div>
   );
 }
