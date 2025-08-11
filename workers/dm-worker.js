@@ -66,15 +66,13 @@ class DMWorker {
   }
 
   async processNextTask() {
-    const queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
-    console.log(`Found ${queueKeys.length} campaign queues in Redis`);
-    for (const queueKey of queueKeys) {
-      const campaignId = queueKey.split(':')[1];
+    // Use a Redis set to track active campaigns instead of keys
+    const campaignIds = await redis.smembers('active_campaigns');
+    console.log(`Found ${campaignIds.length} active campaign IDs in Redis set`);
+    for (const campaignId of campaignIds) {
       if (!campaignId) continue;
-      
       const campaignQueue = new CampaignQueue(campaignId);
       await campaignQueue.loadFromRedis();
-      
       if (campaignQueue.queue.length > 0 && campaignQueue.status === 'Running') {
         // Distributed lock section
         const lock = new Lock({
@@ -82,7 +80,6 @@ class DMWorker {
           redis: redis,
           lease: 60000 // 60 seconds
         });
-
         if (await lock.acquire()) {
           let lockRenewal;
           try {
@@ -362,74 +359,51 @@ class DMWorker {
 
   async recoverActiveCampaigns() {
     try {
-      // Find all campaign queues in Redis
+      // Use Redis set for active campaigns
       console.log("Recovering active campaigns");
-      const queueKeys = await redis.keys(`${QUEUE_PREFIX}*`);
-      console.log(`Found ${queueKeys.length} campaign queues in Redis`);
-      if (queueKeys.length === 0) {
+      const campaignIds = await redis.smembers('active_campaigns');
+      console.log(`Found ${campaignIds.length} active campaign IDs in Redis set`);
+      if (campaignIds.length === 0) {
         return { recovered: 0 };
       }
-      
       let recoveredCount = 0;
-      
-      for (const queueKey of queueKeys) {
-        const campaignId = queueKey.split(':')[1];
+      for (const campaignId of campaignIds) {
         if (!campaignId) continue;
-        
         const campaign = await prisma.message.findUnique({ where: { id: campaignId } });
         if (!campaign) continue;
-        
         const campaignQueue = new CampaignQueue(campaignId);
         await campaignQueue.loadFromRedis();
-        
         if (campaignQueue.queue.length > 0 && campaignQueue.status !== 'Stopped') {
           console.log(`Found active campaign ${campaignId} with status ${campaignQueue.status}`);
-          
-          // For rate limited campaigns, check if limit has reset
           if (campaignQueue.status === 'Rate Limited') {
-            // Find a userId in the queue
             let userId = null;
             if (campaignQueue.queue.length > 0 && campaignQueue.queue[0].userId) {
               userId = campaignQueue.queue[0].userId;
             } else if (campaign.userId) {
               userId = campaign.userId;
             }
-            
             if (userId) {
               const today = new Date().toISOString().split('T')[0];
               const dailyLimitKey = `user:${userId}:daily_messages:${today}`;
               const dailyUsage = await redis.get(dailyLimitKey);
-              
-              // Get user's plan type and calculate their limit
-              const userCredits = await prisma.userCredits.findUnique({
-                where: { userId }
-              });
-              
+              const userCredits = await prisma.userCredits.findUnique({ where: { userId } });
               const userLimit = getUserDailyMessageLimit(userCredits);
               const adjustedLimit = getEnvironmentAdjustedLimit(userLimit);
-              
               if (!dailyUsage || parseInt(dailyUsage) < adjustedLimit) {
-                // Resume campaign
                 campaignQueue.status = 'Running';
                 await campaignQueue.saveToRedis();
-                
                 await prisma.message.update({
                   where: { id: campaignId },
                   data: { status: 'In Progress' }
                 });
-                
                 recoveredCount++;
               }
             }
-          }
-          // For Running campaigns, ensure they're actually running
-          else if (campaignQueue.status === 'Running') {
-            // Mark as recovered
+          } else if (campaignQueue.status === 'Running') {
             recoveredCount++;
           }
         }
       }
-      
       console.log(`Recovered ${recoveredCount} campaigns`);
       return { recovered: recoveredCount };
     } catch (error) {
